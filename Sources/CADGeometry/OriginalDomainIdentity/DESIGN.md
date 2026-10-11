@@ -280,9 +280,9 @@ by this plan, and no whole-seven/87 completion is implied by DI completion.
 | M2 / DIA.4.I.M2 | Complete finite Native CS/SSI DI consumption for all spans, finite periodic selections and exact request sets | M1 and existing Native law/identity contracts | Actual public requests cover open/closed/singleton/disconnected/excluded selections, all chart sides and independent cycles; complete parameter relations and retained original correspondence |
 | M3 / DIA.4.I.M3 | Complete linear/plane and angular/analytic source-domain issuance | M1 plus the particular source laws required by each branch | Unbounded line/plane support, stored-N evaluation/UV correspondence, original conic/analytic UV, genuine angular periods, poles/seams and all branches; image-only equations do not close the milestone |
 | M4 / DIA.4.I.M4 | Complete operation-word, parameter-image, procedural and implicit/certified/lift/join/guide domain composition | M1 plus each branch's actual child-law/correspondence capability | Whole descendant support pullback, all preimages/guards/lifts and construction boundaries; nonlinear/singular maps preserve relational correspondence rather than claim an inverse |
-| M5 / DIA.4.I.M5 | Complete structural identity issuance for the covered source families | M3/M4; unchanged Native/intrinsic proofs are reused | Source-scoped join/seam/pole/shared-boundary proofs, exact restriction/composition and one-sided roles; equal XYZ at distinct nonstructural tuples stays distinct |
+| M5 / DIA.4.I.M5 | Complete structural identity issuance for the covered source families | The exact source/domain receipts consumed by each public cell; no whole-M4 execution barrier | Source-scoped join/seam/pole/shared-boundary proofs, exact restriction/composition and one-sided roles; equal XYZ at distinct nonstructural tuples stays distinct |
 | M6 / DIA.4.I.M6 | Connect boundary and self-contact consumers through the fixed typed DI ports | M2; supported DI3 identity proofs permit early work | Boundary retains certified material predicates/raw-cell ownership; self-contact excludes only proved structural pairs; generic wiring is independent of unfinished source-family bodies |
-| M7 / DIA.4.I.M7 | Finish general CS/SSI/XYZ publication and exercise every applicable family/consumer combination, including M6 consumers | M2-M6 | Public success/exclusion, complete XYZ/UV/fiber correspondence and symbolic periodic-family results; required cases cannot finish as unsupported; immutable prepared reuse and explicit later-query admission |
+| M7 / DIA.4.I.M7 | Finish general CS/SSI/XYZ publication and exercise every applicable family/consumer combination, including M6 consumers | Per-cell retained source/domain/identity/consumer receipts; aggregate closure still requires all applicable M2-M6 obligations | Public success/exclusion, complete XYZ/UV/fiber correspondence and symbolic periodic-family results; required cases cannot finish as unsupported; immutable prepared reuse and explicit later-query admission |
 | M8 / DIA.4.V and DIA.INT | Close stable final acceptance and latest-main integration | All implementation milestones | One scoped aggregate review, finding confirmation, changed-boundary Native/ASAN/ordinary/Embedded runtime evidence, source/artifact hashes and latest-main composition; no remaining required matrix cell |
 
 ```mermaid
@@ -294,9 +294,9 @@ flowchart TD
  M2 --> B[M6 boundary consuming body]
  M2 --> S[M6 self-contact consuming body]
  M3 --> M5[M5: full source-scoped identity]
- M4 --> M5
+ M4 -->|consumed receipt only| M5
  M2 --> M7[M7: complete public family and consumer matrix]
- M5 --> M7
+ M5 -->|required scoped receipt| M7
  B --> M7
  S --> M7
  M7 --> M8[M8: final acceptance and latest-main integration]
@@ -308,8 +308,9 @@ flowchart TD
  class M2,B,S,M7,M8 consumer;
 ```
 
-Arrows are milestone-level prerequisites, not permission to edit shared files in
-parallel. PROGRESS contains the source-delivery/file-owner serialization within
+Arrows describe receipt supply and aggregate closure, not a whole-M4 execution
+barrier for M5/M6 or permission to edit shared files in parallel. Public-cell
+execution is owned by [coverage acceptance](OriginalDomainCoverage/DESIGN.md#public-acceptance-cell-execution). PROGRESS contains the source-delivery/file-owner serialization within
 M3/M4. The verified word/image/traversal branch of M4 can start from M1 and its
 existing source receipts before the unrelated M3 source branches finish.
 

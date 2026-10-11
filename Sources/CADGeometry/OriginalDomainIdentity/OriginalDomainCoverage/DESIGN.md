@@ -356,6 +356,70 @@ the same build directory. Each milestone records actual behavioral evidence and
 its commit before it is marked complete. The matrix itself is not evidence that
 any missing source law is implemented.
 
+### Public acceptance cell execution
+
+M4-M8 work is scheduled by finite public acceptance cells, not by producer-only
+slices or completion of every unrelated M4 family. The mandatory family/consumer
+scope above is unchanged. Before changing a cell's production path, its record
+must name one reproducible public input, one independently derived expected
+result, the observed stopping operation, the necessary end-to-end change and the
+accepted evidence reference. A missing observation or constructor is an unresolved
+cell-definition task, never a passing cell or permission to narrow the family.
+
+The finite mapping must explicitly distinguish the five certified-curve variants,
+finite versus symbolic periodic publication, nonlinear/singular transport,
+non-Cartesian material and the applicable boundary/self/XYZ/projection consumers.
+A family name, generic success statement or product count is not an executable
+cell. Each discrete variant/probe receives its own stable cell ID and exact input;
+continuous parameter ranges and unbounded integer cycles stay within that cell's
+complete symbolic proof obligation, rather than becoming an enumerated test window.
+The existing acceptance scope is mapped, not extended. One passing example does
+not prove a generic family theorem.
+
+| Cell field | Required authority |
+|---|---|
+| Public input | Concrete original constructor/fixture, public API and exact request |
+| Expected result | Independent tuples/geometry/material/contact or complete exclusion, with all UV/image/fiber obligations |
+| Stop | Actual public-path diagnostic and source operation; distinguish observed behavior from a proposed explanation |
+| Necessary change | The smallest causal source -> DI -> required identity/consumer -> public-result path |
+| Receipt dependencies | Exact retained capabilities needed by this input; no dependency on all M4 |
+| Evidence | Initial red, changed-path success/failure/boundary/resources/cancel/lifetime targets, one scoped review and latest-main delivery |
+
+A new prerequisite is admitted only when this cell's concrete stop shows why an
+existing receipt cannot satisfy the next operation. Internal source/field/adapter
+commits may remain coherent checkpoints, but do not complete a public cell.
+Unchanged lower evidence is reused under its original premises; unrelated
+hardening and duplicate evidence acquisition are not additional cell work.
+Boundary/self identity dependencies are the actual consumed receipts. Unproved
+identity is left selected and cannot delay unrelated supported M5/M6 inputs.
+
+The first frozen public input is CS-POLY-01. Its original host is the four-cell
+planar Coons construction in
+[PolylineAtlasLiftProof.shape(multi:true)](../../../../Tests/OriginalPolylineAtlasLiftVerification/Proof.swift),
+and its authored pcurve is [(0,0),(0,0),(1/2,1/2),(1,1/2),(1/2,1/2)].
+Call DefaultCurveSurfaceIntersector.intersections with that SurfaceLiftCurve3D,
+the plane through (1/2,0,0) with normal unitX, default options and standard
+tolerance. The two distinct authored roots are T=sqrt(2)-1 and T=1; both have
+XYZ=(1/2,1/2,0). They must remain distinct with all original parameter/auxiliary UV
+and source authority. The first root is shared by incident closed charts; those
+representatives must not invent extra roots or erase the second traversal.
+
+The Native public diagnostic is retained at
+[CS-POLY-01 red](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-red/receipt.json).
+The generation-bound cached public dispatcher reports the U-domain failure from
+SurfaceParameterBox.validate. This is a red diagnosis, not four-target acceptance
+or proof of the exact intermediate enclosure. The causal bounds producer and
+actual chosen public branch must be traced before selecting the repair; interval
+clamping or tolerant source equality is not an allowed substitute. Existing
+polyline/Coons lift and plane-source/domain receipts are the initial dependencies;
+the distinct-polyline shared-field prerequisite is not needed by this input.
+
+PROGRESS.md remains the sole execution/status record. Its cell-mapping task must
+finish the remaining finite input/oracle/stop/change/evidence records before those
+cells enter production implementation. M7/M8 closure requires every applicable
+cell and the cumulative integration evidence; historical source-only completions
+remain internal premises.
+
 ### M3 primitive issuer implementation boundary
 
 Dedicated linear and plane covers retain the source-owned whole law/basis and
