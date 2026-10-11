@@ -1,0 +1,99 @@
+{
+  "cell": "CS-CERT-SPHERECONE-APEX-EMPTY-01",
+  "scope": "Complete empty oracle definition only. No public CS or CAD curve-point execution.",
+  "coefficientImport": {
+    "alpha": {
+      "bits": "3fddac670561bb50",
+      "exactRational": "522020799781813/1125899906842624",
+      "rationalBox": [
+        "29/64",
+        "31/64"
+      ]
+    },
+    "slope": {
+      "bits": "3fe0000000000001",
+      "exactRational": "4503599627370497/9007199254740992",
+      "rationalBox": [
+        "31/64",
+        "33/64"
+      ]
+    },
+    "cosine": {
+      "bits": "3fec9f25c5bfedd9",
+      "exactRational": "8056283928194521/9007199254740992",
+      "rationalBox": [
+        "7/8",
+        "29/32"
+      ]
+    },
+    "sine": {
+      "bits": "3fdc9f25c5bfedda",
+      "exactRational": "4028141964097261/9007199254740992",
+      "rationalBox": [
+        "7/16",
+        "15/32"
+      ]
+    },
+    "quadraticA": {
+      "bits": "3ff4000000000000",
+      "exactRational": "5/4",
+      "rationalBox": [
+        "79/64",
+        "81/64"
+      ]
+    },
+    "axialCenter": {
+      "bits": "0000000000000000",
+      "exactRational": "0",
+      "rationalBox": [
+        "0",
+        "0"
+      ]
+    },
+    "radialCosine": {
+      "bits": "0000000000000000",
+      "exactRational": "0",
+      "rationalBox": [
+        "0",
+        "0"
+      ]
+    },
+    "radialSine": {
+      "bits": "3ff0000000000000",
+      "exactRational": "1",
+      "rationalBox": [
+        "1",
+        "1"
+      ]
+    }
+  },
+  "trigonometricRange": [
+    "-1",
+    "1"
+  ],
+  "actualHeightInterval": {
+    "lower": -0.8000000000000015,
+    "lowerBits": "bfe99999999999a7",
+    "upper": 0.8000000000000015,
+    "upperBits": "3fe99999999999a7"
+  },
+  "strictRationalHeightUpper": "13/16",
+  "heightUpperExactRational": "7205759403792807/9007199254740992",
+  "independentRationalBoxHeightInterval": {
+    "lower": -0.892320298372515,
+    "lowerBits": "bfec8de34c622429",
+    "upper": 0.892320298372515,
+    "upperBits": "3fec8de34c622429"
+  },
+  "sourceSnapshotUnchanged": {
+    "Tests/CADGeometryTests/CertifiedSphereConeSpatialDifferentialBoundsTests.swift": true,
+    "Sources/CADGeometry/CertifiedSphereConeIntersectionCurve.swift": true,
+    "Sources/CADGeometry/AnalyticSurface3D.swift": true,
+    "Sources/CADGeometry/CanonicalSphereChart/CanonicalSphereAngularPhase.swift": true,
+    "Sources/CADGeometry/AnalyticBasis.swift": true,
+    "Sources/CADGeometry/OutwardIntervalArithmetic.swift": true
+  },
+  "formula": "B = a + k*(rc*cos(theta)+rs*sin(theta)); inverse = 1/(A*c); scale = 2*inverse; slant = B*scale; z = 0+c*slant. All operations outward; no tan=sin/cos cancellation.",
+  "conclusion": "For every original T in closed [0,1], z < 13/16 < 2, hence no intersection with plane Z=2 for any plane UV. Empty tuple/root/image/incident result is complete for this frozen actual input.",
+  "remaining": "Actual public source-consumption, coverage/exclusion publication and host UV receipt consumption remain unobserved/unaccepted; sphere membership is not required by this empty oracle."
+}

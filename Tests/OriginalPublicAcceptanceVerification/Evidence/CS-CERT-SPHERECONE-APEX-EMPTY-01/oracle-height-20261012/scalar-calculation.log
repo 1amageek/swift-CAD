@@ -1,0 +1,66 @@
+{
+  "alpha" : {
+    "bits" : "3fddac670561bb50",
+    "decimal" : 0.46364760900080615
+  },
+  "axialCenter" : {
+    "bits" : "0000000000000000",
+    "decimal" : 0
+  },
+  "boxHeight" : {
+    "lower" : -0.89232029837251503,
+    "lowerBits" : "bfec8de34c622429",
+    "upper" : 0.89232029837251503,
+    "upperBits" : "3fec8de34c622429"
+  },
+  "cosine" : {
+    "bits" : "3fec9f25c5bfedd9",
+    "decimal" : 0.89442719099991586
+  },
+  "halfLinear" : {
+    "lower" : -0.50000000000000056,
+    "lowerBits" : "bfe0000000000005",
+    "upper" : 0.50000000000000056,
+    "upperBits" : "3fe0000000000005"
+  },
+  "height" : {
+    "lower" : -0.80000000000000149,
+    "lowerBits" : "bfe99999999999a7",
+    "upper" : 0.80000000000000149,
+    "upperBits" : "3fe99999999999a7"
+  },
+  "inverseQuadraticCosine" : {
+    "bits" : "3fec9f25c5bfedd9",
+    "decimal" : 0.89442719099991586
+  },
+  "quadraticA" : {
+    "bits" : "3ff4000000000000",
+    "decimal" : 1.25
+  },
+  "radialCosine" : {
+    "bits" : "0000000000000000",
+    "decimal" : 0
+  },
+  "radialSine" : {
+    "bits" : "3ff0000000000000",
+    "decimal" : 1
+  },
+  "scale" : {
+    "bits" : "3ffc9f25c5bfedd9",
+    "decimal" : 1.7888543819998317
+  },
+  "sine" : {
+    "bits" : "3fdc9f25c5bfedda",
+    "decimal" : 0.44721359549995798
+  },
+  "slant" : {
+    "lower" : -0.8944271909999173,
+    "lowerBits" : "bfec9f25c5bfede6",
+    "upper" : 0.8944271909999173,
+    "upperBits" : "3fec9f25c5bfede6"
+  },
+  "slope" : {
+    "bits" : "3fe0000000000001",
+    "decimal" : 0.50000000000000011
+  }
+}

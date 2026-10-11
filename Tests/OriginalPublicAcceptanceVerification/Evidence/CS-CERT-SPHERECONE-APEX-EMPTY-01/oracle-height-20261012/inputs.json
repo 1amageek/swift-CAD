@@ -1,0 +1,90 @@
+{
+  "scope": "Scalar coefficients and whole-angle height arithmetic only; no curve points, CAD modules or public CS execution.",
+  "inputs": {
+    "Tests/CADGeometryTests/CertifiedSphereConeSpatialDifferentialBoundsTests.swift": {
+      "sha256": "e3ae50fbe5c6fd472db9ec7614fbed0b1b1c8526faa72f0d4f10829fe0391d1a",
+      "excerpts": [
+        {
+          "lower": 602,
+          "upper": 626,
+          "text": "    private func apexReducedCurves()\n        throws -> [CertifiedAnalyticAnalyticIntersectionCurve]\n    {\n        let sphere = Surface3D.analytic(.sphere(\n            center: .origin,\n            radius: 1.0\n        ))\n        let cone = Surface3D.analytic(.cone(\n            apex: Point3D(x: 1.0, y: 0.0, z: 0.0),\n            axis: .unitZ,\n            halfAngle: atan(0.5)\n        ))\n        return try DefaultSurfaceSurfaceIntersector().intersections(\n            first: sphere,\n            second: cone,\n            tolerance: tolerance\n        ).compactMap { intersection in\n            guard case let .curve(result) = intersection,\n                  case let .analyticAnalytic(exact) = result.truth,\n                  case let .sphereCone(curve) = exact.definition,\n                  curve.componentKind == .apexReducedAngularInterval else {\n                return nil\n            }\n            return exact\n        }\n"
+        }
+      ]
+    },
+    "Sources/CADGeometry/CertifiedSphereConeIntersectionCurve.swift": {
+      "sha256": "df15cecad78b967d08a07862cc57459d581c5cbe142f1c5915fed8582faca967",
+      "excerpts": [
+        {
+          "lower": 191,
+          "upper": 193,
+          "text": "        var slope: Double {\n            tan(cone.halfAngle)\n        }\n"
+        },
+        {
+          "lower": 217,
+          "upper": 220,
+          "text": "        func halfLinear(at angle: Double) -> Double {\n            axialCenter + slope * (\n                radialCosine * cos(angle) + radialSine * sin(angle)\n            )\n"
+        },
+        {
+          "lower": 2666,
+          "upper": 2676,
+          "text": "        let inverseQuadraticCosine = 1.0 / (\n            configuration.quadraticA * cos(configuration.cone.halfAngle)\n        )\n        if componentKind == .apexReducedAngularInterval {\n            let scale = 2.0 * inverseQuadraticCosine\n            return ScalarDifferential(\n                value: halfLinear.value * scale,\n                first: halfLinear.first * scale,\n                second: halfLinear.second * scale,\n                third: halfLinear.third * scale\n            )\n"
+        },
+        {
+          "lower": 3345,
+          "upper": 3387,
+          "text": "        coneSurface: Surface3D,\n        tolerance: ModelingTolerance\n    ) throws -> Configuration {\n        try sphereSurface.validate(tolerance: tolerance)\n        try coneSurface.validate(tolerance: tolerance)\n        guard case let .sphere(sphere) = CanonicalAnalyticSurface(sphereSurface),\n              case let .cone(coneCanonical) = CanonicalAnalyticSurface(coneSurface) else {\n            throw KernelError(\n                phase: .geometry,\n                code: .invalidInput,\n                tolerance: tolerance,\n                message: \"A certified sphere-cone curve requires exact sphere and cone surfaces.\"\n            )\n        }\n        let cone = try canonicalCone(coneCanonical, tolerance: tolerance)\n        let centerOffset = sphere.center - cone.apex\n        let axialCenter = centerOffset.dot(cone.axis)\n        let radialCenter = centerOffset - cone.axis * axialCenter\n        let zeroPoint = try cone.surface.point(\n            u: 0.0,\n            v: 1.0,\n            tolerance: tolerance\n        )\n        let quarterPoint = try cone.surface.point(\n            u: Double.pi * 0.5,\n            v: 1.0,\n            tolerance: tolerance\n        )\n        let axialStep = cone.axis * cos(cone.halfAngle)\n        let sine = sin(cone.halfAngle)\n        let zeroRadial = (zeroPoint - cone.apex - axialStep) / sine\n        let quarterRadial = (quarterPoint - cone.apex - axialStep) / sine\n        let slope = tan(cone.halfAngle)\n        return Configuration(\n            sphere: sphere,\n            cone: cone,\n            axialCenter: axialCenter,\n            radialCosine: radialCenter.dot(zeroRadial),\n            radialSine: radialCenter.dot(quarterRadial),\n            quadraticA: 1.0 + slope * slope,\n            quadraticC: centerOffset.dot(centerOffset)\n                - sphere.radius * sphere.radius\n        )\n"
+        },
+        {
+          "lower": 690,
+          "upper": 712,
+          "text": "        let basis = try analyticOrthonormalBasis(\n            configuration.cone.axis,\n            tolerance: tolerance\n        )\n        let cosine = cos(configuration.cone.halfAngle)\n        let sine = sin(configuration.cone.halfAngle)\n        let radial = basis.u * cos(angle.value) + basis.v * sin(angle.value)\n        let radialFirst = -basis.u * sin(angle.value) + basis.v * cos(angle.value)\n        let radialSecond = -radial\n        let radialThird = -radialFirst\n        let generator = configuration.cone.axis * cosine + radial * sine\n        let generatorFirst = radialFirst * sine\n        let generatorSecond = radialSecond * sine\n        let generatorThird = radialThird * sine\n        let composedGeneratorFirst = generatorFirst * angle.first\n        let composedGeneratorSecond = generatorSecond\n                * (angle.first * angle.first)\n            + generatorFirst * angle.second\n        let composedGeneratorThird = generatorThird\n                * (angle.first * angle.first * angle.first)\n            + generatorSecond * (3.0 * angle.first * angle.second)\n            + generatorFirst * angle.third\n        let position = configuration.cone.apex + generator * slant.value\n"
+        }
+      ]
+    },
+    "Sources/CADGeometry/AnalyticSurface3D.swift": {
+      "sha256": "610cdfdbabe6cbf17e0329a90c9a5bfad563623c74eba4c84b44a4c7dd5aa977",
+      "excerpts": [
+        {
+          "lower": 349,
+          "upper": 352,
+          "text": "        case let .cone(apex, axis, halfAngle):\n            let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)\n            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)\n            return apex + axis * (v * cos(halfAngle)) + radial * (v * sin(halfAngle))\n"
+        }
+      ]
+    },
+    "Sources/CADGeometry/CanonicalSphereChart/CanonicalSphereAngularPhase.swift": {
+      "sha256": "97d01473ea26035f82e8f6a2224ff1219d02aefa49c99bcc05828bcd5156bba1",
+      "excerpts": [
+        {
+          "lower": 72,
+          "upper": 81,
+          "text": "    package static func canonicalValue(at label: Double, cosine: Bool) -> Double? {\n        if label == 0 || label == 2 * Double.pi || label == -2 * Double.pi {\n            return cosine ? 1 : 0\n        }\n        if label == Double.pi || label == -Double.pi { return cosine ? -1 : 0 }\n        if label == Double.pi * 0.5 { return cosine ? 0 : 1 }\n        if label == -Double.pi * 0.5 { return cosine ? 0 : -1 }\n        if label == Double.pi * 1.5 { return cosine ? 0 : -1 }\n        if label == -Double.pi * 1.5 { return cosine ? 0 : 1 }\n        return nil\n"
+        },
+        {
+          "lower": 121,
+          "upper": 128,
+          "text": "        if label.value.lower == label.value.upper,\n           let sine = canonicalValue(at: first, cosine: false),\n           let cos = canonicalValue(at: first, cosine: true) {\n            return SurfaceIntervalJet.applyingUnaryFunction(to: phase,\n                value: .exact(cosine ? cos : sine),\n                firstDerivative: .exact(cosine ? -sine : cos),\n                secondDerivative: .exact(cosine ? -cos : -sine),\n                thirdDerivative: .exact(cosine ? sine : -cos))\n"
+        }
+      ]
+    },
+    "Sources/CADGeometry/AnalyticBasis.swift": {
+      "sha256": "3e40e97b2c049f2df1be693bc1419578a779892bf0649c37c1d851eef00781ec",
+      "excerpts": [
+        {
+          "lower": 1,
+          "upper": 11,
+          "text": "import CADCore\n\nfunc analyticOrthonormalBasis(\n    _ normal: Vector3D,\n    tolerance: ModelingTolerance\n) throws -> (u: Vector3D, v: Vector3D) {\n    let reference = abs(normal.x) < 0.8 ? Vector3D.unitX : Vector3D.unitY\n    let u = try normal.cross(reference).normalized(tolerance: tolerance.distance)\n    let v = try normal.cross(u).normalized(tolerance: tolerance.distance)\n    return (u, v)\n}\n"
+        }
+      ]
+    },
+    "Sources/CADGeometry/OutwardIntervalArithmetic.swift": {
+      "sha256": "44dead5f59245c85c551d8864faea25aab9c11258a8eb60a9a322b659768a47a",
+      "excerpts": [
+        {
+          "lower": 14,
+          "upper": 185,
+          "text": "/// An interval whose arithmetic operations round away from the represented\n/// real result. The model is defined by its stored `Double` values; use\n/// `exact(_:)` for those inputs and `init(_:)` only when enclosing a value\n/// produced outside this arithmetic boundary.\npackage struct OutwardScalarInterval: Sendable {\n    package let lower: Double\n    package let upper: Double\n\n    package init(_ value: Double) {\n        lower = value.nextDown\n        upper = value.nextUp\n    }\n\n    package init(lower: Double, upper: Double) {\n        self.lower = lower\n        self.upper = upper\n    }\n\n    package static func exact(_ value: Double) -> OutwardScalarInterval {\n        OutwardScalarInterval(lower: value, upper: value)\n    }\n\n    package static func enclosing(_ values: [Double]) -> OutwardScalarInterval {\n        OutwardScalarInterval(\n            lower: (values.min() ?? -.infinity).nextDown,\n            upper: (values.max() ?? .infinity).nextUp\n        )\n    }\n\n    package static func enclosing(\n        _ values: [OutwardScalarInterval]\n    ) -> OutwardScalarInterval {\n        OutwardScalarInterval(\n            lower: values.map({ $0.lower }).min() ?? -.infinity,\n            upper: values.map({ $0.upper }).max() ?? .infinity\n        )\n    }\n\n    package static func + (\n        lhs: OutwardScalarInterval,\n        rhs: OutwardScalarInterval\n    ) -> OutwardScalarInterval {\n        OutwardScalarInterval(\n            lower: (lhs.lower + rhs.lower).nextDown,\n            upper: (lhs.upper + rhs.upper).nextUp\n        )\n    }\n\n    package static func - (\n        lhs: OutwardScalarInterval,\n        rhs: OutwardScalarInterval\n    ) -> OutwardScalarInterval {\n        OutwardScalarInterval(\n            lower: (lhs.lower - rhs.upper).nextDown,\n            upper: (lhs.upper - rhs.lower).nextUp\n        )\n    }\n\n    package static func * (\n        lhs: OutwardScalarInterval,\n        rhs: OutwardScalarInterval\n    ) -> OutwardScalarInterval {\n        let p00 = lhs.lower * rhs.lower\n        let p01 = lhs.lower * rhs.upper\n        let p10 = lhs.upper * rhs.lower\n        let p11 = lhs.upper * rhs.upper\n        // Preserve Sequence's ordered comparison, including signed zero and NaN.\n        var minimum = p00\n        var maximum = p00\n        if p01 < minimum { minimum = p01 }\n        if p01 > maximum { maximum = p01 }\n        if p10 < minimum { minimum = p10 }\n        if p10 > maximum { maximum = p10 }\n        if p11 < minimum { minimum = p11 }\n        if p11 > maximum { maximum = p11 }\n        return OutwardScalarInterval(\n            lower: minimum.nextDown,\n            upper: maximum.nextUp\n        )\n    }\n\n    package static prefix func - (\n        value: OutwardScalarInterval\n    ) -> OutwardScalarInterval {\n        OutwardScalarInterval(\n            lower: (-value.upper).nextDown,\n            upper: (-value.lower).nextUp\n        )\n    }\n\n    package func divided(\n        by denominator: OutwardScalarInterval\n    ) -> OutwardScalarInterval? {\n        guard isFinite, denominator.isFinite, denominator.excludesZero,\n              lower <= upper, denominator.lower <= denominator.upper else { return nil }\n        let q00 = lower / denominator.lower, q01 = lower / denominator.upper\n        let q10 = upper / denominator.lower, q11 = upper / denominator.upper\n        guard !q00.isNaN, !q01.isNaN, !q10.isNaN, !q11.isNaN else { return nil }\n        return .init(lower: min(q00, q01, q10, q11).nextDown,\n            upper: max(q00, q01, q10, q11).nextUp)\n    }\n\n    package func intersection(\n        with other: OutwardScalarInterval\n    ) -> OutwardScalarInterval? {\n        let intersectionLower = max(lower, other.lower)\n        let intersectionUpper = min(upper, other.upper)\n        guard intersectionLower <= intersectionUpper else { return nil }\n        return OutwardScalarInterval(\n            lower: intersectionLower,\n            upper: intersectionUpper\n        )\n    }\n\n    package func union(\n        _ other: OutwardScalarInterval\n    ) -> OutwardScalarInterval {\n        OutwardScalarInterval(\n            lower: min(lower, other.lower),\n            upper: max(upper, other.upper)\n        )\n    }\n\n    package func contains(_ value: Double) -> Bool {\n        lower <= value && value <= upper\n    }\n\n    package func intersects(_ other: OutwardScalarInterval) -> Bool {\n        lower <= other.upper && other.lower <= upper\n    }\n\n    package func isStrictlyInside(_ other: OutwardScalarInterval) -> Bool {\n        lower > other.lower && upper < other.upper\n    }\n\n    package var width: Double {\n        (upper - lower).nextUp\n    }\n\n    package var isFinite: Bool {\n        lower.isFinite && upper.isFinite\n    }\n\n    package var excludesZero: Bool {\n        lower > 0.0 || upper < 0.0\n    }\n\n    package var sign: Int? {\n        if lower > 0.0 { return 1 }\n        if upper < 0.0 { return -1 }\n        return nil\n    }\n\n    package var midpoint: Double {\n        if lower < 0, upper > 0 { return lower * 0.5 + upper * 0.5 }\n        return lower + (upper - lower) * 0.5\n    }\n\n    package var absoluteLowerBound: Double {\n        if lower > 0.0 {\n            return lower\n        }\n        if upper < 0.0 {\n            return -upper\n        }\n        return 0.0\n    }\n\n    package var absoluteUpperBound: Double {\n        max(abs(lower), abs(upper))\n    }\n}\n"
+        }
+      ]
+    }
+  }
+}

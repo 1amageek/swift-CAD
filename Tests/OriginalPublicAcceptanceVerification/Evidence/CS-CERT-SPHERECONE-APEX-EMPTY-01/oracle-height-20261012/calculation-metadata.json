@@ -1,0 +1,64 @@
+{
+  "scope": "Standalone scalar coefficient calculation, not geometry runtime acceptance",
+  "runs": [
+    {
+      "name": "compiler",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+        "--version"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.09027945797424763,
+      "wallBoundSeconds": 120,
+      "cpuBoundSeconds": 120
+    },
+    {
+      "name": "compile",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+        "-target",
+        "arm64-apple-macos15.0",
+        "-swift-version",
+        "6",
+        "-Onone",
+        "-package-name",
+        "apexheightscalarprobe",
+        "-parse-as-library",
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/cert-spherecone-apex-height-scalar-20261012/OutwardScalarInterval.swift",
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/cert-spherecone-apex-height-scalar-20261012/ApexHeightScalarProbe.swift",
+        "-o",
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/cert-spherecone-apex-height-scalar-20261012/ApexHeightScalarProbe"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.49659300001803786,
+      "wallBoundSeconds": 120,
+      "cpuBoundSeconds": 120
+    },
+    {
+      "name": "scalar-calculation",
+      "command": [
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/cert-spherecone-apex-height-scalar-20261012/ApexHeightScalarProbe"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.3078064169967547,
+      "wallBoundSeconds": 120,
+      "cpuBoundSeconds": 120
+    }
+  ],
+  "files": {
+    "ApexHeightScalarProbe.swift": "d8897cd795a43a8203b9ecf7f45a78c792c1caa7158523bbfc8d36a5a23158e6",
+    "run.py": "6b6a0fc519118fa9fbd2d3d4f0176a1bd96c91a2da64341959c54ed580f2a547",
+    "compiler.log": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+    "ApexHeightScalarProbe": "e328e61f8dd8b30d3b9a64584b86b8a5690bf3a53caf213bb5524de510415872",
+    "scalar-calculation.log": "8a7195bae98cbda2c78d11e62ffe3dee03a6913aa9375546629c1c8364661244",
+    "v1-failure.json": "ae0459afe67d56cf59bae870e620ef7e12b02f2be23bf2ffd43c41725c71801c",
+    "compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "run-v1.py": "82ea26735ce970a5abae93a8d867fc4ec26ea1d26ae96635ebb751159ca82d90",
+    "inputs.json": "71da7eed5cce7d64abcd076d24b765cb7d014d2941eea231dfe3e20a26d12433",
+    "compile-v1-failure.log": "a92f4d869a0dd106086611024da8a13bb4382a67afef119ea76f21d1cdd18043",
+    "OutwardScalarInterval.swift": "89445fc96f537e1654c52862efb6e71cf47418fdccdbc476b08e468b73cd4437",
+    "worksheet.json": "e701c73185f341a3c6ea379dc9dac4d91e25e52ffe020d959a2ab160602d603a"
+  }
+}

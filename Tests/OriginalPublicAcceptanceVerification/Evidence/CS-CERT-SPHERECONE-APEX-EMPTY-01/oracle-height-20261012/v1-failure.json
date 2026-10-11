@@ -1,0 +1,8 @@
+{
+  "stage": "compile",
+  "exitCode": 1,
+  "reason": "Explicit fixed toolchain requires macOS SDK argument; no Foundation module without -sdk.",
+  "commandSource": "run-v1.py",
+  "log": "compile-v1-failure.log",
+  "publicRuntimeExecuted": false
+}

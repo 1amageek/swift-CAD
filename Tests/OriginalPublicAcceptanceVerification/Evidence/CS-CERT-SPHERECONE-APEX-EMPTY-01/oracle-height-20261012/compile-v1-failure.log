@@ -1,0 +1,8 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cert-spherecone-apex-height-scalar-20261012/ApexHeightScalarProbe.swift:1:8: error: no such module 'Foundation'
+ 1 | import Foundation
+   |        `- error: no such module 'Foundation'
+ 2 | 
+ 3 | @main struct ApexHeightScalarProbe {
+
+<unknown>:0: note: did you forget to set an SDK using -sdk or SDKROOT?
+<unknown>:0: note: use "xcrun swiftc" to select the default macOS SDK installed with Xcode
