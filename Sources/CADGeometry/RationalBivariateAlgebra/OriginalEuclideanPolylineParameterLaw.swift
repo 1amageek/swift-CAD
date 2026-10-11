@@ -60,6 +60,14 @@ package struct OriginalEuclideanPolylineParameterLaw: Sendable {
 
     package init<B: RationalAlgebraAdmitting>(originalPoints: [SurfaceParameter],
         inheritedDepth: Int, maximumAlgebraicDepth: Int, usage: inout B) throws {
+        try self.init(originalPoints:originalPoints,in:nil,inheritedDepth:inheritedDepth,
+            maximumAlgebraicDepth:maximumAlgebraicDepth,usage:&usage)
+    }
+
+    /// Extends the retained original ancestor without re-preparing its roots.
+    package init<B: RationalAlgebraAdmitting>(originalPoints: [SurfaceParameter],
+        in initialContext: OriginalSingularFieldContext?,inheritedDepth: Int,
+        maximumAlgebraicDepth: Int,usage: inout B) throws {
         guard originalPoints.count >= 2, inheritedDepth >= 0, maximumAlgebraicDepth >= inheritedDepth else {
             throw rationalAlgebraFailure("Original Euclidean polyline requires source points and admitted caller depth.")
         }
@@ -70,7 +78,7 @@ package struct OriginalEuclideanPolylineParameterLaw: Sendable {
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
         let capacity = originalPoints.count - 1
         try RationalAlgebraStorage.retain(capacity, of: Pending.self, usage: &usage)
-        var owner = try OriginalSingularFieldContext(usage: &usage)
+        var owner = try initialContext ?? OriginalSingularFieldContext(usage: &usage)
         var pending: [Pending] = []; pending.reserveCapacity(capacity)
         var total = try OriginalSingularFieldElement.constant(.zero, in: owner,
             maximumDepth: maximumAlgebraicDepth, usage: &usage)

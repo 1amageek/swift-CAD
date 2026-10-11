@@ -1,0 +1,34 @@
+{
+  "receipts": {
+    "native": {
+      "receipt": "Tests/OriginalPolylineFieldFamilyVerification/Evidence/native/receipt.json",
+      "sha256": "d5c0d63c989d3c79e578b92d2f53fe4880ad17c2f0d44e930322c44d7a855b34"
+    },
+    "asan": {
+      "receipt": "Tests/OriginalPolylineFieldFamilyVerification/Evidence/asan/receipt.json",
+      "sha256": "8a4e4295b69e4d8b42a6e70a7d752ea6cea8859f3935a5417223ffac11ffed51"
+    },
+    "wasm": {
+      "receipt": "Tests/OriginalPolylineFieldFamilyVerification/Evidence/wasm/receipt.json",
+      "sha256": "b76914cb3223474578a36e3a8d6a61b73b08fe3abda05e0b1e844660b992970f"
+    },
+    "embedded": {
+      "receipt": "Tests/OriginalPolylineFieldFamilyVerification/Evidence/embedded/receipt.json",
+      "sha256": "0c265b822df337aaec21084691bef0f5bf7bd6e75c2c0c271e49953b28d6e559"
+    }
+  },
+  "ownedInputs": {
+    "Sources/CADGeometry/RationalBivariateAlgebra/OriginalEuclideanPolylineParameterLaw.swift": "52cc8cf0c5feeb7c00709925c7b5684689c35b8f862febddf47e5b7b594127e8",
+    "Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md": "08d12e1cbc556edc029658694e6a8ef629195b9fee635afcb8feb2802c0c4cce",
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalPolylinePcurveSnapshotProvider.swift": "6ef10dae469873051480dc783db8ab54e0b5daec32b2ec3e6965aebbb838e377",
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalPreparedPolylinePcurves.swift": "dfe1ee3b83517b4ea9645783b90dd320c051db0158da8ee99bdcee4e32c96c82",
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalPolylinePcurveFamilyPreparing.swift": "bd33780a170a41fe7818176bed5031ec3d04d9d1f51c928657e0e1b1df0c0145",
+    "Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalPolylinePcurveFamilyPreparer.swift": "a4330f05055f31cb344ba80545fa155681c059019f93f6e77fa0af02cca98c78",
+    "Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md": "4b363d69da0fd2c9dc54db22ad75c5fe2e6bba4c80c4ad653e07b363ae6875ca",
+    "Tests/OriginalPolylineFieldFamilyVerification/Proof.swift": "1bd68a85646aaa268c51eb384e4a663d0ecb5fb96c0273d1f98cd9a99fa6ad5f",
+    "Tests/OriginalPolylineFieldFamilyVerification/Verify.py": "0cedbe85a9e841f2c2fed4f56c33b582759a5ac17aca0a241ffb8e3318f8855c",
+    "Tests/OriginalPolylineFieldFamilyVerification/VERIFICATION.md": "ef4b004f9f2f9c9e41421fbda2a1f751873ada4cf3048b543a0286f113485a69"
+  },
+  "premiseCount": 9817,
+  "scope": "Shared original Euclidean polyline coefficient source preparation and retained lift/DI consumers; four fixed lanes and one stable scoped review. Automatic rolling-ball dispatch and full M4-M8/whole-seven/full87 remain open."
+}

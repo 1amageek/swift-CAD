@@ -274,6 +274,7 @@ owner. Original bivariate station fields retain both projection and original
 fiber roots. Importing a field is an exact ordered-field embedding, not a new
 normalization or an identification based on overlapping floating intervals.
 `OriginalSingularFieldTransport.originalScalarValue` imports a retained authored or algebraic scalar endpoint into a supplied destination field. It reuses the original defining polynomial, isolation flags and depth, verifies count one after exact coefficient transport, and returns the immutable parameter value. It does not rerun elimination or root isolation and does not manufacture a bivariate spatial-incidence witness. Consumers retain the returned value when comparing native curve germs.
+
 The invocation-local transport grows one destination tower monotonically; its
 retained mapping prevents repeated imports. All scalar arithmetic, retained
 mapping entries and coefficient arrays share the caller's work/cells/storage
@@ -309,6 +310,24 @@ The immutable minimum Gram receipt supports revalidation by the same policy
 without root reconstruction. `physicalDistance` retains the existing squared
 distance threshold for physical-vector clients. Both policies retain exact
 independence, original angular precision and the same cumulative ledger.
+
+### Shared-context Euclidean polyline preparation
+
+The existing `OriginalEuclideanPolylineParameterLaw` additionally accepts an
+explicit retained initial field context. It uses the same original point validation,
+positive Euclidean-length root selection, prefix/total normalization and segment
+producer. Its existing initializer delegates with no initial context and keeps the
+original independent rational start. A supplied context is immutable authority;
+new roots extend that actual ancestor and preserve its value/coefficient admission.
+This port never imports unrelated owners by equality and does not change scalar
+arithmetic, root isolation, parameter dimensions or original UV meaning.
+The [source owner](../OriginalSourceIssuance/DESIGN.md#shared-coefficient-preparation-prerequisite)
+owns ordered family preparation, child binding and final-field publication. Focused
+source-family verification exercises the actual seeded and default producer paths,
+exact irrational stations, ancestor/foreign refusal and resource/depth/cancel/lifetime.
+Unchanged numerical evaluators retain their default initialization behavior; their
+public point path is a numerical regression, not an identity proof.
+
 
 ## State, Ownership, and Lifecycle
 

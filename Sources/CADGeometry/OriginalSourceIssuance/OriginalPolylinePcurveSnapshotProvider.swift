@@ -4,8 +4,14 @@ import CADCore
 public struct OriginalPolylinePcurveSnapshotProvider: OriginalSourceSnapshotting {
     public let maximumValueDepth: Int
     public let maximumCoefficientDepth: Int
+    public let initialField: OriginalExactScalarDomain?
     public init(maximumValueDepth: Int, maximumCoefficientDepth: Int) {
         self.maximumValueDepth=maximumValueDepth; self.maximumCoefficientDepth=maximumCoefficientDepth
+        initialField=nil
+    }
+    public init(field: OriginalExactScalarDomain) {
+        initialField=field;maximumValueDepth=field.maximumValueDepth
+        maximumCoefficientDepth=field.maximumCoefficientDepth
     }
     public func snapshot<A: ExactScalarAdmission & ~Copyable>(_ input: borrowing SurfaceParameterCurve,
         limits: OriginalSourceIssuanceLimits, using admission: inout A)
@@ -17,8 +23,9 @@ public struct OriginalPolylinePcurveSnapshotProvider: OriginalSourceSnapshotting
                 guard maximumValueDepth >= 0, maximumCoefficientDepth >= 0,
                     case .polyline(let points) = original else { throw OriginalSourceIssuanceFailure.invalidSource }
                 let maximum=try ExactScalarDepth(value:maximumValueDepth,coefficient:maximumCoefficientDepth)
-                let prepared=try ExactScalarNumericAccess.withAdmission(&a,maximum:maximum) { usage in
-                    try OriginalEuclideanPolylineParameterLaw(originalPoints:points,inheritedDepth:0,
+                let inherited=initialField?.originalDepth ?? .init(uncheckedValue:0,coefficient:0)
+                let prepared=try ExactScalarNumericAccess.withAdmission(&a,inherited:inherited,maximum:maximum) { usage in
+                    try OriginalEuclideanPolylineParameterLaw(originalPoints:points,in:initialField?.context,inheritedDepth:0,
                         maximumAlgebraicDepth:maximumCoefficientDepth,usage:&usage)
                 }
                 let law=prepared.value

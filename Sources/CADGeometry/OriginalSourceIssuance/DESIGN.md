@@ -2050,6 +2050,47 @@ boundaries, cancellation, field/depth refusal and detached lifetime on four fixe
 lanes. General surface-lift/rolling-ball and M7 dispatch remain separate required
 work; this source capability does not close a whole M4-M8 milestone.
 
+## Shared coefficient preparation prerequisite
+
+`OriginalPolylinePcurveFamilyPreparing` prepares each ordered original pcurve once
+through its existing Euclidean producer. The first source starts in a rational
+context; each subsequent source receives the preceding retained context explicitly.
+The returned immutable family retains every independently bound child and the final
+field. Existing exact scalar/polynomial import can therefore embed earlier child
+values through actual ancestry; no isomorphic-owner guess, repeated preparation of
+earlier roots, coefficient rounding or station regeneration is needed. Formula/root/branch
+authority remains with the [original producer](../RationalBivariateAlgebra/DESIGN.md#shared-context-euclidean-polyline-preparation).
+The default individual initializer retains its original independent-field behavior.
+
+```mermaid
+flowchart LR
+ A[Original pcurve A] --> PA[Existing producer in retained rational context]
+ PA --> FA[Immutable child A and its field]
+ FA --> PB[Existing producer for original pcurve B in field A]
+ PB --> FB[Immutable child B and final descendant field]
+ FA --> R[Ordered sealed family]
+ FB --> R
+ R --> C[Existing lift/graph consumers with ancestor scalar import]
+```
+
+The source family is preparation authority, not a structural identity or contact
+result. Equal input values remain separate child bindings. Required curve count,
+each producer's attained value/coefficient depth, child source depth, work, bytes
+and terminal cancellation are checked under one caller admission. Empty input is
+a valid empty preparation family with a retained field, never an empty intersection
+claim. Inputs and outputs are immutable COW values on all targets; partial families
+cannot escape failure/cancellation. Consumer adapters still validate child source
+owners and import original coefficients into the selected final field.
+
+Verification belongs to
+[OriginalPolylineFieldFamilyVerification](../../../Tests/OriginalPolylineFieldFamilyVerification/VERIFICATION.md).
+It covers independently expected irrational stations from distinct polylines,
+forward ancestry import versus unrelated/backward-field refusal, all original
+children/segments/germs, retained Native/atlas lift and DI consumption, exact count/
+work/bytes/depth/cancel, empty publication and detached source lifetime on four
+fixed lanes. Automatic rolling-ball rail dispatch and other source families remain
+separate required work after this source prerequisite.
+
 ## Prepared polyline Native surface lift
 
 The additive Native lift source receives the already-bound complete
