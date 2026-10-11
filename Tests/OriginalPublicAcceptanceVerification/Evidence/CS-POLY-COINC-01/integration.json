@@ -1,0 +1,78 @@
+{
+  "success": true,
+  "implementationCommit": "50b035ba",
+  "mainBefore": "65f45e9a",
+  "independent": {
+    "success": true,
+    "checkout": "/private/tmp/cad-m4-ds-main-integration-20261010",
+    "head": "50b035bac1fddaa76e9c88c1632d1648b65e6d2d",
+    "production": {
+      "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlanePointPublisher.swift": "d353dcbb423388244b094f08b678e31f127e3ef0b93ed24eb724206438362c60",
+      "Sources/CADGeometry/NativeExactGeometricRelations/OriginalRetainedLiftPlanePublicProducer.swift": "863b7989810a8f6cdccea0bcb9e3f3bd6c85bfb1c05cc00e503572b5cebfd6e5",
+      "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift": "cd330b8fe7da69cf8ec7070a2246c18c6f5d3c0f8c02a1ec08a338b2e08a25d3",
+      "Sources/CADGeometry/NativeExactGeometricRelations/DefaultOriginalContainedLiftPlaneResolver.swift": "a14bea0cbdfe562d9bcc43dfde99f12e9638d9e9eb2cfc505fb479bc9e21ffe8",
+      "Sources/CADGeometry/NativeExactGeometricRelations/OriginalContainedLiftPlaneFamily.swift": "5ad53178cc7f5dc083079ee6f9dcb9639eb74e9d662eb1cd9bb4773b5aa9ce15",
+      "Sources/CADGeometry/NativeExactGeometricRelations/OriginalContainedLiftPlaneFamilyReading.swift": "0c4eaf24b281b170731f43f9cddc0ae503110695d75c2c43bea2b0c529edd844",
+      "Sources/CADGeometry/NativeExactGeometricRelations/OriginalContainedLiftPlanePiece.swift": "c8e5592e86d195e0070bfb127a626ac78943de54338dd7930bf08bca5bfa8191",
+      "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactPolynomialCurveMapEvidence.swift": "2f45b54d5a31009079d2eb8fb389102c9eaf1b466d99fe743c4580e08ff18de4",
+      "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactPolynomialCurveMapCertifying.swift": "78043183121445c52207f0bdd5c62f26cdc3081b40ebac67059fec0048378702",
+      "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DefaultExactPolynomialCurveMapCertifier.swift": "28dbaa563ef45e6db0586a9b91009a08e401233401eedc48768cdcea40ad966b"
+    },
+    "fixture": {
+      "Tests/OriginalPublicAcceptanceVerification/OrdinaryPolylineCoonsPlaneProbe.swift": "0bb0364d884f7e144b2b1e98036bc758badd529df5837810f8bcae23afdfceef"
+    },
+    "checkedPremises": {
+      "native": 73,
+      "asan": 72,
+      "wasm": 71,
+      "embedded": 61
+    },
+    "protectedPatchSHA256": "97db4b01b16d6c5a66cdd0bfdfbeda4aa939389f12481b2e0ba8d10d873e8016",
+    "runtime": "The four accepted changed-path executions are reused; integration changes no executable premise and does not repeat builds or runtime.",
+    "receiptSHA256": "505a158733a1da6221c5655091cd17ec9bdc76149bf087ca34629ebd6b42fb8d"
+  },
+  "main": {
+    "success": true,
+    "checkout": "/Users/1amageek/Desktop/3D/swift-CAD",
+    "head": "50b035bac1fddaa76e9c88c1632d1648b65e6d2d",
+    "production": {
+      "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlanePointPublisher.swift": "d353dcbb423388244b094f08b678e31f127e3ef0b93ed24eb724206438362c60",
+      "Sources/CADGeometry/NativeExactGeometricRelations/OriginalRetainedLiftPlanePublicProducer.swift": "863b7989810a8f6cdccea0bcb9e3f3bd6c85bfb1c05cc00e503572b5cebfd6e5",
+      "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift": "cd330b8fe7da69cf8ec7070a2246c18c6f5d3c0f8c02a1ec08a338b2e08a25d3",
+      "Sources/CADGeometry/NativeExactGeometricRelations/DefaultOriginalContainedLiftPlaneResolver.swift": "a14bea0cbdfe562d9bcc43dfde99f12e9638d9e9eb2cfc505fb479bc9e21ffe8",
+      "Sources/CADGeometry/NativeExactGeometricRelations/OriginalContainedLiftPlaneFamily.swift": "5ad53178cc7f5dc083079ee6f9dcb9639eb74e9d662eb1cd9bb4773b5aa9ce15",
+      "Sources/CADGeometry/NativeExactGeometricRelations/OriginalContainedLiftPlaneFamilyReading.swift": "0c4eaf24b281b170731f43f9cddc0ae503110695d75c2c43bea2b0c529edd844",
+      "Sources/CADGeometry/NativeExactGeometricRelations/OriginalContainedLiftPlanePiece.swift": "c8e5592e86d195e0070bfb127a626ac78943de54338dd7930bf08bca5bfa8191",
+      "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactPolynomialCurveMapEvidence.swift": "2f45b54d5a31009079d2eb8fb389102c9eaf1b466d99fe743c4580e08ff18de4",
+      "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactPolynomialCurveMapCertifying.swift": "78043183121445c52207f0bdd5c62f26cdc3081b40ebac67059fec0048378702",
+      "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DefaultExactPolynomialCurveMapCertifier.swift": "28dbaa563ef45e6db0586a9b91009a08e401233401eedc48768cdcea40ad966b"
+    },
+    "fixture": {
+      "Tests/OriginalPublicAcceptanceVerification/OrdinaryPolylineCoonsPlaneProbe.swift": "0bb0364d884f7e144b2b1e98036bc758badd529df5837810f8bcae23afdfceef"
+    },
+    "checkedPremises": {
+      "native": 73,
+      "asan": 72,
+      "wasm": 71,
+      "embedded": 61
+    },
+    "protectedPatchSHA256": "97db4b01b16d6c5a66cdd0bfdfbeda4aa939389f12481b2e0ba8d10d873e8016",
+    "runtime": "The four accepted changed-path executions are reused; integration changes no executable premise and does not repeat builds or runtime.",
+    "receiptSHA256": "505a158733a1da6221c5655091cd17ec9bdc76149bf087ca34629ebd6b42fb8d"
+  },
+  "acceptedReceiptBeforeDeliverySHA256": "505a158733a1da6221c5655091cd17ec9bdc76149bf087ca34629ebd6b42fb8d",
+  "deliveredReceiptSHA256": "6e44364c0eaccc5cc149837cda03b178f801a7df58239a071f9f528a41240c67",
+  "protectedDrafts": {
+    "beforeSHA256": "b6a54c7f2c360509072691d131ff12b5b91088f61f2d9e2636347d04cb95d688",
+    "afterSHA256": "b6a54c7f2c360509072691d131ff12b5b91088f61f2d9e2636347d04cb95d688",
+    "sourceFiles": 25,
+    "consumerFiles": 266,
+    "patchSHA256": "97db4b01b16d6c5a66cdd0bfdfbeda4aa939389f12481b2e0ba8d10d873e8016"
+  },
+  "mainProgressEditPreservation": {
+    "saved": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-main-progress-before.md",
+    "sha256": "4e0f4f1ae84756e5d788aa8d7f11eeea5d7c65bce76b7b325aa488282ba4d19e",
+    "scope": "Only the root agent previous-turn progress edit was present; its diagnostic facts are preserved by the implementation/evidence commit."
+  },
+  "verificationReuse": "Integration changes no executable premise; accepted four-lane public executions reused without another build/run."
+}

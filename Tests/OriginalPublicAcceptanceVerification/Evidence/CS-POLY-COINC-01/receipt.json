@@ -1,6 +1,6 @@
 {
   "cell": "CS-POLY-COINC-01",
-  "state": "changed-path-verified",
+  "state": "delivered",
   "baseCommit": "65f45e9a",
   "lanes": {
     "native": {
@@ -64,5 +64,12 @@
     "compiler-source-snapshot/20628bff68d3-OriginalContainedLiftPlaneFamily.swift": "20628bff68d30d6f2bdf817056ce8012280f832452de47114bdeb48372595fb1",
     "compiler-source-snapshot/2e378356b281-CurveSurfaceIntersectionResult.swift": "2e378356b2812980bbf2f982c98b8e5ed81e01643e630eb0330fe962e73d5aa5",
     "compiler-source-snapshot/c7732d5b1623-ExactPolynomialCurveMapCertifying.swift": "c7732d5b1623f7fb53389415d806c15b867e642869b0902c011c7322a826f79f"
+  },
+  "implementationCommit": "50b035ba",
+  "integration": "integration.json",
+  "reports": {
+    "REVIEW.md": "79e32d1b0d3a94e2629c4bc233d97e2cb4694897f758bafa877e5e95c8ee46d9",
+    "VERIFICATION.md": "49f85ae89d18e5f83d08333949dd556248a03b8c5168e8ebfa4a860533a965bb",
+    "Verify.py": "8621a14a2a19141fc3360abaa1fdd46d422ee688a627391e128f5cd49b1f432b"
   }
 }
