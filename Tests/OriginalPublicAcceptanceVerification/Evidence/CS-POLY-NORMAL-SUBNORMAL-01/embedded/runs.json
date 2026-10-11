@@ -1,0 +1,34 @@
+[
+  {
+    "label": "compile-port",
+    "timeoutSeconds": 300,
+    "exitCode": 0,
+    "elapsedSeconds": 49.116287040989846,
+    "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "commandFile": "port-command.json",
+    "commandSHA256": "6bf02d87610eb16c11a4049baa540f7ecf5480a77c4a6d6f1116b6aea8e7c812"
+  },
+  {
+    "label": "compile-proof",
+    "timeoutSeconds": 300,
+    "exitCode": 0,
+    "elapsedSeconds": 41.92763058305718,
+    "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "commandFile": "proof-command.json",
+    "commandSHA256": "230aedc8bd992b739060ca69f09758b6f74f967704173c22d42272106e987936"
+  },
+  {
+    "label": "runtime-all-modes",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-embedded-20261011/proof",
+      "all-modes"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 10.19859341706615,
+    "logSHA256": "a544be01f2aa1cfd82e5a267e2f591f84a4c21ba7552700c0068104da8fc5460",
+    "productSHA256": "d7c6fb479adecaeb14faa5857d96d7826af8d4c846d3d6798fd9a51dd40bff5e"
+  }
+]

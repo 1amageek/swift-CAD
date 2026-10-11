@@ -1,0 +1,49 @@
+{
+  "acceptedSuccess": false,
+  "expectedPublicFailure": "Native point work allowance exhausted",
+  "runtimeExitCode": 1,
+  "runtimeCommand": [
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-fine-trace-20261011/proof",
+    "scaled-normals"
+  ],
+  "runtimeTimeoutSeconds": 120,
+  "parentReceipt": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-ordinary/native/receipt.json",
+  "parentReceiptSHA256": "2ff419dc21f8079e92d14a98d6137957e7f137344f66b98eb7e071240b45b88d",
+  "compilerInputs": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/667c77a00433-ExactIntersectionResultRepresentation.swift": "b8675064710b008bff44a9275cf0d984459a89ceacd9d72094e5e7a3932f0083",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/5b0d3bb4a543-OriginalIssuedNumericalCurveSurfacePoints.swift": "a1f0bd2dca5fd581439c2381f22f398e4465cd72708305273ec456bc81aa4a96",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-fine-trace-20261011/TracedPublisher.swift": "596486c7df67feb5278078451739f0f08b42cf4463390355c19c370b8eb28787",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-trace-20261011/TracedProducer.swift": "18782e2e4624122949a18a2d412b671abde3cb3a1c8e5d563d620dfc6aa46858",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/1310db77c790-NativeExactPublicAdmission.swift": "6d3f3a5722dc22da44f892b65b0ebebaf8269a5e6e86abd27459b67fbd459505",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/30edab41701c-NativeExactPublicLimits.swift": "fd657de5dad3ef68c8de08d74b401fafa0a1dd862d2207a1db6f14aa160be878",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/e97e610bfa68-DefaultCurveSurfaceIntersector.swift": "721ac967caedd152d368767f723a9f2b7b273289ca89e321a1f63e99f8ee3062",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/7582bc1ed329-DefaultCurveSurfaceIntersector+Overlap.swift": "db5f78dd26060f231eb99be658d0c5d5143360a74003dacb65dc5cf761315e04",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/363cf1ebbf0a-CurveSurfaceIntersectionResolving.swift": "9c848791aca59130b5981d79a97a6c0b996c1f5f9c098ddb71ff2f001bf30767",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/7bc45e5a7254-CurveSurfaceIntersectionResult.swift": "d977d6639335b8d2f87fca2ae8945d18e51b77908aead4a085a939df3638ed53",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/60fd0a98050e-OriginalRetainedLiftPlaneIntersecting.swift": "dcd717231cddd7c625a7f103aee45e8e4bb7f757fdcefcffa0fd73dc5ef968c3",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/266cfa637d41-DefaultCurveSurfaceIntersector+RetainedLiftPlane.swift": "6956e8989123c79ad5175e999832a8ad6af9c7f79e4a0b37da0e065439bf2d07",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/c20373f9ab23-UnselectedOverlapTripwire.swift": "d0f1c2ed62f1a90d0efa2d93cfdd981dd91d41ffeb454b35223afeeef43ce09f",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-trace-20261011/TraceProof.swift": "8f2798fd93876e4b2c06aaa80ddc230fcf96750c4a3115a0a69644e8890d53ae",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/29765defa1ed-Fixture0.swift": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/2ce2938ef829-Fixture1.swift": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/b62f4a47e5e1-Regression-OriginalParametricGraphIssuing.swift": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/42cc09e213ab-Regression-DefaultOriginalRationalGraphIssuer.swift": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/2aeedad95053-Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/4c7a730cc575-Regression-OriginalIssuedGraphResultResolving.swift": "82f01781a845a1b7fd1c4307e664ca94d6202013a1e8320e777752694f57ae62",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/9c76d80916ee-Regression-DefaultCurveSurfaceIntersector+IssuedGraphs.swift": "6ae3b90a081de8d23ccd31dae9c7f5ea9081d89fcef9e426747780d84624254b",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/compiler-source-snapshot/293894a70599-Regression-PreparedGraphPublicationRegression.swift": "5b4ee77fc14b86383ca1467793ec23d78617619b5bdd4b51baf256549cef47b4"
+  },
+  "product": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-fine-trace-20261011/proof": "4301be963e08a36b6fce676696b1757d46d77badd2e139fb014b4a83b953cc1b",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-fine-trace-20261011/libPublicLiftPlanePort.a": "0519fabbef1fc48a8037644c55e3aaf8675b96fc6f722205e890b58fd00a74f6"
+  },
+  "files": {
+    "run.py": "dd248cd0190760459627fe6414afa2403391421c53b173fbb45de100f01cb1da",
+    "proof-command.json": "3eede7741b6472b07bf4dc5bbe792c3d5e1d5df6ef2af9c5111d0cadd58cd853",
+    "port-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "proof-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runtime.log": "77c49e34d8c3de5cd5b3141e039eb9fdb74765516382d302175c161679e80189",
+    "port-command.json": "c978753af30c57f2d812de800338d4e19658262bc0380ab8d0c897901aa036d5"
+  },
+  "scope": "Verification-only logging copies localize the unchanged subnormal public failure. Runtime exit 1 observed from the captured driver output; this is diagnostic evidence, not accepted success."
+}

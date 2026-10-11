@@ -157,6 +157,20 @@ Existing persistent scalar isolations refine numerical representatives. Every
 candidate must have a source chart whose original guards hold, and exact
 squared-distance predicates certify source/target/point mismatch and parameter
 error under the same ledger. These numerical predicates do not establish contact.
+Angular classification consumes the sealed plane basis's orthogonal unit axes.
+Their exact cross product is a unit normal parallel to the retained authored
+normal, so the squared angular predicate is invariant under that replacement.
+The source normal and the incidence equation retain their original coefficients;
+this change applies only to classification. Computing the cross product uses the
+same admission and charged invocation-local storage, without another source
+preparation, normalization, decomposition or coefficient approximation.
+CS-POLY-NORMAL-SUBNORMAL-01's Native trace reaches complete geometric publication,
+then exhausts the work allowance while comparing the angular predicate for the
+second incident using the raw subnormal normal. The required change uses the
+already-issued basis theorem rather than repeatedly squaring that scale in each
+algebraic witness field. Public success must retain the independent two-root/
+twelve-incident oracle and unchanged limits, failure and lifetime contracts.
+
 Every incident extension must agree on the published angular classification;
 disagreement remains an explicit unsupported germ-selection case until actual
 one-sided germ receipts are consumed. All incidents remain in the exact result.

@@ -1,0 +1,21 @@
+{
+  "parentReceipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-ordinary/native/receipt.json",
+  "parentSHA256": "2ff419dc21f8079e92d14a98d6137957e7f137344f66b98eb7e071240b45b88d",
+  "effectiveInputs": 3288,
+  "products": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/libPublicLiftPlanePort.a": "e82787f78e209f8886b378d1d3478d2c7b8113a3e16bd65e873d92da3041c386",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/PublicLiftPlane.swiftsourceinfo": "9133697b29a60e102796b942039ff415600cf3f5447767d3f352e915c3b8a62f",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/PublicLiftPlanePort.swiftmodule": "fff21958fe3c522ffc6f0a8b28379c6d5fb32172242f23fe36ad44d996b44f5b",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/PublicLiftPlanePort.swiftsourceinfo": "646382d9e3f07f022a1074b6a290936d795a259e49b070f8d0f77b2046452647",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/PublicLiftPlane.swiftmodule": "398b0f752f788ff45ae8af04527c9b903af6d80de3af054b141c392e7128d288",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/PublicLiftPlanePort.swiftdoc": "9209fc78d35dbe9db54901facbf68bfc83aaea8c7f1d840a3af6a727a8273b50",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/libPublicLiftPlane.a": "b91b8363c2510f697db7343191a762acecec730a0eb9a0f0081cd3b05445b03b",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/PublicLiftPlane.swiftdoc": "edfacc5d6c40963813f53ac531fd2d0fc7128efd9a1b21bf89ebab6c20350d8a",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/PolylineLiftAdapters.swiftdoc": "567906d84a3494926c9664c5d5795a109bbc0cb5320cf49d5e3b174617b15a13",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/PolylineLiftAdapters.swiftsourceinfo": "09ccf4d21a7d73a6f0cf686bd8e659ec2f751a0d01d631d3de4ba8b2c0b1ee51",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/PolylineLiftAdapters.swiftmodule": "be6394b0099e5f143d6b7d71f7f6f2f03cdcf6a32d1080893c38644712366552",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/libPolylineLiftAdapters.a": "8ecaf437db617403901355c121b9705d1676c3c3b1579968518344048bdb1f89",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/proof-ordinary": "faca59639af47a56656ec9c06db7324197cdf4a685dc037834ac2a27ed0289ca",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/prepared-port/proof": "afbf77d102ce95339eb0cf6a95ca7e8837ae9b0cfd58916b836153f744efb3e1"
+  }
+}

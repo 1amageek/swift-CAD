@@ -74,6 +74,15 @@ struct OriginalLiftPlanePointPublisher {
 
     private func classify<A:ExactScalarAdmission & ~Copyable>(_ geometry:Geometry,
         ordinals:[Int],range:Range<Int>,tolerance:ModelingTolerance,using a:inout A) throws -> CurveSurfaceIntersectionKind {
+        let basis = geometry.original.second.original.law,base = basis.field
+        try a.retainStorage(bytes:exactScalarPayloadBytes(count:3,of:OriginalExactScalar.self))
+        // The sealed orthonormal basis proves u x v parallel to the authored normal.
+        // Angular classification is scale invariant; source/incidence retain the raw normal.
+        let unitNormal = [
+            try base.subtracting(base.multiplying(basis.u[1],basis.v[2],using:&a),base.multiplying(basis.u[2],basis.v[1],using:&a),using:&a),
+            try base.subtracting(base.multiplying(basis.u[2],basis.v[0],using:&a),base.multiplying(basis.u[0],basis.v[2],using:&a),using:&a),
+            try base.subtracting(base.multiplying(basis.u[0],basis.v[1],using:&a),base.multiplying(basis.u[1],basis.v[0],using:&a),using:&a)
+        ]
         var answer:CurveSurfaceIntersectionKind?
         for index in range {
             let point = geometry.exactPoints[ordinals[index]],f = point.local.witness.field
@@ -91,7 +100,7 @@ struct OriginalLiftPlanePointPublisher {
                 let value = try p.evaluated(law,at:t,using:&a).value
                 let derivative = try p.evaluated(p.differentiated(law,in:0,using:&a),at:t,using:&a).value
                 let tangent = try f.subtracting(f.multiplying(derivative,weight,using:&a),f.multiplying(value,dw,using:&a),using:&a)
-                let normal = try f.importingBase(geometry.original.second.original.law.normal[axis],using:&a)
+                let normal = try f.importingBase(unitNormal[axis],using:&a)
                 tangentSquared = try f.adding(tangentSquared,f.multiplying(tangent,tangent,using:&a),using:&a)
                 normalSquared = try f.adding(normalSquared,f.multiplying(normal,normal,using:&a),using:&a)
                 dot = try f.adding(dot,f.multiplying(tangent,normal,using:&a),using:&a)

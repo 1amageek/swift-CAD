@@ -449,10 +449,14 @@ with target origin (1/2,0,0) and authored normal
 plane basis and independent two-root TUV/XYZ oracle; the raw saved normal remains
 source authority. A retained, hash-admitted Native ordinary public probe returns two points and
 twelve incidents for scales 2 and -2, then reports work allowance exhausted for the
-subnormal input under the unchanged 8,388,608 ceiling. The stopping internal
-operation remains unlocalized. This cell requires localization before a new
-prerequisite or coefficient optimization is admitted; it must preserve the raw
-normal, every original guard/UV and caller budgets. Its diagnostic is separate
+subnormal input under the unchanged 8,388,608 ceiling. A changed-path Native trace
+localizes the stop after complete geometric publication, at the angular-predicate
+comparison for the second incident. Numerical classification repeatedly squares
+the raw scale in the algebraic witness field. The causal change consumes the
+existing sealed orthogonal unit plane basis for that scale-invariant angular
+predicate, as specified by [geometric publication](../../NativeExactGeometricRelations/DESIGN.md#ordinary-retained-polyline-lift-against-an-axis-plane).
+It preserves the raw source normal, incidence equation, every original guard/UV
+and caller budget. Its diagnostic is separate
 from acceptance of the unit-normal input. Evidence and execution state belong to
 PROGRESS.md and the corresponding retained public diagnostic receipt.
 

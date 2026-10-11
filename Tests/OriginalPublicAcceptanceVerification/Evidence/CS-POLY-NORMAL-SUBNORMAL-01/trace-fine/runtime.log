@@ -1,0 +1,49 @@
+BEGIN saved-normal diagnostic 5e-324
+TRACE pcurve
+TRACE lift source
+TRACE host prepare
+TRACE pcurve prepare
+TRACE family prepare
+TRACE lift domain
+TRACE plane source
+TRACE normal binary64
+TRACE plane basis
+TRACE plane domain
+TRACE plane graph
+TRACE relation resolve
+TRACE geometric publication
+TRACE numerical publication
+FINE transfer
+FINE classify group
+FINE normal import
+FINE tangent squared
+FINE normal squared
+FINE dot
+FINE normal import
+FINE tangent squared
+FINE normal squared
+FINE dot
+FINE normal import
+FINE tangent squared
+FINE normal squared
+FINE dot
+FINE angle
+FINE threshold
+FINE compare angle
+FINE normal import
+FINE tangent squared
+FINE normal squared
+FINE dot
+FINE normal import
+FINE tangent squared
+FINE normal squared
+FINE dot
+FINE normal import
+FINE tangent squared
+FINE normal squared
+FINE dot
+FINE angle
+FINE threshold
+FINE compare angle
+FAIL ordinary lift/plane
+Native point work allowance exhausted.

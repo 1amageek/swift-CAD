@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "lane": "wasm",
+  "parentReceipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-ordinary/wasm/receipt.json",
+  "parentSHA256": "50b99626ae34c2e95754a91374e323259474cc7c91b5c2d03af057e12a2693ec",
+  "production": {
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlanePointPublisher.swift": "d353dcbb423388244b094f08b678e31f127e3ef0b93ed24eb724206438362c60"
+  },
+  "proofSHA256": "244bcdcda57dd74dd1dd668742b8bde6d38408d12ce127b97dbbc84ae7d50a68",
+  "files": {
+    "runtime-cancel-final.log": "96c97c249f1e70aa7d5c711fa0cab6613094dac01c9681b5422140f8c7646b65",
+    "proof-command.json": "569c8483b4de9fa3125249a2df555fcbe6a865f0b2ffded1c64ac40bab731845",
+    "changed-premises.json": "9b79cb8a44019144bcf0a6c51622df1c030f266060a6310416dba72128a7189d",
+    "compile-proof.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runtime-ordinary.log": "bad6ffca9f3e4711ef129c1f7028fd5200c7e974691ddb5e608fcacae944c04c",
+    "compiler-inputs.json": "3cf8f1d9445c047497dea4d082ea8ea3e5157af1986b84b78af17dd8f49c37d3",
+    "runtime-resources.log": "034f653700d26af25a3804dc20eea3696161d1a5a13036832c249c0d7cdf272c",
+    "runtime-unit-regression.log": "209ec4869942dff401b16d6f1cd3a77dbc2c0344ca3c7a931ccab9bfb84ff650",
+    "runtime-selections.log": "e14e0b5735dbeb625c802e05c8c80f406abed7866a6dce8bd4fe80966144c702",
+    "runtime-cancel-entry.log": "741dd073e33adc5667b8f021ae9b5ca752f757c2927bb8e33e4b6946a944595c",
+    "products.json": "fb4d8365f3abffa7e85bfc46fefd031fa1dc10ca7a915dc4eb5fb7496708a9bb",
+    "compile-port.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "parent-admission.json": "c5326aa1d0cf2b058418e86ac7aee25a4ab5df46d64495eac116506686a096d9",
+    "port-command.json": "482fef8e8c0ca5c7c6fb7000bd7a8be7d6c84eb6f9af7a69d7066573bea6d5a1",
+    "runs.json": "769246855b9766f6dcd872e83c4d1264f6c404beb61fd744f40feb7cd75d8a4f"
+  },
+  "scope": "One changed publication body and real ordinary public fixture compiled against admitted immutable lower artifacts; unchanged parent producers/solvers and prepared entries are reused, not rebuilt."
+}

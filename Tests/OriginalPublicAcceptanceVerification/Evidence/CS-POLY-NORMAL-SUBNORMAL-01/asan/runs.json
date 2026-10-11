@@ -1,0 +1,92 @@
+[
+  {
+    "label": "compile-port",
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 9.903381334035657,
+    "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "commandFile": "port-command.json",
+    "commandSHA256": "ea6cb70598955dc99dbb929d22afac696e58bd54e2dfd8d0cfef94948f098859"
+  },
+  {
+    "label": "compile-proof",
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 7.016117332968861,
+    "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "commandFile": "proof-command.json",
+    "commandSHA256": "40432d22663ec9eecde84e38d2fc0a342a774ccbb31eadf01c74f81dfd1478b2"
+  },
+  {
+    "label": "runtime-ordinary",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-asan-20261011/proof",
+      "ordinary"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 3.976598999928683,
+    "logSHA256": "bd9140ee211d98ff7958b9b45dc2f33198d79327091497e4c7fa05bebefb2823",
+    "productSHA256": "53e4ef15f912b701ea7ae1e193b99de4c769b217780b03fa9a3cddbd917b9cef"
+  },
+  {
+    "label": "runtime-selections",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-asan-20261011/proof",
+      "selections"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 2.042499209055677,
+    "logSHA256": "400b8be5d0197c94c826ba38005c1df3c1fe37d98ed62ed37c5b19b10136ec89",
+    "productSHA256": "53e4ef15f912b701ea7ae1e193b99de4c769b217780b03fa9a3cddbd917b9cef"
+  },
+  {
+    "label": "runtime-resources",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-asan-20261011/proof",
+      "resources"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 8.2701960420236,
+    "logSHA256": "819cef8d74565fdde8422166d6692695938a6eeca6858dd7ae22d920b8f9f346",
+    "productSHA256": "53e4ef15f912b701ea7ae1e193b99de4c769b217780b03fa9a3cddbd917b9cef"
+  },
+  {
+    "label": "runtime-cancel-entry",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-asan-20261011/proof",
+      "cancel-entry"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 0.08727254194673151,
+    "logSHA256": "1469d5cb78f245a836d11a65358280daa516b89631b63639314088d8343aca4d",
+    "productSHA256": "53e4ef15f912b701ea7ae1e193b99de4c769b217780b03fa9a3cddbd917b9cef"
+  },
+  {
+    "label": "runtime-cancel-final",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-asan-20261011/proof",
+      "cancel-final"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 3.1088354169623926,
+    "logSHA256": "3d5a1814128022bf65952ee2fe2aa8f991aad7f97f1a1a504ab6d902ee3c0f80",
+    "productSHA256": "53e4ef15f912b701ea7ae1e193b99de4c769b217780b03fa9a3cddbd917b9cef"
+  },
+  {
+    "label": "runtime-unit-regression",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-asan-20261011/proof",
+      "unit-regression"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 2.773886249982752,
+    "logSHA256": "bd9140ee211d98ff7958b9b45dc2f33198d79327091497e4c7fa05bebefb2823",
+    "productSHA256": "53e4ef15f912b701ea7ae1e193b99de4c769b217780b03fa9a3cddbd917b9cef"
+  }
+]

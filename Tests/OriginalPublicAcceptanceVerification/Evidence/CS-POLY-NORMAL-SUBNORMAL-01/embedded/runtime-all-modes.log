@@ -1,0 +1,8 @@
+(node:27315) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS ordinary bare/rich public input: two distinct T roots; exact 8/4 incidence groups; original lift UV and plane UV; detached input/COW lifetime; concurrent independent readers
+PASS ordinary bare/rich public input: two distinct T roots; exact 8/4 incidence groups; original lift UV and plane UV; detached input/COW lifetime; concurrent independent readers
+PASS ordinary public selections: endpoint singleton, root-free interval, outside-support request, whole-plane UV exclusion
+PASS ordinary public exact/one-less work/storage; entry/last callback cancel; candidate/degree/source-depth ceilings; retained result
+PASS ordinary public entry Task cancellation before work/storage
+PASS ordinary public final callback cancellation

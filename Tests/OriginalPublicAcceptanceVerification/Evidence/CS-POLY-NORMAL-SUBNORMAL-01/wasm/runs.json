@@ -1,0 +1,104 @@
+[
+  {
+    "label": "compile-port",
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 3.025518582900986,
+    "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "commandFile": "port-command.json",
+    "commandSHA256": "482fef8e8c0ca5c7c6fb7000bd7a8be7d6c84eb6f9af7a69d7066573bea6d5a1"
+  },
+  {
+    "label": "compile-proof",
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 2.2221387919271365,
+    "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "commandFile": "proof-command.json",
+    "commandSHA256": "569c8483b4de9fa3125249a2df555fcbe6a865f0b2ffded1c64ac40bab731845"
+  },
+  {
+    "label": "runtime-ordinary",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-wasm-20261011/proof",
+      "ordinary"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 2.921314665931277,
+    "logSHA256": "bad6ffca9f3e4711ef129c1f7028fd5200c7e974691ddb5e608fcacae944c04c",
+    "productSHA256": "18557e5b07e4b92b4f7dc361a6aceac8c18b39678d7606564cfb9fc10aaec4db"
+  },
+  {
+    "label": "runtime-selections",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-wasm-20261011/proof",
+      "selections"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 2.0047408329555765,
+    "logSHA256": "e14e0b5735dbeb625c802e05c8c80f406abed7866a6dce8bd4fe80966144c702",
+    "productSHA256": "18557e5b07e4b92b4f7dc361a6aceac8c18b39678d7606564cfb9fc10aaec4db"
+  },
+  {
+    "label": "runtime-resources",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-wasm-20261011/proof",
+      "resources"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 8.795143832918257,
+    "logSHA256": "034f653700d26af25a3804dc20eea3696161d1a5a13036832c249c0d7cdf272c",
+    "productSHA256": "18557e5b07e4b92b4f7dc361a6aceac8c18b39678d7606564cfb9fc10aaec4db"
+  },
+  {
+    "label": "runtime-cancel-entry",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-wasm-20261011/proof",
+      "cancel-entry"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 0.20730749994982034,
+    "logSHA256": "741dd073e33adc5667b8f021ae9b5ca752f757c2927bb8e33e4b6946a944595c",
+    "productSHA256": "18557e5b07e4b92b4f7dc361a6aceac8c18b39678d7606564cfb9fc10aaec4db"
+  },
+  {
+    "label": "runtime-cancel-final",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-wasm-20261011/proof",
+      "cancel-final"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 4.20485020801425,
+    "logSHA256": "96c97c249f1e70aa7d5c711fa0cab6613094dac01c9681b5422140f8c7646b65",
+    "productSHA256": "18557e5b07e4b92b4f7dc361a6aceac8c18b39678d7606564cfb9fc10aaec4db"
+  },
+  {
+    "label": "runtime-unit-regression",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-wasm-20261011/proof",
+      "unit-regression"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 3.054140916909091,
+    "logSHA256": "209ec4869942dff401b16d6f1cd3a77dbc2c0344ca3c7a931ccab9bfb84ff650",
+    "productSHA256": "18557e5b07e4b92b4f7dc361a6aceac8c18b39678d7606564cfb9fc10aaec4db"
+  }
+]

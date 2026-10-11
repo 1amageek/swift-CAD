@@ -1,0 +1,34 @@
+{
+  "cell": "CS-POLY-NORMAL-SUBNORMAL-01",
+  "status": "verified-awaiting-main-delivery",
+  "baseCommit": "c4fe7718",
+  "production": {
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlanePointPublisher.swift": "d353dcbb423388244b094f08b678e31f127e3ef0b93ed24eb724206438362c60"
+  },
+  "fixture": {
+    "Tests/OriginalPublicAcceptanceVerification/OrdinaryPolylineCoonsPlaneProbe.swift": "244bcdcda57dd74dd1dd668742b8bde6d38408d12ce127b97dbbc84ae7d50a68"
+  },
+  "lanes": {
+    "native": {
+      "receiptSHA256": "e8359f633ecfe561f0060c2c9d63bb715b7cb48dea7e148ffd6a4ddcafac2116",
+      "acceptedRuntimeExecutions": 6
+    },
+    "asan": {
+      "receiptSHA256": "48bc5c0acaa72d7561ea658613e5143601d3b0ac3395bfbf0876290eab9cbbb9",
+      "acceptedRuntimeExecutions": 6
+    },
+    "wasm": {
+      "receiptSHA256": "ebfcdeb3f96751b59c3b1dfd5cba31cfe1076c7f1c39b85917d34fc328b469be",
+      "acceptedRuntimeExecutions": 6
+    },
+    "embedded": {
+      "receiptSHA256": "1714e725e4eea082d1f4b50f4068152b0969efa3ebbf739566005154c9626228",
+      "acceptedRuntimeExecutions": 1
+    }
+  },
+  "tracesSHA256": "ad1350f59aca82b6a796aed04993615e0cc78170c4a670b253082628ee909ab9",
+  "driverSHA256": "4f27efd3c08c97190c65cc1b626673719bbcd5b8d8b441269ec72e010ca55590",
+  "scope": "Frozen subnormal-normal point cell and unit-normal regression; no continuous/general-normal/full-family/full-seven/full87 completion.",
+  "reviewSHA256": "4f16f3cd79e9408460020e058c9e2527130c083e25b71f7dfca8e0cfbae965e2",
+  "verificationSHA256": "04cc54fc59cb3ebc8d8383b8c12b1f2aa027153a4db3af88d05d8fed7a6bba13"
+}

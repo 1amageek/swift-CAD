@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "lane": "native",
+  "parentReceipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-ordinary/native/receipt.json",
+  "parentSHA256": "2ff419dc21f8079e92d14a98d6137957e7f137344f66b98eb7e071240b45b88d",
+  "production": {
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlanePointPublisher.swift": "d353dcbb423388244b094f08b678e31f127e3ef0b93ed24eb724206438362c60"
+  },
+  "proofSHA256": "244bcdcda57dd74dd1dd668742b8bde6d38408d12ce127b97dbbc84ae7d50a68",
+  "files": {
+    "runtime-cancel-final.log": "3d5a1814128022bf65952ee2fe2aa8f991aad7f97f1a1a504ab6d902ee3c0f80",
+    "proof-command.json": "526518c46b9a795b3d390db58b61690a33983551200425facbae54736587bc42",
+    "changed-premises.json": "9b79cb8a44019144bcf0a6c51622df1c030f266060a6310416dba72128a7189d",
+    "compile-proof.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runtime-ordinary.log": "bd9140ee211d98ff7958b9b45dc2f33198d79327091497e4c7fa05bebefb2823",
+    "compiler-inputs.json": "a6e6a1a86ef22c0e510aa3be6cf3d2c1afda3c8023148c9165397efa2abe2dbb",
+    "runtime-resources.log": "819cef8d74565fdde8422166d6692695938a6eeca6858dd7ae22d920b8f9f346",
+    "runtime-unit-regression.log": "bd9140ee211d98ff7958b9b45dc2f33198d79327091497e4c7fa05bebefb2823",
+    "runtime-selections.log": "400b8be5d0197c94c826ba38005c1df3c1fe37d98ed62ed37c5b19b10136ec89",
+    "runtime-cancel-entry.log": "1469d5cb78f245a836d11a65358280daa516b89631b63639314088d8343aca4d",
+    "products.json": "e90b4b1f30b4b9eed6b9221f549f6f59a702dbca7d457d8bc873caf165dda8fe",
+    "compile-port.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "parent-admission.json": "e385cbedbc0dc7aa584ce5e021013780e99cc871045d8bceea21b62c54f863e1",
+    "port-command.json": "507816f17a950c9ec8366bad7030c30021981e872d4450cfcc184e248947341c",
+    "runs.json": "48b06b67bff84b519b7cedf922d0a226c41ba6b3eeee87ff09aecb5dd6ea0885"
+  },
+  "scope": "One changed publication body and real ordinary public fixture compiled against admitted immutable lower artifacts; unchanged parent producers/solvers and prepared entries are reused, not rebuilt."
+}

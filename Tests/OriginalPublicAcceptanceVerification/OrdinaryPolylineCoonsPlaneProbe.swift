@@ -13,7 +13,7 @@ import Synchronization
 import PublicLiftPlanePort
 
 @main struct OrdinaryPolylineCoonsPlaneProof {
-    enum Mode { case ordinary,selections,resources,cancelFinal,cancelEntry,positive,gp,scaledNormals }
+    enum Mode: Sendable { case ordinary,selections,resources,cancelFinal,cancelEntry,positive,gp,scaledNormals }
     nonisolated static var mode:Mode {
         #if PUBLIC_PROOF_GP
         return .gp
@@ -67,12 +67,17 @@ import PublicLiftPlanePort
         }
         var totals:State { state.withLock { $0 } }
     }
-    nonisolated static func input() throws -> (Curve3D,Surface3D) {
+    nonisolated static func input(normal override:Vector3D? = nil) throws -> (Curve3D,Surface3D) {
         var a = try PolylineLiftProof.Admission(work:8_388_608)
         let host = try PolylineAtlasLiftProof.shape(multi:true,using:&a).0
+        #if PUBLIC_PROOF_SUBNORMAL
+        let normal = override ?? Vector3D(x:Double.leastNonzeroMagnitude,y:0,z:0)
+        #else
+        let normal = override ?? Vector3D.unitX
+        #endif
         return (.surfaceLift(.init(surface:.procedural(.originalCoons(host)),
             parameterCurve:.polyline(PolylineLiftProof.points()))),
-            .plane(.init(origin:.init(x:0.5,y:0,z:0),normal:.unitX)))
+            .plane(.init(origin:.init(x:0.5,y:0,z:0),normal:normal)))
     }
     nonisolated static func check(_ points:[CurveSurfaceIntersection]) throws {
         try PolylineLiftProof.require(points.count == 2)
@@ -84,7 +89,9 @@ import PublicLiftPlanePort
             try PolylineLiftProof.require(abs(point.surfaceU) <= 1e-6 && abs(point.surfaceV+0.5) <= 1e-6)
         }
     }
-    nonisolated static func run() async throws {
+    nonisolated static func run(_ selected:Mode? = nil,normal:Vector3D? = nil) async throws {
+        let mode = selected ?? Self.mode
+        func input() throws -> (Curve3D,Surface3D) { try Self.input(normal:normal) }
         let intersector = PublicLiftPlanePort.DefaultCurveSurfaceIntersector()
         if mode == .gp { try PreparedGraphPublicationRegression.run();return }
         if mode == .cancelEntry {
@@ -264,7 +271,19 @@ import PublicLiftPlanePort
         print("PASS ordinary bare/rich public input: two distinct T roots; exact 8/4 incidence groups; original lift UV and plane UV; detached input/COW lifetime; concurrent independent readers")
     }
     static func main() async {
-        do { try await run() }
+        do {
+            #if PUBLIC_PROOF_ALL_MODES
+            try await Task { try await run(.ordinary,normal:.unitX) }.value
+            for mode in [Mode.ordinary,.selections,.resources,.cancelEntry,.cancelFinal] {
+                try await Task { try await run(mode) }.value
+            }
+            #elseif !hasFeature(Embedded)
+            if CommandLine.arguments.contains("unit-regression") { try await run(.ordinary,normal:.unitX) }
+            else { try await run() }
+            #else
+            try await run()
+            #endif
+        }
         catch {
             print("FAIL ordinary lift/plane")
             #if !hasFeature(Embedded)
