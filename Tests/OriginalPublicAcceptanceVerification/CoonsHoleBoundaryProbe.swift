@@ -49,7 +49,10 @@ import NativeKernelAdapters
         let second = try DefaultOriginalRationalGraphFamilyPreparer().prepare(
             cover: cover(source: surfaceSource, laws: surfaceCharts.laws, support: surfaceCharts.support,
                 field: field, limits: limits, using: &a), field: algebraic, maximumGraphs: 4, limits: limits, using: &a)
-        print("RUN B-COONS complete original Native-line/Coons graph relation", first.graphs.count, second.graphs.count)
+        print("RUN B-COONS complete original Native-line/Coons graph relation")
+#if !hasFeature(Embedded)
+        print("Graph counts", first.graphs.count, second.graphs.count)
+#endif
         return try PublicLiftPlane.DefaultOriginalIssuedGraphRelationResolver().resolve(kind: .curveSurface,
             first: first, second: second, maximumPairs: 4, limits: limits,
             cellLimits: .init(maximumStoredCells: 20_000, maximumRootsPerStack: 100),

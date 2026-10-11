@@ -1,0 +1,5 @@
+RUN M6 periodic clip
+RUN M6 collapsed raw
+RUN M6 collapsed clip
+PASS M6 finite lifted periodic seam owners and ambient collapsed pole parameters
+PASS M6 exact L5 public face boundary consumers seamPole

@@ -1,0 +1,20 @@
+{
+  "scope": "Stable 15-body issued-graph boundary production change and Native shared-body compatibility",
+  "production": {
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalFaceSurfaceBinding.swift": "df57f1a1bcaa44c5c8d6afdff0e84ef81d64daec5c4700673e3e73b75c0ef23d",
+    "Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryCompiler.swift": "5c71119ea72b944fdb220c40f8b408db19dd97458cf03bdb9db6f069523fddc2",
+    "Sources/CADGeometry/OriginalBoundaryClipping/DefaultOriginalIssuedGraphBoundaryClipper.swift": "39ca8ce6677ed92acc1a4d2c2af1f6d9f15235da21692fea544d1eb31c2517cb",
+    "Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryClipping.swift": "fbb1373f7833a3b8b4ab0e283fcfd303679a3dd1a49a5e52ec0ff28d04ef8e43",
+    "Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryDomain.swift": "f71c9e9cb10e6959f24b3df179667e032a8b25e97d2d399c167995bd1b84ec43",
+    "Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryRefinement.swift": "b498688d4048a61bfd2da2efc43d512b9fecf44535e713f5405d9e2312795e7f",
+    "Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundarySource.swift": "230deb225f495f0459845a942df32cc4466b01e0e2e8003f7d2136762ad86efc",
+    "Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphClippedParameters.swift": "13480206fe9c289a30f2e9a8fded8c1b5561e4a9572ccfa2bf3519301bfbc5cc",
+    "Sources/CADKernel/OriginalBoundaryClipping/OriginalExactFaceBoundaryLoops.swift": "e9a5c4a8798701d402ddc2fe77d32df3733aa3ddf1a7646b9772693c469ebd79",
+    "Sources/CADKernel/OriginalBoundaryClipping/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": "07a0572eaccdb24fa7b4742a1e8dca1ae2ceb8f0916b36719fdc9a41bda68ad4",
+    "Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceBoundaryClipping.swift": "5b8bb84b76b6748213611939f366be5fe516ec9ab406fdee8bc2344b45afc18c",
+    "Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceClippedParameters.swift": "8309a2fd96463f652ce081b954e026dff8d1ff6397cc0941f8fdfb680a85855f",
+    "Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryCompiler+Native.swift": "2f51ab27b4f374a56428369660a98fdb6078ba902135052e2497677d0fe04a21",
+    "Sources/CADGeometry/OriginalBoundaryClipping/DefaultOriginalExactNativeBoundaryClipper.swift": "863fd66197a722413e34890ac870fb61ea3b428fe5a61310c2b5db566ba3ec40",
+    "Sources/CADKernel/OriginalBoundaryClipping/OriginalExactFaceBoundaryIssuer.swift": "ba2694a195bc31d61c57a1d03c00324f2cf2101423aa98d64bc512873fdb238a"
+  }
+}

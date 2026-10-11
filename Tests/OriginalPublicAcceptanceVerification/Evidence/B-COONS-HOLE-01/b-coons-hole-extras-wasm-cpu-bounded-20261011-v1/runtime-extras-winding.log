@@ -1,0 +1,3 @@
+(node:47517) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS negative denominator/nonlinear many-preimage winding, full-cell original-law signs and zero-denominator exclusion

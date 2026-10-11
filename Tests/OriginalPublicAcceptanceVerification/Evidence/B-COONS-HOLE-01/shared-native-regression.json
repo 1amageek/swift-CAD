@@ -1,0 +1,22 @@
+{
+  "native": {
+    "receipt": "native-regression-native/receipt.json",
+    "receiptSHA256": "910055400f378d8d1f00fcf51db5b1e96d4a6f002319baff6a732c6a605927f3",
+    "scope": "Actual changed Native source/DI/L5/boundary consumer; M5/self and finite OriginalExact/offset/spatial adapters are unselected; unchanged receipt-bound Native DTO validation only. Actual public Kernel boundary fixtures and unchanged receipt-bound Topology validator; no broad CAD or lower rebuild. General families remain separate."
+  },
+  "asan": {
+    "receipt": "native-regression-asan/receipt.json",
+    "receiptSHA256": "1440aa8c44dcddea40a008f63ffc5fbc51598fe68c5c561838dcd534da754b7b",
+    "scope": "Actual changed Native source/DI/L5/boundary consumer; M5/self and finite OriginalExact/offset/spatial adapters are unselected; unchanged receipt-bound Native DTO validation only. Actual public Kernel boundary fixtures and unchanged receipt-bound Topology validator; no broad CAD or lower rebuild. General families remain separate."
+  },
+  "wasm": {
+    "receipt": "native-regression-wasm/receipt.json",
+    "receiptSHA256": "ef1788841e5ce27179e0cbda43ffab14ed7b73bedae650ab8909a8e645b29763",
+    "scope": "Actual changed Native source/DI/L5/boundary consumer; M5/self and finite OriginalExact/offset/spatial adapters are unselected; unchanged receipt-bound Native DTO validation only. Actual public Kernel boundary fixtures and unchanged receipt-bound Topology validator; no broad CAD or lower rebuild. General families remain separate."
+  },
+  "embedded": {
+    "receipt": "native-regression-embedded/receipt.json",
+    "receiptSHA256": "aad5bed1cd4d24f4c003ab10eab7167e57aac2a32087dce712ae044dbf90cb8d",
+    "scope": "Actual changed Native source/DI/L5/boundary consumer; M5/self and finite OriginalExact/offset/spatial adapters are unselected; unchanged receipt-bound Native DTO validation only. Actual public Kernel boundary fixtures and unchanged receipt-bound Topology validator; no broad CAD or lower rebuild. General families remain separate."
+  }
+}

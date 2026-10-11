@@ -1,0 +1,12 @@
+(node:46437) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+RUN B-COONS complete original Native-line/Coons graph relation
+B-COONS-HOLE-CLOSED-01
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS public exact and one-less work/storage
+PASS public membership, independent query admission, invalid pair/arity, query exact resources/cancel and retained face COW
+RUN B-COONS complete original Native-line/Coons graph relation
+PASS entry/mid/final publication cancel, foreign face/source/consumer, source/coefficient depth and chart-count refusal

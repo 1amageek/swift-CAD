@@ -1,0 +1,13 @@
+RUN B-COONS complete original Native-line/Coons graph relation
+Graph counts 1 4
+B-COONS-HOLE-STRICT-01
+PASS whole-cell oracle
+Policy strictInterior pair 0 cells 245 included 1 boundarySpans 0
+PASS whole-cell oracle
+Policy strictInterior pair 1 cells 245 included 1 boundarySpans 0
+PASS whole-cell oracle
+Policy strictInterior pair 2 cells 245 included 1 boundarySpans 0
+PASS whole-cell oracle
+Policy strictInterior pair 3 cells 245 included 1 boundarySpans 0
+PASS public exact and one-less work/storage
+PASS public membership, independent query admission, invalid pair/arity, query exact resources/cancel and retained face COW

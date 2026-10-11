@@ -1,0 +1,36 @@
+PASS F1 rejects a valid-index span with the wrong boundary owner
+RUN B-COONS complete original Native-line/Coons graph relation
+Graph counts 1 4
+B-COONS-HOLE-CLOSED-01
+PASS whole-cell oracle
+Policy closed pair 0 cells 245 included 3 boundarySpans 2
+PASS whole-cell oracle
+Policy closed pair 1 cells 245 included 3 boundarySpans 2
+PASS whole-cell oracle
+Policy closed pair 2 cells 245 included 3 boundarySpans 2
+PASS whole-cell oracle
+Policy closed pair 3 cells 245 included 3 boundarySpans 2
+PASS public Coons-hole policy
+Policy closed queryWork 7387777 queryBytes 203304156
+B-COONS-HOLE-STRICT-01
+PASS whole-cell oracle
+Policy strictInterior pair 0 cells 245 included 1 boundarySpans 0
+PASS whole-cell oracle
+Policy strictInterior pair 1 cells 245 included 1 boundarySpans 0
+PASS whole-cell oracle
+Policy strictInterior pair 2 cells 245 included 1 boundarySpans 0
+PASS whole-cell oracle
+Policy strictInterior pair 3 cells 245 included 1 boundarySpans 0
+PASS public Coons-hole policy
+Policy strictInterior queryWork 7435909 queryBytes 203999068
+B-COONS-HOLE-BOUNDARY-01
+PASS whole-cell oracle
+Policy boundary pair 0 cells 245 included 2 boundarySpans 2
+PASS whole-cell oracle
+Policy boundary pair 1 cells 245 included 2 boundarySpans 2
+PASS whole-cell oracle
+Policy boundary pair 2 cells 245 included 2 boundarySpans 2
+PASS whole-cell oracle
+Policy boundary pair 3 cells 245 included 2 boundarySpans 2
+PASS public Coons-hole policy
+Policy boundary queryWork 7435229 queryBytes 203983860

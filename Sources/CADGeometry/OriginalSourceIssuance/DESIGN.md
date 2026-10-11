@@ -1690,6 +1690,13 @@ uses the same graph source contract and does not solve or infer UV.
 
 ## Retained Coons atlas lift hosts
 
+OriginalFaceSurfaceBinding supplies sealed literal support bindings for an existing
+Coons atlas snapshot or Native surface source. It retains the exact source binding
+and original Surface3D value for the [boundary consumer](../OriginalBoundaryClipping/DESIGN.md#issued-graph-face-boundary-connection).
+It issues no new position law, identity or source approximation. Its factories
+admit source depth and caller storage/cancellation; downstream role binding must
+verify the same source owner before comparing the actual stored face support.
+
 OriginalCoonsAtlasSnapshotProvider consumes the existing position-only
 [Coons homogeneous atlas](../OriginalCoonsIntersectionSources/DESIGN.md) and retains
 its actual constructor, four directed boundary owners, exact corners and every

@@ -1,0 +1,16 @@
+{
+  "scope": "Operational compiler diagnosis only; failed attempts are not CAD acceptance",
+  "embeddedWallTimeout": {
+    "files": {
+      "diagnostic-embedded-wall-timeout/runs.json": "33af4935db8ab31ccf3d8a66b55337738a233c01f453d48344bb9dbd34d7dd8d",
+      "diagnostic-embedded-wall-timeout/compile-link-controls.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "diagnostic-embedded-wall-timeout/driver.py": "5db5d02129e5f62afded5fbe2634543780b0fa6b67cf7b83e9cab467419b4613"
+    },
+    "accepted": false
+  },
+  "compilerSample": {
+    "file": "compiler-sample.txt",
+    "sha256": "c6fc58d318f0b0dd2793a63dd175f41cc97d677405dbe5eab3494b0ad39a52ed",
+    "observation": "Owned swift-frontend was running LLVM verifier finalization; sample is not a runtime or performance acceptance proof"
+  }
+}

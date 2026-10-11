@@ -38,7 +38,7 @@ public struct DefaultOriginalExactNativeBoundaryClipper: OriginalExactNativeBoun
                 let predicate = try compiler.cells.predicate(instructions:instructions,for:source,using:&admission)
                 let refined = try DefaultNativeExactParameterRefiner().refine(part.relation,matching:predicate,
                     cellLimits:cellLimits,topologyLimits:topologyLimits,using:&admission)
-                let spans = try compiler.boundaryReferences(in:refined,using:&admission)
+                let spans = try compiler.boundaryReferences(in:refined.pullback,using:&admission)
                 results.append(.init(parameters:refined,boundarySpans:spans))
             }
             try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalExactClippedNativeParameters.self))

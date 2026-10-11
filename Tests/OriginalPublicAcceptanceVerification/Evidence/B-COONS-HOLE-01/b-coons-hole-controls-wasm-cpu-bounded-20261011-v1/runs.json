@@ -1,0 +1,44 @@
+[
+  {
+    "label": "runtime-controls-closed",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-wasm-20261011-v2/Proof.wasm",
+      "closed"
+    ],
+    "timeoutSeconds": 2880,
+    "exitCode": 0,
+    "cpuLimitSeconds": 360,
+    "elapsedSeconds": 496.18985695799347,
+    "logSHA256": "714912a348785f664efad0441337960794c134e6d79e868a3f466e9a574d94df"
+  },
+  {
+    "label": "runtime-controls-strict",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-wasm-20261011-v2/Proof.wasm",
+      "strict"
+    ],
+    "timeoutSeconds": 2880,
+    "exitCode": 0,
+    "cpuLimitSeconds": 360,
+    "elapsedSeconds": 322.5004991670139,
+    "logSHA256": "1c23d2f9e9fcc293c04f60b6a872fd0c5fa108ff50aea0c454d45acfd98b17b5"
+  },
+  {
+    "label": "runtime-controls-boundary",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-wasm-20261011-v2/Proof.wasm",
+      "boundary"
+    ],
+    "timeoutSeconds": 2880,
+    "exitCode": 0,
+    "cpuLimitSeconds": 360,
+    "elapsedSeconds": 265.68783266597893,
+    "logSHA256": "c7e1f69030be444ae688198ec8a8b6a9711b8aeab924bb08f015533bba334687"
+  }
+]

@@ -1,0 +1,22 @@
+(node:48191) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS F1 rejects a valid-index span with the wrong boundary owner
+RUN B-COONS complete original Native-line/Coons graph relation
+B-COONS-HOLE-CLOSED-01
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS public Coons-hole policy
+B-COONS-HOLE-STRICT-01
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS public Coons-hole policy
+B-COONS-HOLE-BOUNDARY-01
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS public Coons-hole policy

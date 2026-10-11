@@ -43,33 +43,8 @@ struct OriginalExactFaceBoundaryIssuer {
         guard support == source.surface else {
             throw Self.failure(.invalidInput,original.tolerance,"The face support does not own the selected exact source surface.")
         }
-        try a.retainStorage(bytes:exactScalarPayloadBytes(count:face.loops.count,of:Loop.self))
-        try a.retainStorage(bytes:exactScalarPayloadBytes(count:face.loops.count,of:OriginalNativeBoundaryDomain.Loop.self))
-        var retained: [Loop] = [],directed: [OriginalNativeBoundaryDomain.Loop] = []
-        retained.reserveCapacity(face.loops.count);directed.reserveCapacity(face.loops.count)
-        for identifier in face.loops {
-            try a.consumeWork(1)
-            guard let loop = original.model.loops[identifier],loop.id == identifier,!loop.coedges.isEmpty else {
-                throw Self.failure(.missingReference,original.tolerance,"An original exact boundary loop is absent or empty.")
-            }
-            try a.retainStorage(bytes:exactScalarPayloadBytes(count:loop.coedges.count,of:SurfaceParameterCurve.self))
-            var curves: [SurfaceParameterCurve] = [];curves.reserveCapacity(loop.coedges.count)
-            for coedge in loop.coedges {
-                try a.consumeWork(1)
-                guard let edge = original.model.edges[coedge.edgeID],original.model.geometry.curves[edge.curveID] != nil,
-                    original.model.vertices[edge.startVertexID] != nil,original.model.vertices[edge.endVertexID] != nil else {
-                    throw Self.failure(.missingReference,original.tolerance,"An original exact boundary lost its edge or endpoint owner.")
-                }
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Missing authored pcurves require an
-                // original complete correspondence issuer before this public exact route can succeed.
-                guard let curve = coedge.surfaceParameterCurve else {
-                    throw Self.failure(.unsupportedCapability,original.tolerance,"An exact boundary needs its retained authored lifted pcurve.")
-                }
-                curves.append(curve)
-            }
-            retained.append(loop);directed.append(.init(isInner:loop.role == .inner,curves:curves))
-        }
-        domain = try .init(source:source,loops:directed,using:&a);loops = retained
+        let retained = try OriginalExactFaceBoundaryLoops(face:face,original:original,using:&a)
+        domain = try .init(source:source,loops:retained.directed,using:&a);loops = retained.retained
         try a.checkpoint()
     }
     private static func failure(_ code: KernelErrorCode,_ tolerance: ModelingTolerance,_ message: String) -> KernelError {

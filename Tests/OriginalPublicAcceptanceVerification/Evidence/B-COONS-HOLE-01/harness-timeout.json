@@ -1,0 +1,19 @@
+{
+  "driverSHA256": "7da10d31d64ebe02ef3617dff6fcb26d7878d571e44909210c6cafa06c34f46c",
+  "scope": "Operational runner timeout failure and owned descendant termination only; no CAD acceptance",
+  "run": {
+    "label": "runtime-reap",
+    "command": [
+      "/usr/local/bin/python3",
+      "-c",
+      "import subprocess,sys,time; child=subprocess.Popen([sys.executable,\"-c\",\"import time; time.sleep(60)\"]); print(child.pid,flush=True); time.sleep(60)"
+    ],
+    "timeoutSeconds": 1,
+    "exitCode": "timeout",
+    "cpuLimitSeconds": 360,
+    "elapsedSeconds": 1.2172571670962498,
+    "logSHA256": "043d07b1828cc7bef65bbdd69ea1f68940870e471c424b7fed51c931f55830f3"
+  },
+  "descendantPID": 44970,
+  "descendantTerminalState": "absent"
+}

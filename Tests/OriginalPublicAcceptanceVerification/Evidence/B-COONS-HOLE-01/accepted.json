@@ -1,0 +1,647 @@
+{
+  "b-coons-hole-controls-native-20261011-v5": {
+    "receipt": "b-coons-hole-controls-native-20261011-v5/receipt.json",
+    "receiptSHA256": "412c463d9aa34dc425c5388c092b346790ed0dfca691e54004e728e20bc22e1b",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v5/Support.swift": {
+        "path": "compiler-inputs/c708bc7297884ea0-Support.swift",
+        "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v5/CoonsHoleBoundaryControls.swift": {
+        "path": "compiler-inputs/863333c5c18947f5-CoonsHoleBoundaryControls.swift",
+        "sha256": "863333c5c18947f5e46c8563474eaed42b203cf2b6caef3b9f42ac2605d80163"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture0.swift": {
+        "path": "compiler-inputs/Fixture0.swift",
+        "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture1.swift": {
+        "path": "compiler-inputs/Fixture1.swift",
+        "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-OriginalParametricGraphIssuing.swift": {
+        "path": "compiler-inputs/Regression-OriginalParametricGraphIssuing.swift",
+        "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+        "path": "compiler-inputs/Regression-DefaultOriginalRationalGraphIssuer.swift",
+        "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+        "path": "compiler-inputs/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+        "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v5/AcceptanceHelper.swift": {
+        "path": "compiler-inputs/be0ae3bd5861fd0c-AcceptanceHelper.swift",
+        "sha256": "be0ae3bd5861fd0c630ce9e47903c5d541b073433bc47951bca4a2f5894ebd44"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalFaceSurfaceBinding.swift": {
+        "path": "compiler-inputs/df57f1a1bcaa44c5-OriginalFaceSurfaceBinding.swift",
+        "sha256": "df57f1a1bcaa44c5c8d6afdff0e84ef81d64daec5c4700673e3e73b75c0ef23d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryCompiler.swift": {
+        "path": "compiler-inputs/5c71119ea72b944f-OriginalExactBoundaryCompiler.swift",
+        "sha256": "5c71119ea72b944fdb220c40f8b408db19dd97458cf03bdb9db6f069523fddc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+        "path": "compiler-inputs/39ca8ce6677ed92a-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+        "sha256": "39ca8ce6677ed92acc1a4d2c2af1f6d9f15235da21692fea544d1eb31c2517cb"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryClipping.swift": {
+        "path": "compiler-inputs/fbb1373f7833a3b8-OriginalIssuedGraphBoundaryClipping.swift",
+        "sha256": "fbb1373f7833a3b8b4ab0e283fcfd303679a3dd1a49a5e52ec0ff28d04ef8e43"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryDomain.swift": {
+        "path": "compiler-inputs/f71c9e9cb10e6959-OriginalIssuedGraphBoundaryDomain.swift",
+        "sha256": "f71c9e9cb10e6959f24b3df179667e032a8b25e97d2d399c167995bd1b84ec43"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryRefinement.swift": {
+        "path": "compiler-inputs/b498688d4048a61b-OriginalIssuedGraphBoundaryRefinement.swift",
+        "sha256": "b498688d4048a61bfd2da2efc43d512b9fecf44535e713f5405d9e2312795e7f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundarySource.swift": {
+        "path": "compiler-inputs/230deb225f495f04-OriginalIssuedGraphBoundarySource.swift",
+        "sha256": "230deb225f495f0459845a942df32cc4466b01e0e2e8003f7d2136762ad86efc"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphClippedParameters.swift": {
+        "path": "compiler-inputs/13480206fe9c289a-OriginalIssuedGraphClippedParameters.swift",
+        "sha256": "13480206fe9c289a30f2e9a8fded8c1b5561e4a9572ccfa2bf3519301bfbc5cc"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalExactFaceBoundaryLoops.swift": {
+        "path": "compiler-inputs/e9a5c4a8798701d4-OriginalExactFaceBoundaryLoops.swift",
+        "sha256": "e9a5c4a8798701d402ddc2fe77d32df3733aa3ddf1a7646b9772693c469ebd79"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+        "path": "compiler-inputs/07a0572eaccdb24f-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+        "sha256": "07a0572eaccdb24fa7b4742a1e8dca1ae2ceb8f0916b36719fdc9a41bda68ad4"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+        "path": "compiler-inputs/5b8bb84b76b67482-OriginalIssuedGraphFaceBoundaryClipping.swift",
+        "sha256": "5b8bb84b76b6748213611939f366be5fe516ec9ab406fdee8bc2344b45afc18c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceClippedParameters.swift": {
+        "path": "compiler-inputs/8309a2fd96463f65-OriginalIssuedGraphFaceClippedParameters.swift",
+        "sha256": "8309a2fd96463f652ce081b954e026dff8d1ff6397cc0941f8fdfb680a85855f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundary.py": {
+        "path": "compiler-inputs/e9068fa76d80bb59-CoonsHoleBoundary.py",
+        "sha256": "e9068fa76d80bb59156511de2ceb6572b11b2f78bf602e8f20f49e7461187e16"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundaryControls.swift": {
+        "path": "compiler-inputs/787f659b12733921-CoonsHoleBoundaryControls.swift",
+        "sha256": "787f659b12733921d733cd0b933e5d10ae66b1e5c86684490fa4ed9e25bbbd55"
+      }
+    },
+    "state": "changed-path-controls-verified"
+  },
+  "b-coons-hole-controls-native-strict-20261011-v1": {
+    "receipt": "b-coons-hole-controls-native-strict-20261011-v1/receipt.json",
+    "receiptSHA256": "66cc9757dbd673fd806c56bc10ad6c8b6c5f7594aa07ea7ffee574c3bf2d2975",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-strict-20261011-v1/Support.swift": {
+        "path": "compiler-inputs/c708bc7297884ea0-Support.swift",
+        "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-strict-20261011-v1/CoonsHoleBoundaryControls.swift": {
+        "path": "compiler-inputs/863333c5c18947f5-CoonsHoleBoundaryControls.swift",
+        "sha256": "863333c5c18947f5e46c8563474eaed42b203cf2b6caef3b9f42ac2605d80163"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture0.swift": {
+        "path": "compiler-inputs/Fixture0.swift",
+        "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture1.swift": {
+        "path": "compiler-inputs/Fixture1.swift",
+        "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-OriginalParametricGraphIssuing.swift": {
+        "path": "compiler-inputs/Regression-OriginalParametricGraphIssuing.swift",
+        "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+        "path": "compiler-inputs/Regression-DefaultOriginalRationalGraphIssuer.swift",
+        "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+        "path": "compiler-inputs/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+        "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-strict-20261011-v1/AcceptanceHelper.swift": {
+        "path": "compiler-inputs/be0ae3bd5861fd0c-AcceptanceHelper.swift",
+        "sha256": "be0ae3bd5861fd0c630ce9e47903c5d541b073433bc47951bca4a2f5894ebd44"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalFaceSurfaceBinding.swift": {
+        "path": "compiler-inputs/df57f1a1bcaa44c5-OriginalFaceSurfaceBinding.swift",
+        "sha256": "df57f1a1bcaa44c5c8d6afdff0e84ef81d64daec5c4700673e3e73b75c0ef23d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryCompiler.swift": {
+        "path": "compiler-inputs/5c71119ea72b944f-OriginalExactBoundaryCompiler.swift",
+        "sha256": "5c71119ea72b944fdb220c40f8b408db19dd97458cf03bdb9db6f069523fddc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+        "path": "compiler-inputs/39ca8ce6677ed92a-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+        "sha256": "39ca8ce6677ed92acc1a4d2c2af1f6d9f15235da21692fea544d1eb31c2517cb"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryClipping.swift": {
+        "path": "compiler-inputs/fbb1373f7833a3b8-OriginalIssuedGraphBoundaryClipping.swift",
+        "sha256": "fbb1373f7833a3b8b4ab0e283fcfd303679a3dd1a49a5e52ec0ff28d04ef8e43"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryDomain.swift": {
+        "path": "compiler-inputs/f71c9e9cb10e6959-OriginalIssuedGraphBoundaryDomain.swift",
+        "sha256": "f71c9e9cb10e6959f24b3df179667e032a8b25e97d2d399c167995bd1b84ec43"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryRefinement.swift": {
+        "path": "compiler-inputs/b498688d4048a61b-OriginalIssuedGraphBoundaryRefinement.swift",
+        "sha256": "b498688d4048a61bfd2da2efc43d512b9fecf44535e713f5405d9e2312795e7f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundarySource.swift": {
+        "path": "compiler-inputs/230deb225f495f04-OriginalIssuedGraphBoundarySource.swift",
+        "sha256": "230deb225f495f0459845a942df32cc4466b01e0e2e8003f7d2136762ad86efc"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphClippedParameters.swift": {
+        "path": "compiler-inputs/13480206fe9c289a-OriginalIssuedGraphClippedParameters.swift",
+        "sha256": "13480206fe9c289a30f2e9a8fded8c1b5561e4a9572ccfa2bf3519301bfbc5cc"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalExactFaceBoundaryLoops.swift": {
+        "path": "compiler-inputs/e9a5c4a8798701d4-OriginalExactFaceBoundaryLoops.swift",
+        "sha256": "e9a5c4a8798701d402ddc2fe77d32df3733aa3ddf1a7646b9772693c469ebd79"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+        "path": "compiler-inputs/07a0572eaccdb24f-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+        "sha256": "07a0572eaccdb24fa7b4742a1e8dca1ae2ceb8f0916b36719fdc9a41bda68ad4"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+        "path": "compiler-inputs/5b8bb84b76b67482-OriginalIssuedGraphFaceBoundaryClipping.swift",
+        "sha256": "5b8bb84b76b6748213611939f366be5fe516ec9ab406fdee8bc2344b45afc18c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceClippedParameters.swift": {
+        "path": "compiler-inputs/8309a2fd96463f65-OriginalIssuedGraphFaceClippedParameters.swift",
+        "sha256": "8309a2fd96463f652ce081b954e026dff8d1ff6397cc0941f8fdfb680a85855f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundary.py": {
+        "path": "compiler-inputs/ac97811180b83084-CoonsHoleBoundary.py",
+        "sha256": "ac97811180b830847ba334d4094bfaff7ba6e2dc272be6220541bba15f7775a1"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundaryControls.swift": {
+        "path": "compiler-inputs/787f659b12733921-CoonsHoleBoundaryControls.swift",
+        "sha256": "787f659b12733921d733cd0b933e5d10ae66b1e5c86684490fa4ed9e25bbbd55"
+      }
+    },
+    "state": "changed-path-controls-verified"
+  },
+  "b-coons-hole-controls-native-boundary-20261011-v1": {
+    "receipt": "b-coons-hole-controls-native-boundary-20261011-v1/receipt.json",
+    "receiptSHA256": "7f34ce520f418b0d0803144290464195963286124b4dcb78b9651eedb8a15795",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-boundary-20261011-v1/Support.swift": {
+        "path": "compiler-inputs/c708bc7297884ea0-Support.swift",
+        "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-boundary-20261011-v1/CoonsHoleBoundaryControls.swift": {
+        "path": "compiler-inputs/863333c5c18947f5-CoonsHoleBoundaryControls.swift",
+        "sha256": "863333c5c18947f5e46c8563474eaed42b203cf2b6caef3b9f42ac2605d80163"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture0.swift": {
+        "path": "compiler-inputs/Fixture0.swift",
+        "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture1.swift": {
+        "path": "compiler-inputs/Fixture1.swift",
+        "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-OriginalParametricGraphIssuing.swift": {
+        "path": "compiler-inputs/Regression-OriginalParametricGraphIssuing.swift",
+        "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+        "path": "compiler-inputs/Regression-DefaultOriginalRationalGraphIssuer.swift",
+        "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+        "path": "compiler-inputs/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+        "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-boundary-20261011-v1/AcceptanceHelper.swift": {
+        "path": "compiler-inputs/be0ae3bd5861fd0c-AcceptanceHelper.swift",
+        "sha256": "be0ae3bd5861fd0c630ce9e47903c5d541b073433bc47951bca4a2f5894ebd44"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalFaceSurfaceBinding.swift": {
+        "path": "compiler-inputs/df57f1a1bcaa44c5-OriginalFaceSurfaceBinding.swift",
+        "sha256": "df57f1a1bcaa44c5c8d6afdff0e84ef81d64daec5c4700673e3e73b75c0ef23d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryCompiler.swift": {
+        "path": "compiler-inputs/5c71119ea72b944f-OriginalExactBoundaryCompiler.swift",
+        "sha256": "5c71119ea72b944fdb220c40f8b408db19dd97458cf03bdb9db6f069523fddc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+        "path": "compiler-inputs/39ca8ce6677ed92a-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+        "sha256": "39ca8ce6677ed92acc1a4d2c2af1f6d9f15235da21692fea544d1eb31c2517cb"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryClipping.swift": {
+        "path": "compiler-inputs/fbb1373f7833a3b8-OriginalIssuedGraphBoundaryClipping.swift",
+        "sha256": "fbb1373f7833a3b8b4ab0e283fcfd303679a3dd1a49a5e52ec0ff28d04ef8e43"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryDomain.swift": {
+        "path": "compiler-inputs/f71c9e9cb10e6959-OriginalIssuedGraphBoundaryDomain.swift",
+        "sha256": "f71c9e9cb10e6959f24b3df179667e032a8b25e97d2d399c167995bd1b84ec43"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryRefinement.swift": {
+        "path": "compiler-inputs/b498688d4048a61b-OriginalIssuedGraphBoundaryRefinement.swift",
+        "sha256": "b498688d4048a61bfd2da2efc43d512b9fecf44535e713f5405d9e2312795e7f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundarySource.swift": {
+        "path": "compiler-inputs/230deb225f495f04-OriginalIssuedGraphBoundarySource.swift",
+        "sha256": "230deb225f495f0459845a942df32cc4466b01e0e2e8003f7d2136762ad86efc"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphClippedParameters.swift": {
+        "path": "compiler-inputs/13480206fe9c289a-OriginalIssuedGraphClippedParameters.swift",
+        "sha256": "13480206fe9c289a30f2e9a8fded8c1b5561e4a9572ccfa2bf3519301bfbc5cc"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalExactFaceBoundaryLoops.swift": {
+        "path": "compiler-inputs/e9a5c4a8798701d4-OriginalExactFaceBoundaryLoops.swift",
+        "sha256": "e9a5c4a8798701d402ddc2fe77d32df3733aa3ddf1a7646b9772693c469ebd79"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+        "path": "compiler-inputs/07a0572eaccdb24f-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+        "sha256": "07a0572eaccdb24fa7b4742a1e8dca1ae2ceb8f0916b36719fdc9a41bda68ad4"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+        "path": "compiler-inputs/5b8bb84b76b67482-OriginalIssuedGraphFaceBoundaryClipping.swift",
+        "sha256": "5b8bb84b76b6748213611939f366be5fe516ec9ab406fdee8bc2344b45afc18c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceClippedParameters.swift": {
+        "path": "compiler-inputs/8309a2fd96463f65-OriginalIssuedGraphFaceClippedParameters.swift",
+        "sha256": "8309a2fd96463f652ce081b954e026dff8d1ff6397cc0941f8fdfb680a85855f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundary.py": {
+        "path": "compiler-inputs/ac97811180b83084-CoonsHoleBoundary.py",
+        "sha256": "ac97811180b830847ba334d4094bfaff7ba6e2dc272be6220541bba15f7775a1"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundaryControls.swift": {
+        "path": "compiler-inputs/787f659b12733921-CoonsHoleBoundaryControls.swift",
+        "sha256": "787f659b12733921d733cd0b933e5d10ae66b1e5c86684490fa4ed9e25bbbd55"
+      }
+    },
+    "state": "changed-path-controls-verified"
+  },
+  "b-coons-hole-extras-native-20261011-v4": {
+    "receipt": "b-coons-hole-extras-native-20261011-v4/receipt.json",
+    "receiptSHA256": "ab58fc0e0eb5aa6c8e2d2a36356539253a0f653d319adfab2c17420e5bb7156a",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-native-20261011-v4/Support.swift": {
+        "path": "compiler-inputs/c708bc7297884ea0-Support.swift",
+        "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-native-20261011-v4/CoonsHoleBoundaryExtras.swift": {
+        "path": "compiler-inputs/d05a5310d85fc6e4-CoonsHoleBoundaryExtras.swift",
+        "sha256": "d05a5310d85fc6e4237ab869db3f6c8f261d8841390c7107268b49adec7c5c84"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture0.swift": {
+        "path": "compiler-inputs/Fixture0.swift",
+        "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture1.swift": {
+        "path": "compiler-inputs/Fixture1.swift",
+        "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-OriginalParametricGraphIssuing.swift": {
+        "path": "compiler-inputs/Regression-OriginalParametricGraphIssuing.swift",
+        "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+        "path": "compiler-inputs/Regression-DefaultOriginalRationalGraphIssuer.swift",
+        "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+        "path": "compiler-inputs/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+        "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-native-20261011-v4/AcceptanceHelper.swift": {
+        "path": "compiler-inputs/be0ae3bd5861fd0c-AcceptanceHelper.swift",
+        "sha256": "be0ae3bd5861fd0c630ce9e47903c5d541b073433bc47951bca4a2f5894ebd44"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-native-20261011-v4/ControlsHelper.swift": {
+        "path": "compiler-inputs/af5645af3922ca6b-ControlsHelper.swift",
+        "sha256": "af5645af3922ca6ba52cf4a25701375a322ed364505c2a8a6ab76fc8b3b9d6cc"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalFaceSurfaceBinding.swift": {
+        "path": "compiler-inputs/df57f1a1bcaa44c5-OriginalFaceSurfaceBinding.swift",
+        "sha256": "df57f1a1bcaa44c5c8d6afdff0e84ef81d64daec5c4700673e3e73b75c0ef23d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryCompiler.swift": {
+        "path": "compiler-inputs/5c71119ea72b944f-OriginalExactBoundaryCompiler.swift",
+        "sha256": "5c71119ea72b944fdb220c40f8b408db19dd97458cf03bdb9db6f069523fddc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+        "path": "compiler-inputs/39ca8ce6677ed92a-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+        "sha256": "39ca8ce6677ed92acc1a4d2c2af1f6d9f15235da21692fea544d1eb31c2517cb"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryClipping.swift": {
+        "path": "compiler-inputs/fbb1373f7833a3b8-OriginalIssuedGraphBoundaryClipping.swift",
+        "sha256": "fbb1373f7833a3b8b4ab0e283fcfd303679a3dd1a49a5e52ec0ff28d04ef8e43"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryDomain.swift": {
+        "path": "compiler-inputs/f71c9e9cb10e6959-OriginalIssuedGraphBoundaryDomain.swift",
+        "sha256": "f71c9e9cb10e6959f24b3df179667e032a8b25e97d2d399c167995bd1b84ec43"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryRefinement.swift": {
+        "path": "compiler-inputs/b498688d4048a61b-OriginalIssuedGraphBoundaryRefinement.swift",
+        "sha256": "b498688d4048a61bfd2da2efc43d512b9fecf44535e713f5405d9e2312795e7f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundarySource.swift": {
+        "path": "compiler-inputs/230deb225f495f04-OriginalIssuedGraphBoundarySource.swift",
+        "sha256": "230deb225f495f0459845a942df32cc4466b01e0e2e8003f7d2136762ad86efc"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphClippedParameters.swift": {
+        "path": "compiler-inputs/13480206fe9c289a-OriginalIssuedGraphClippedParameters.swift",
+        "sha256": "13480206fe9c289a30f2e9a8fded8c1b5561e4a9572ccfa2bf3519301bfbc5cc"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalExactFaceBoundaryLoops.swift": {
+        "path": "compiler-inputs/e9a5c4a8798701d4-OriginalExactFaceBoundaryLoops.swift",
+        "sha256": "e9a5c4a8798701d402ddc2fe77d32df3733aa3ddf1a7646b9772693c469ebd79"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+        "path": "compiler-inputs/07a0572eaccdb24f-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+        "sha256": "07a0572eaccdb24fa7b4742a1e8dca1ae2ceb8f0916b36719fdc9a41bda68ad4"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+        "path": "compiler-inputs/5b8bb84b76b67482-OriginalIssuedGraphFaceBoundaryClipping.swift",
+        "sha256": "5b8bb84b76b6748213611939f366be5fe516ec9ab406fdee8bc2344b45afc18c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceClippedParameters.swift": {
+        "path": "compiler-inputs/8309a2fd96463f65-OriginalIssuedGraphFaceClippedParameters.swift",
+        "sha256": "8309a2fd96463f652ce081b954e026dff8d1ff6397cc0941f8fdfb680a85855f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundary.py": {
+        "path": "compiler-inputs/ac97811180b83084-CoonsHoleBoundary.py",
+        "sha256": "ac97811180b830847ba334d4094bfaff7ba6e2dc272be6220541bba15f7775a1"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundaryExtras.swift": {
+        "path": "compiler-inputs/640ecb2e5d80630d-CoonsHoleBoundaryExtras.swift",
+        "sha256": "640ecb2e5d80630dd33044042bb5c1a6b05f5b0858c651a8e1cfc0cc78997fe3"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundaryControls.swift": {
+        "path": "compiler-inputs/787f659b12733921-CoonsHoleBoundaryControls.swift",
+        "sha256": "787f659b12733921d733cd0b933e5d10ae66b1e5c86684490fa4ed9e25bbbd55"
+      }
+    },
+    "state": "changed-path-extras-verified"
+  },
+  "b-coons-hole-controls-asan-20261011-v2": {
+    "receipt": "b-coons-hole-controls-asan-20261011-v2/receipt.json",
+    "receiptSHA256": "0b4793b60c676553f6758e5e60a1e0381270de8ebc412c3498cebacba50bf474",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-asan-20261011-v2/Support.swift": {
+        "path": "compiler-inputs/c708bc7297884ea0-Support.swift",
+        "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-asan-20261011-v2/CoonsHoleBoundaryControls.swift": {
+        "path": "compiler-inputs/e0bee9bd645ce2c4-CoonsHoleBoundaryControls.swift",
+        "sha256": "e0bee9bd645ce2c4dc7b1c221bade677a1d5c1e9fb699b065867f0476376ea23"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/Fixture0.swift": {
+        "path": "compiler-inputs/416a142e005f2eab-Fixture0.swift",
+        "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/Fixture1.swift": {
+        "path": "compiler-inputs/368a7d865f8dc0df-Fixture1.swift",
+        "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/Regression-OriginalParametricGraphIssuing.swift": {
+        "path": "compiler-inputs/2cd7caf3b0cb54d1-Regression-OriginalParametricGraphIssuing.swift",
+        "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+        "path": "compiler-inputs/6f79def02d8efedb-Regression-DefaultOriginalRationalGraphIssuer.swift",
+        "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+        "path": "compiler-inputs/0adcfd8ed15ce460-Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+        "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-asan-20261011-v2/AcceptanceHelper.swift": {
+        "path": "compiler-inputs/be0ae3bd5861fd0c-AcceptanceHelper.swift",
+        "sha256": "be0ae3bd5861fd0c630ce9e47903c5d541b073433bc47951bca4a2f5894ebd44"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundary.py": {
+        "path": "compiler-inputs/ce4a66f721debc58-CoonsHoleBoundary.py",
+        "sha256": "ce4a66f721debc58883466c175ceac84273f54919dce5281f034b31391183736"
+      }
+    },
+    "state": "changed-path-controls-verified"
+  },
+  "b-coons-hole-controls-wasm-cpu-bounded-20261011-v1": {
+    "receipt": "b-coons-hole-controls-wasm-cpu-bounded-20261011-v1/receipt.json",
+    "receiptSHA256": "e1665632aba157ffcf41174a8648290ec0a0f0c462fc2f225c09779f75948579",
+    "reuseProof": "b-coons-hole-controls-wasm-cpu-bounded-20261011-v1/reuse-proof.json",
+    "reuseProofSHA256": "4beae454c2fd1d081b7aa129399bbbdacd3a0664a8311613d6ebe0391e18c12d",
+    "scope": "Recorded compiled Coons proof, admitted before serial runtime. Only the recorded public parameter/material checks are accepted.",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-wasm-20261011-v2/Support.swift": {
+        "path": "compiler-inputs/c708bc7297884ea0-Support.swift",
+        "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-wasm-20261011-v2/CoonsHoleBoundaryControls.swift": {
+        "path": "compiler-inputs/e0bee9bd645ce2c4-CoonsHoleBoundaryControls.swift",
+        "sha256": "e0bee9bd645ce2c4dc7b1c221bade677a1d5c1e9fb699b065867f0476376ea23"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Fixture0.swift": {
+        "path": "compiler-inputs/416a142e005f2eab-Fixture0.swift",
+        "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Fixture1.swift": {
+        "path": "compiler-inputs/368a7d865f8dc0df-Fixture1.swift",
+        "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-OriginalParametricGraphIssuing.swift": {
+        "path": "compiler-inputs/2cd7caf3b0cb54d1-Regression-OriginalParametricGraphIssuing.swift",
+        "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+        "path": "compiler-inputs/6f79def02d8efedb-Regression-DefaultOriginalRationalGraphIssuer.swift",
+        "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+        "path": "compiler-inputs/0adcfd8ed15ce460-Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+        "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-wasm-20261011-v2/AcceptanceHelper.swift": {
+        "path": "compiler-inputs/be0ae3bd5861fd0c-AcceptanceHelper.swift",
+        "sha256": "be0ae3bd5861fd0c630ce9e47903c5d541b073433bc47951bca4a2f5894ebd44"
+      }
+    },
+    "parentReady": "b-coons-hole-controls-wasm-cpu-bounded-20261011-v1/parent-ready-to-run.json",
+    "parentReadySHA256": "22aa546d874fdffc92dbf08805915dd357555af48c6a0fbd21634287b2526284",
+    "parentDriverSHA256": "ce4a66f721debc58883466c175ceac84273f54919dce5281f034b31391183736"
+  },
+  "b-coons-hole-controls-embedded-cpu-bounded-20261011-v1": {
+    "receipt": "b-coons-hole-controls-embedded-cpu-bounded-20261011-v1/receipt.json",
+    "receiptSHA256": "5632a4b495cb6b98d02ce3cb66b198a92e170a8058e478c56b2ed6509cb69bd3",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-embedded-cpu-bounded-20261011-v1/Support.swift": {
+        "path": "compiler-inputs/c708bc7297884ea0-Support.swift",
+        "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-embedded-cpu-bounded-20261011-v1/CoonsHoleBoundaryControls.swift": {
+        "path": "compiler-inputs/e0bee9bd645ce2c4-CoonsHoleBoundaryControls.swift",
+        "sha256": "e0bee9bd645ce2c4dc7b1c221bade677a1d5c1e9fb699b065867f0476376ea23"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/Fixture0.swift": {
+        "path": "compiler-inputs/416a142e005f2eab-Fixture0.swift",
+        "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/Fixture1.swift": {
+        "path": "compiler-inputs/368a7d865f8dc0df-Fixture1.swift",
+        "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/Regression-OriginalParametricGraphIssuing.swift": {
+        "path": "compiler-inputs/2cd7caf3b0cb54d1-Regression-OriginalParametricGraphIssuing.swift",
+        "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+        "path": "compiler-inputs/6f79def02d8efedb-Regression-DefaultOriginalRationalGraphIssuer.swift",
+        "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+        "path": "compiler-inputs/0adcfd8ed15ce460-Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+        "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-embedded-cpu-bounded-20261011-v1/AcceptanceHelper.swift": {
+        "path": "compiler-inputs/be0ae3bd5861fd0c-AcceptanceHelper.swift",
+        "sha256": "be0ae3bd5861fd0c630ce9e47903c5d541b073433bc47951bca4a2f5894ebd44"
+      }
+    },
+    "moduleReceipt": "b-coons-hole-controls-embedded-cpu-bounded-20261011-v1/parent-module-receipt.json",
+    "moduleReceiptSHA256": "8dc1ce6cbac24911a7c0154fd9b42ff50da00a8aea85b9a37f5014fb2a2737ec",
+    "scope": "Original exact-validated four-cell Coons face, source/DI graph and public Kernel parameter/material result. No general-family, Native shared-body regression, M7 XYZ or full-cell delivery claim."
+  },
+  "b-coons-hole-extras-asan-cpu-bounded-20261011-v1": {
+    "receipt": "b-coons-hole-extras-asan-cpu-bounded-20261011-v1/receipt.json",
+    "receiptSHA256": "edeaa598d3aff4bbe179c618da18ee0ca9c6dc9dd6f0ed5f244f111276593a45",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-asan-cpu-bounded-20261011-v1/Support.swift": {
+        "path": "compiler-inputs/c708bc7297884ea0-Support.swift",
+        "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-asan-cpu-bounded-20261011-v1/CoonsHoleBoundaryExtras.swift": {
+        "path": "compiler-inputs/77085bac7cbecea1-CoonsHoleBoundaryExtras.swift",
+        "sha256": "77085bac7cbecea131aee3afee0eb1f4c978bc5faf6103b8358a8a8b6d0d39c6"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/Fixture0.swift": {
+        "path": "compiler-inputs/416a142e005f2eab-Fixture0.swift",
+        "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/Fixture1.swift": {
+        "path": "compiler-inputs/368a7d865f8dc0df-Fixture1.swift",
+        "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/Regression-OriginalParametricGraphIssuing.swift": {
+        "path": "compiler-inputs/2cd7caf3b0cb54d1-Regression-OriginalParametricGraphIssuing.swift",
+        "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+        "path": "compiler-inputs/6f79def02d8efedb-Regression-DefaultOriginalRationalGraphIssuer.swift",
+        "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+        "path": "compiler-inputs/0adcfd8ed15ce460-Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+        "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-asan-cpu-bounded-20261011-v1/AcceptanceHelper.swift": {
+        "path": "compiler-inputs/be0ae3bd5861fd0c-AcceptanceHelper.swift",
+        "sha256": "be0ae3bd5861fd0c630ce9e47903c5d541b073433bc47951bca4a2f5894ebd44"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-asan-cpu-bounded-20261011-v1/ControlsHelper.swift": {
+        "path": "compiler-inputs/1dc95aba3951de4c-ControlsHelper.swift",
+        "sha256": "1dc95aba3951de4c9c8841174cee9643d75a37d64aedc8935dfefa539ba1074d"
+      }
+    },
+    "scope": "Original exact-validated four-cell Coons face, source/DI graph and public Kernel parameter/material result. No general-family, Native shared-body regression, M7 XYZ or full-cell delivery claim."
+  },
+  "b-coons-hole-extras-wasm-cpu-bounded-20261011-v1": {
+    "receipt": "b-coons-hole-extras-wasm-cpu-bounded-20261011-v1/receipt.json",
+    "receiptSHA256": "98c2f810abdc7ba1493ced71f58213a285354b5cb0c33993e2877c6824394628",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-wasm-cpu-bounded-20261011-v1/Support.swift": {
+        "path": "compiler-inputs/c708bc7297884ea0-Support.swift",
+        "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-wasm-cpu-bounded-20261011-v1/CoonsHoleBoundaryExtras.swift": {
+        "path": "compiler-inputs/77085bac7cbecea1-CoonsHoleBoundaryExtras.swift",
+        "sha256": "77085bac7cbecea131aee3afee0eb1f4c978bc5faf6103b8358a8a8b6d0d39c6"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Fixture0.swift": {
+        "path": "compiler-inputs/416a142e005f2eab-Fixture0.swift",
+        "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Fixture1.swift": {
+        "path": "compiler-inputs/368a7d865f8dc0df-Fixture1.swift",
+        "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-OriginalParametricGraphIssuing.swift": {
+        "path": "compiler-inputs/2cd7caf3b0cb54d1-Regression-OriginalParametricGraphIssuing.swift",
+        "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+        "path": "compiler-inputs/6f79def02d8efedb-Regression-DefaultOriginalRationalGraphIssuer.swift",
+        "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+        "path": "compiler-inputs/0adcfd8ed15ce460-Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+        "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-wasm-cpu-bounded-20261011-v1/AcceptanceHelper.swift": {
+        "path": "compiler-inputs/be0ae3bd5861fd0c-AcceptanceHelper.swift",
+        "sha256": "be0ae3bd5861fd0c630ce9e47903c5d541b073433bc47951bca4a2f5894ebd44"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-wasm-cpu-bounded-20261011-v1/ControlsHelper.swift": {
+        "path": "compiler-inputs/1dc95aba3951de4c-ControlsHelper.swift",
+        "sha256": "1dc95aba3951de4c9c8841174cee9643d75a37d64aedc8935dfefa539ba1074d"
+      }
+    },
+    "scope": "Original exact-validated four-cell Coons face, source/DI graph and public Kernel parameter/material result. No general-family, Native shared-body regression, M7 XYZ or full-cell delivery claim."
+  },
+  "b-coons-hole-extras-embedded-cpu-bounded-20261011-v1": {
+    "receipt": "b-coons-hole-extras-embedded-cpu-bounded-20261011-v1/receipt.json",
+    "receiptSHA256": "ec3e0dc9216eb296a9f4a52e0a43727c1714a62af8395a9ae058aa7bbcc97e76",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-embedded-cpu-bounded-20261011-v1/Support.swift": {
+        "path": "compiler-inputs/c708bc7297884ea0-Support.swift",
+        "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-embedded-cpu-bounded-20261011-v1/CoonsHoleBoundaryExtras.swift": {
+        "path": "compiler-inputs/77085bac7cbecea1-CoonsHoleBoundaryExtras.swift",
+        "sha256": "77085bac7cbecea131aee3afee0eb1f4c978bc5faf6103b8358a8a8b6d0d39c6"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/Fixture0.swift": {
+        "path": "compiler-inputs/416a142e005f2eab-Fixture0.swift",
+        "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/Fixture1.swift": {
+        "path": "compiler-inputs/368a7d865f8dc0df-Fixture1.swift",
+        "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/Regression-OriginalParametricGraphIssuing.swift": {
+        "path": "compiler-inputs/2cd7caf3b0cb54d1-Regression-OriginalParametricGraphIssuing.swift",
+        "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+        "path": "compiler-inputs/6f79def02d8efedb-Regression-DefaultOriginalRationalGraphIssuer.swift",
+        "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+        "path": "compiler-inputs/0adcfd8ed15ce460-Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+        "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-embedded-cpu-bounded-20261011-v1/AcceptanceHelper.swift": {
+        "path": "compiler-inputs/be0ae3bd5861fd0c-AcceptanceHelper.swift",
+        "sha256": "be0ae3bd5861fd0c630ce9e47903c5d541b073433bc47951bca4a2f5894ebd44"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-extras-embedded-cpu-bounded-20261011-v1/ControlsHelper.swift": {
+        "path": "compiler-inputs/1dc95aba3951de4c-ControlsHelper.swift",
+        "sha256": "1dc95aba3951de4c9c8841174cee9643d75a37d64aedc8935dfefa539ba1074d"
+      }
+    },
+    "scope": "Original exact-validated four-cell Coons face, source/DI graph and public Kernel parameter/material result. No general-family, Native shared-body regression, M7 XYZ or full-cell delivery claim."
+  }
+}

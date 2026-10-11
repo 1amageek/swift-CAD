@@ -1,0 +1,238 @@
+{
+  "native": {
+    "receipt": "module-native/receipt.json",
+    "receiptSHA256": "980b8e9e9ffebb08dcb7fc6e7c24bf76aa15e3eb396aa083d3f979fa7736a0c4",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/OriginalFaceSurfaceBinding.swift": {
+        "path": "compiler-inputs/849f4b13771032fa-OriginalFaceSurfaceBinding.swift",
+        "sha256": "849f4b13771032fabc02fa763c9031e688aaf849e4232891b4648fe7c792e8bb"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/OriginalExactBoundaryCompiler.swift": {
+        "path": "compiler-inputs/b7fc882eb95c65c8-OriginalExactBoundaryCompiler.swift",
+        "sha256": "b7fc882eb95c65c89c6910e01d37e1b6502deb494289a154ae94641fc6bead02"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+        "path": "compiler-inputs/44916b7481f32526-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+        "sha256": "44916b7481f32526ad415e0e60b527d4d41b9184a8096aa4c3b63ed896dea74d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/OriginalIssuedGraphBoundaryClipping.swift": {
+        "path": "compiler-inputs/7112e36c2fb7e4e9-OriginalIssuedGraphBoundaryClipping.swift",
+        "sha256": "7112e36c2fb7e4e97fad061787bd07359e796e4917143a0a21bd565d9ca0cbad"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/OriginalIssuedGraphBoundaryDomain.swift": {
+        "path": "compiler-inputs/14b8c1f39b5472dc-OriginalIssuedGraphBoundaryDomain.swift",
+        "sha256": "14b8c1f39b5472dc80275b94b4b555033ac3ef71c180449132189fa6ec2aa1ab"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/OriginalIssuedGraphBoundaryRefinement.swift": {
+        "path": "compiler-inputs/ba5807380c17a8e9-OriginalIssuedGraphBoundaryRefinement.swift",
+        "sha256": "ba5807380c17a8e9800b25137288af8f602c4ab61f8b31582cca52dc0bb21884"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/OriginalIssuedGraphBoundarySource.swift": {
+        "path": "compiler-inputs/3dafa2458efbfa61-OriginalIssuedGraphBoundarySource.swift",
+        "sha256": "3dafa2458efbfa6125eb7db74df72aa51a6694850c8e6ae006647ee1133a4f00"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/OriginalIssuedGraphClippedParameters.swift": {
+        "path": "compiler-inputs/a2d04a0f63a495ed-OriginalIssuedGraphClippedParameters.swift",
+        "sha256": "a2d04a0f63a495edfd155bd6b6d094b6a3908cd3736f4239674687891b3a13cf"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/OriginalExactFaceBoundaryLoops.swift": {
+        "path": "compiler-inputs/afa937519de8ecd4-OriginalExactFaceBoundaryLoops.swift",
+        "sha256": "afa937519de8ecd47c017208a3146a49e57fffecd8353dbe9497e2c6891e2c3d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+        "path": "compiler-inputs/d79cee2a9c5dd578-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+        "sha256": "d79cee2a9c5dd5786f59b1cb5ebf7e338511708bcb198430564e42e7df777fe2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+        "path": "compiler-inputs/50f0012c36fc5ad1-OriginalIssuedGraphFaceBoundaryClipping.swift",
+        "sha256": "50f0012c36fc5ad116bf4e43706ab09f0a153b1c61dc98b59ef8f45facd49a2f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/OriginalIssuedGraphFaceClippedParameters.swift": {
+        "path": "compiler-inputs/fc1c325e4e500ef4-OriginalIssuedGraphFaceClippedParameters.swift",
+        "sha256": "fc1c325e4e500ef4c8b3d55944d7241fde1eb1748c73d730bfd71d1951c3f0eb"
+      }
+    },
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/libPublicCoonsBoundary.a": "b6f4ea8f12dc6ae5f6a38ebc2a09a2cb1411675384cc5aef3482c93f553e0ef6",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-controls-native-20261011-v1/PublicCoonsBoundary.swiftmodule": "d7878931234d11f82e0c61aa46554c04ac0e9a1cb6615f3ca50b31148a11e39e"
+    },
+    "scope": "Changed module compile only; actual public acceptance is bound by accepted.json and F1. Unselected later fixture diagnostics are not accepted."
+  },
+  "asan": {
+    "receipt": "module-asan/receipt.json",
+    "receiptSHA256": "81e19c24ab872836271a694cab6ca48606e9476b978cd6e5970fd103c2c67fcb",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/OriginalFaceSurfaceBinding.swift": {
+        "path": "compiler-inputs/849f4b13771032fa-OriginalFaceSurfaceBinding.swift",
+        "sha256": "849f4b13771032fabc02fa763c9031e688aaf849e4232891b4648fe7c792e8bb"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/OriginalExactBoundaryCompiler.swift": {
+        "path": "compiler-inputs/b7fc882eb95c65c8-OriginalExactBoundaryCompiler.swift",
+        "sha256": "b7fc882eb95c65c89c6910e01d37e1b6502deb494289a154ae94641fc6bead02"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+        "path": "compiler-inputs/44916b7481f32526-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+        "sha256": "44916b7481f32526ad415e0e60b527d4d41b9184a8096aa4c3b63ed896dea74d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/OriginalIssuedGraphBoundaryClipping.swift": {
+        "path": "compiler-inputs/7112e36c2fb7e4e9-OriginalIssuedGraphBoundaryClipping.swift",
+        "sha256": "7112e36c2fb7e4e97fad061787bd07359e796e4917143a0a21bd565d9ca0cbad"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/OriginalIssuedGraphBoundaryDomain.swift": {
+        "path": "compiler-inputs/14b8c1f39b5472dc-OriginalIssuedGraphBoundaryDomain.swift",
+        "sha256": "14b8c1f39b5472dc80275b94b4b555033ac3ef71c180449132189fa6ec2aa1ab"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/OriginalIssuedGraphBoundaryRefinement.swift": {
+        "path": "compiler-inputs/ba5807380c17a8e9-OriginalIssuedGraphBoundaryRefinement.swift",
+        "sha256": "ba5807380c17a8e9800b25137288af8f602c4ab61f8b31582cca52dc0bb21884"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/OriginalIssuedGraphBoundarySource.swift": {
+        "path": "compiler-inputs/3dafa2458efbfa61-OriginalIssuedGraphBoundarySource.swift",
+        "sha256": "3dafa2458efbfa6125eb7db74df72aa51a6694850c8e6ae006647ee1133a4f00"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/OriginalIssuedGraphClippedParameters.swift": {
+        "path": "compiler-inputs/a2d04a0f63a495ed-OriginalIssuedGraphClippedParameters.swift",
+        "sha256": "a2d04a0f63a495edfd155bd6b6d094b6a3908cd3736f4239674687891b3a13cf"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/OriginalExactFaceBoundaryLoops.swift": {
+        "path": "compiler-inputs/afa937519de8ecd4-OriginalExactFaceBoundaryLoops.swift",
+        "sha256": "afa937519de8ecd47c017208a3146a49e57fffecd8353dbe9497e2c6891e2c3d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+        "path": "compiler-inputs/d79cee2a9c5dd578-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+        "sha256": "d79cee2a9c5dd5786f59b1cb5ebf7e338511708bcb198430564e42e7df777fe2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+        "path": "compiler-inputs/50f0012c36fc5ad1-OriginalIssuedGraphFaceBoundaryClipping.swift",
+        "sha256": "50f0012c36fc5ad116bf4e43706ab09f0a153b1c61dc98b59ef8f45facd49a2f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/OriginalIssuedGraphFaceClippedParameters.swift": {
+        "path": "compiler-inputs/fc1c325e4e500ef4-OriginalIssuedGraphFaceClippedParameters.swift",
+        "sha256": "fc1c325e4e500ef4c8b3d55944d7241fde1eb1748c73d730bfd71d1951c3f0eb"
+      }
+    },
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/libPublicCoonsBoundary.a": "04eecd3151abcfdb112d511029b065eb7258358ede82ee318f772b50d6c8e3ea",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-asan-20261011-v1/PublicCoonsBoundary.swiftmodule": "78cc82a6851c2b60f269d7fb97ae8072be80cfb1d166958e6bb41c868e01a15a"
+    },
+    "scope": "Changed module compile only; actual public acceptance is bound by accepted.json and F1. Unselected later fixture diagnostics are not accepted."
+  },
+  "wasm": {
+    "receipt": "module-wasm/receipt.json",
+    "receiptSHA256": "7fabd92a84ff3152ed7fe1955a98d6e05f604cd32d159f58aca22978087893be",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/OriginalFaceSurfaceBinding.swift": {
+        "path": "compiler-inputs/849f4b13771032fa-OriginalFaceSurfaceBinding.swift",
+        "sha256": "849f4b13771032fabc02fa763c9031e688aaf849e4232891b4648fe7c792e8bb"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/OriginalExactBoundaryCompiler.swift": {
+        "path": "compiler-inputs/b7fc882eb95c65c8-OriginalExactBoundaryCompiler.swift",
+        "sha256": "b7fc882eb95c65c89c6910e01d37e1b6502deb494289a154ae94641fc6bead02"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+        "path": "compiler-inputs/44916b7481f32526-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+        "sha256": "44916b7481f32526ad415e0e60b527d4d41b9184a8096aa4c3b63ed896dea74d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/OriginalIssuedGraphBoundaryClipping.swift": {
+        "path": "compiler-inputs/7112e36c2fb7e4e9-OriginalIssuedGraphBoundaryClipping.swift",
+        "sha256": "7112e36c2fb7e4e97fad061787bd07359e796e4917143a0a21bd565d9ca0cbad"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/OriginalIssuedGraphBoundaryDomain.swift": {
+        "path": "compiler-inputs/14b8c1f39b5472dc-OriginalIssuedGraphBoundaryDomain.swift",
+        "sha256": "14b8c1f39b5472dc80275b94b4b555033ac3ef71c180449132189fa6ec2aa1ab"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/OriginalIssuedGraphBoundaryRefinement.swift": {
+        "path": "compiler-inputs/ba5807380c17a8e9-OriginalIssuedGraphBoundaryRefinement.swift",
+        "sha256": "ba5807380c17a8e9800b25137288af8f602c4ab61f8b31582cca52dc0bb21884"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/OriginalIssuedGraphBoundarySource.swift": {
+        "path": "compiler-inputs/3dafa2458efbfa61-OriginalIssuedGraphBoundarySource.swift",
+        "sha256": "3dafa2458efbfa6125eb7db74df72aa51a6694850c8e6ae006647ee1133a4f00"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/OriginalIssuedGraphClippedParameters.swift": {
+        "path": "compiler-inputs/a2d04a0f63a495ed-OriginalIssuedGraphClippedParameters.swift",
+        "sha256": "a2d04a0f63a495edfd155bd6b6d094b6a3908cd3736f4239674687891b3a13cf"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/OriginalExactFaceBoundaryLoops.swift": {
+        "path": "compiler-inputs/afa937519de8ecd4-OriginalExactFaceBoundaryLoops.swift",
+        "sha256": "afa937519de8ecd47c017208a3146a49e57fffecd8353dbe9497e2c6891e2c3d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+        "path": "compiler-inputs/d79cee2a9c5dd578-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+        "sha256": "d79cee2a9c5dd5786f59b1cb5ebf7e338511708bcb198430564e42e7df777fe2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+        "path": "compiler-inputs/50f0012c36fc5ad1-OriginalIssuedGraphFaceBoundaryClipping.swift",
+        "sha256": "50f0012c36fc5ad116bf4e43706ab09f0a153b1c61dc98b59ef8f45facd49a2f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/OriginalIssuedGraphFaceClippedParameters.swift": {
+        "path": "compiler-inputs/fc1c325e4e500ef4-OriginalIssuedGraphFaceClippedParameters.swift",
+        "sha256": "fc1c325e4e500ef4c8b3d55944d7241fde1eb1748c73d730bfd71d1951c3f0eb"
+      }
+    },
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/libPublicCoonsBoundary.a": "60846a52713cf6dbf48c72703b2794b378edfdcd7e5bd17d40c78d31cc258415",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-wasm-20261011-v3/PublicCoonsBoundary.swiftmodule": "de8d287ed749070f3071576944045b78ff32a17db6b609307071feacd67fa0a3"
+    },
+    "scope": "Changed module compile only; actual public acceptance is bound by accepted.json and F1. Unselected later fixture diagnostics are not accepted."
+  },
+  "embedded": {
+    "receipt": "module-embedded/receipt.json",
+    "receiptSHA256": "8dc1ce6cbac24911a7c0154fd9b42ff50da00a8aea85b9a37f5014fb2a2737ec",
+    "compilerInputs": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/OriginalFaceSurfaceBinding.swift": {
+        "path": "compiler-inputs/849f4b13771032fa-OriginalFaceSurfaceBinding.swift",
+        "sha256": "849f4b13771032fabc02fa763c9031e688aaf849e4232891b4648fe7c792e8bb"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/OriginalExactBoundaryCompiler.swift": {
+        "path": "compiler-inputs/b7fc882eb95c65c8-OriginalExactBoundaryCompiler.swift",
+        "sha256": "b7fc882eb95c65c89c6910e01d37e1b6502deb494289a154ae94641fc6bead02"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+        "path": "compiler-inputs/44916b7481f32526-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+        "sha256": "44916b7481f32526ad415e0e60b527d4d41b9184a8096aa4c3b63ed896dea74d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/OriginalIssuedGraphBoundaryClipping.swift": {
+        "path": "compiler-inputs/7112e36c2fb7e4e9-OriginalIssuedGraphBoundaryClipping.swift",
+        "sha256": "7112e36c2fb7e4e97fad061787bd07359e796e4917143a0a21bd565d9ca0cbad"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/OriginalIssuedGraphBoundaryDomain.swift": {
+        "path": "compiler-inputs/14b8c1f39b5472dc-OriginalIssuedGraphBoundaryDomain.swift",
+        "sha256": "14b8c1f39b5472dc80275b94b4b555033ac3ef71c180449132189fa6ec2aa1ab"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/OriginalIssuedGraphBoundaryRefinement.swift": {
+        "path": "compiler-inputs/ba5807380c17a8e9-OriginalIssuedGraphBoundaryRefinement.swift",
+        "sha256": "ba5807380c17a8e9800b25137288af8f602c4ab61f8b31582cca52dc0bb21884"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/OriginalIssuedGraphBoundarySource.swift": {
+        "path": "compiler-inputs/3dafa2458efbfa61-OriginalIssuedGraphBoundarySource.swift",
+        "sha256": "3dafa2458efbfa6125eb7db74df72aa51a6694850c8e6ae006647ee1133a4f00"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/OriginalIssuedGraphClippedParameters.swift": {
+        "path": "compiler-inputs/a2d04a0f63a495ed-OriginalIssuedGraphClippedParameters.swift",
+        "sha256": "a2d04a0f63a495edfd155bd6b6d094b6a3908cd3736f4239674687891b3a13cf"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/OriginalExactFaceBoundaryLoops.swift": {
+        "path": "compiler-inputs/afa937519de8ecd4-OriginalExactFaceBoundaryLoops.swift",
+        "sha256": "afa937519de8ecd47c017208a3146a49e57fffecd8353dbe9497e2c6891e2c3d"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+        "path": "compiler-inputs/d79cee2a9c5dd578-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+        "sha256": "d79cee2a9c5dd5786f59b1cb5ebf7e338511708bcb198430564e42e7df777fe2"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+        "path": "compiler-inputs/50f0012c36fc5ad1-OriginalIssuedGraphFaceBoundaryClipping.swift",
+        "sha256": "50f0012c36fc5ad116bf4e43706ab09f0a153b1c61dc98b59ef8f45facd49a2f"
+      },
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/OriginalIssuedGraphFaceClippedParameters.swift": {
+        "path": "compiler-inputs/fc1c325e4e500ef4-OriginalIssuedGraphFaceClippedParameters.swift",
+        "sha256": "fc1c325e4e500ef4c8b3d55944d7241fde1eb1748c73d730bfd71d1951c3f0eb"
+      }
+    },
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/libPublicCoonsBoundary.a": "291267e542f954eaf1a31ec33d255d81344f348581ded022c71f65fc53d4d8d0",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-embedded-20261011-v3/PublicCoonsBoundary.swiftmodule": "a91295704eb2dc76d7949da0c211398a3406f54348e9d89713bf094c07bf4668"
+    },
+    "scope": "Changed module compile only; actual public acceptance is bound by accepted.json and F1. Unselected later fixture diagnostics are not accepted."
+  }
+}

@@ -1,0 +1,8 @@
+RUN M6 hole closed
+RUN M6 hole strict
+RUN M6 hole boundary
+PASS M6 descendant algebraic TUV inclusion/hole exclusion and foreign coordinate validation
+PASS M6 exact public face holes, strict/closed/boundary and exact raw/refined owners
+PASS M6 exact L5 public face boundary consumers holes
+(node:36990) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

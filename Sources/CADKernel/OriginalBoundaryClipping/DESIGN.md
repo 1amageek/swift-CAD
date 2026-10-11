@@ -1,10 +1,10 @@
 # Original Face Boundary Clipping
 
 ## Purpose and Scope
-Parent: [CADKernel](../DESIGN.md). No children. Own the immutable original face boundary issuer and the public face-bound Native parameter clipping entry. This component does not modify the face, infer pcurves, sew geometry or publish unrefined geometric overlaps.
+Parent: [CADKernel](../DESIGN.md). No children. Own the immutable original face boundary issuer and public face-bound Native/issued-graph parameter clipping entries. This component does not modify the face, infer pcurves, sew geometry or publish unrefined geometric overlaps.
 
 ## Responsibilities and Boundaries
-A validated original model, FaceID and retained Native CS/SSI receipt determine the current source. The issuer proves the face's support equals the selected raw original source under the caller ledger, checks its original native domains, retains every loop/coedge identity and role, and forwards authored directed pcurves unchanged. Geometry owns exact laws, full parameter refinement and raw-cell correspondence.
+A validated original model, FaceID and retained Native or issued-graph CS/SSI receipt determine the selected source. The issuer verifies its original support/domain authority under the caller ledger, retains every loop/coedge identity and role, and forwards authored directed pcurves unchanged. Geometry owns exact laws, full parameter refinement and raw-cell correspondence.
 
 ## Related Designs
 | Design | Relationship | Contract Used | Summary | Cautions |
@@ -15,8 +15,8 @@ A validated original model, FaceID and retained Native CS/SSI receipt determine 
 
 ## Architecture
 ```text
-public Native raw receipt + validated model + FaceID
-    -> original support and native-domain structural comparison
+public Native/issued-graph raw receipt + validated model + FaceID
+    -> admitted original support/domain and exact structural comparison
     -> retained loops/coedges/authored pcurves
     -> sealed Geometry boundary domain
     -> complete parameter clipping
@@ -67,3 +67,21 @@ Topology PersistentMap tables. Kernel declares that direct product dependency;
 import visibility does not change face/source comparison or source ownership.
 The actual validator's portable cancellation wiring is owned by
 [Topology](../../CADTopology/DESIGN.md#m6-portable-validation-wiring).
+
+## Issued graph boundary handoff
+
+The additive issued-graph overload receives a sealed selected surface binding
+alongside the complete retained relation. Geometry owns binding factories, source
+owner/role checks, metered exact stored-support comparison and graph UV transport.
+Kernel owns the validated model, selected face, every original loop/coedge and
+the final face-bound result. Both paths use the same complete loop extraction;
+authored pcurves are never reversed again or reconstructed when missing.
+
+The Geometry consumer refines the retained lifted cells and preserves every
+raw/refined ordinal and incident boundary span. Kernel checks that an injected
+consumer returned the issued domain and requested policy before publication.
+The original model and topology remain retained after source preparation ends.
+The same caller admission covers issuance, comparison, refinement, result storage
+and terminal cancellation. This is public parameter/material clipping; full
+XYZ/image/fiber output is still M7. The three frozen Coons-hole policy cells own
+this end-to-end connection and do not claim general-family completion.

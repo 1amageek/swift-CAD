@@ -18,24 +18,29 @@ import enum CADGeometry.SurfaceParameterCurve
 import CADCore
 
 /// Query-local exact winding compilation in the retained L5 parameter ring.
-struct OriginalExactBoundaryCompiler {
-    typealias Field = ExactAlgebraicScalarDomain<ExactRationalScalarDomain>
+struct OriginalExactBoundaryCompiler<Base: ExactScalarArithmetic & ExactScalarOrdering & ExactScalarImporting>
+    where Base.Source == Base.Value {
+    typealias Field = ExactAlgebraicScalarDomain<Base>
     typealias Polynomial = ExactPolynomial<Field>
     enum Node { case literal(Bool),sign(Int,ExactRealCellSignRelation),not(Int),and(Int,Int),or(Int,Int) }
     struct Segment {
         let first: [Field.Value],last: [Field.Value]
         let reference: OriginalNativeBoundaryDomain.SpanReference
     }
-    let cells: ExactRealCellDomain<ExactRationalScalarDomain>
+    let cells: ExactRealCellDomain<Base>
     let field: Field
     var laws: [Polynomial] = []
     private var nodes: [Node] = []
     private var boundaryNodes: [Int] = []
     private var references: [OriginalNativeBoundaryDomain.SpanReference] = []
 
-    init<A: ExactScalarAdmission & ~Copyable>(_ raw: ExactParametricRelation<ExactRationalScalarDomain>,using a: inout A) throws {
+    init<A: ExactScalarAdmission & ~Copyable>(_ raw: ExactParametricRelation<Base>,using a: inout A) throws {
         cells = try .init(retaining:raw.original.predicate.source,using:&a)
         field = try cells.coefficientField(of:raw.original.predicate.source,using:&a)
+    }
+    init<A: ExactScalarAdmission & ~Copyable>(selection: ExactRealCellSelection<Base>,using a: inout A) throws {
+        cells = try .init(retaining:selection.predicate.source,using:&a)
+        field = try cells.coefficientField(of:selection.predicate.source,using:&a)
     }
     init<A: ExactScalarAdmission & ~Copyable>(field: Field,using a: inout A) throws {
         self.field = field;cells = try .init(field:field,variableCount:2,using:&a)
@@ -75,7 +80,7 @@ struct OriginalExactBoundaryCompiler {
         laws.append(law);return try node(.sign(laws.count-1,sign),&a)
     }
     private func scalar<A: ExactScalarAdmission & ~Copyable>(_ value: Double,_ a: inout A) throws -> Field.Value {
-        try field.importingBase(ExactRationalScalarDomain().binary64(exactly:value,using:&a),using:&a)
+        try field.binary64(exactly:value,using:&a)
     }
     private func point<A: ExactScalarAdmission & ~Copyable>(_ u: Double,_ v: Double,_ a: inout A) throws -> [Field.Value] {
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:Field.Value.self))
@@ -128,22 +133,22 @@ struct OriginalExactBoundaryCompiler {
             try field.compare(first.first[1],last.last[1],using:&a) == .equal else { throw NativeExactRelationFailure.invalidDomain }
         return result
     }
-    mutating func boundary<A: ExactScalarAdmission & ~Copyable>(_ domain: OriginalExactNativeBoundaryDomain,
-        part: OriginalExactBoundaryPart,selection: OriginalNativeBoundaryDomain.Selection,
-        limits: OriginalDomainIdentityLimits,_ a: inout A) throws -> Int {
-        let transporter = DefaultOriginalParameterTransporter<BSplineSurface3D,Field>()
-        let forward = try transporter.inverse(part.surface.inverse,limits:limits,using:&a)
-        let coordinates = try transporter.affineCoordinates(of:forward,limits:limits,using:&a)
+    mutating func boundary<A: ExactScalarAdmission & ~Copyable>(loops: [OriginalNativeBoundaryDomain.Loop],
+        numerators uv: [Polynomial],denominator: Polynomial?,selection: OriginalNativeBoundaryDomain.Selection,
+        _ a: inout A) throws -> Int {
+        guard uv.count == 2 else { throw NativeExactRelationFailure.invalidDomain }
         let ring = cells.polynomials
-        try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:Polynomial.self))
-        var uv: [Polynomial] = [];uv.reserveCapacity(2)
-        for axis in 0..<2 {
-            try a.consumeWork(1)
-            uv.append(try ring.adding(ring.scaled(ring.variable(part.uAxis+coordinates.permutation[axis],using:&a),
-                by:coordinates.gains[axis],using:&a),ring.constant(coordinates.offsets[axis],using:&a),using:&a))
+        func difference(_ coordinate: Polynomial,_ bound: Field.Value) throws -> Polynomial {
+            let constant = try ring.constant(bound,using:&a)
+            let scaled = try denominator.map { try ring.multiplying(constant,$0,using:&a) } ?? constant
+            return try ring.subtracting(coordinate,scaled,using:&a)
+        }
+        func signed(_ numerator: Polynomial) throws -> Polynomial {
+            if let denominator { return try ring.multiplying(numerator,denominator,using:&a) }
+            return numerator
         }
         var outer = try node(.literal(false),&a),inner = try node(.literal(false),&a),anyBoundary = try node(.literal(false),&a)
-        for (ordinal,loop) in domain.loops.enumerated() {
+        for (ordinal,loop) in loops.enumerated() {
             let spans = try segments(loop,ordinal:ordinal,&a)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:spans.count,of:(Int,Int).self))
             var crossings: [(node:Int,delta:Int)] = []
@@ -151,14 +156,14 @@ struct OriginalExactBoundaryCompiler {
             for span in spans {
                 try a.consumeWork(1)
                 let du = try field.subtracting(span.last[0],span.first[0],using:&a),dv = try field.subtracting(span.last[1],span.first[1],using:&a)
-                let x = try ring.subtracting(uv[0],ring.constant(span.first[0],using:&a),using:&a)
-                let y = try ring.subtracting(uv[1],ring.constant(span.first[1],using:&a),using:&a)
+                let x = try difference(uv[0],span.first[0])
+                let y = try difference(uv[1],span.first[1])
                 let cross = try ring.subtracting(ring.scaled(y,by:du,using:&a),ring.scaled(x,by:dv,using:&a),using:&a)
                 let vertical = try field.sign(of:du,using:&a) == .zero
                 let coordinate = vertical ? uv[1]:uv[0],start = span.first[vertical ? 1:0],end = span.last[vertical ? 1:0]
                 let ascending = try field.compare(start,end,using:&a) != .greater
-                let lower = try ring.subtracting(coordinate,ring.constant(ascending ? start:end,using:&a),using:&a)
-                let upper = try ring.subtracting(coordinate,ring.constant(ascending ? end:start,using:&a),using:&a)
+                let lower = try signed(difference(coordinate,ascending ? start:end))
+                let upper = try signed(difference(coordinate,ascending ? end:start))
                 let on = try and(and(atom(cross,.equal,&a),atom(lower,.greaterOrEqual,&a),&a),atom(upper,.lessOrEqual,&a),&a)
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Int.self))
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalNativeBoundaryDomain.SpanReference.self))
@@ -166,10 +171,10 @@ struct OriginalExactBoundaryCompiler {
                 loopBoundary = try or(loopBoundary,on,&a)
                 let direction = try field.sign(of:dv,using:&a)
                 if direction != .zero {
-                    let first = try ring.subtracting(uv[1],ring.constant(direction == .positive ? span.first[1]:span.last[1],using:&a),using:&a)
-                    let last = try ring.subtracting(uv[1],ring.constant(direction == .positive ? span.last[1]:span.first[1],using:&a),using:&a)
+                    let first = try signed(difference(uv[1],direction == .positive ? span.first[1]:span.last[1]))
+                    let last = try signed(difference(uv[1],direction == .positive ? span.last[1]:span.first[1]))
                     let crossing = try and(and(atom(first,.greaterOrEqual,&a),atom(last,.less,&a),&a),
-                        atom(cross,direction == .positive ? .greater:.less,&a),&a)
+                        atom(signed(cross),direction == .positive ? .greater:.less,&a),&a)
                     crossings.append((crossing,direction == .positive ? 1:-1))
                 }
             }
@@ -178,7 +183,8 @@ struct OriginalExactBoundaryCompiler {
             if loop.isInner { inner = try or(inner,and(winding,not(loopBoundary,&a),&a),&a) }
             else { outer = try or(outer,or(winding,loopBoundary,&a),&a) }
         }
-        let closed = try and(outer,not(inner,&a),&a)
+        var closed = try and(outer,not(inner,&a),&a)
+        if let denominator { closed = try and(closed,atom(denominator,.notEqual,&a),&a) }
         switch selection {
         case .closed:return closed
         case .strictInterior:return try and(closed,not(anyBoundary,&a),&a)
@@ -226,16 +232,16 @@ struct OriginalExactBoundaryCompiler {
         }
         return result
     }
-    func boundaryReferences<A: ExactScalarAdmission & ~Copyable>(in refinement: NativeExactParameterRefinement,
+    func boundaryReferences<A: ExactScalarAdmission & ~Copyable>(in pullback: ExactRealCellPullback<Base>,
         using a: inout A) throws -> [[OriginalNativeBoundaryDomain.SpanReference]] {
-        let region = refinement.pullback.region
+        let region = pullback.region
         var included = false
         for value in region.included { try a.consumeWork(1);if value { included = true;break } }
         if !included {
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:region.cells.count,of:[OriginalNativeBoundaryDomain.SpanReference].self))
             return Array(repeating:[],count:region.cells.count)
         }
-        let domain = try ExactRealCellDomain<ExactRationalScalarDomain>(retaining:region.partition.source,using:&a)
+        let domain = try ExactRealCellDomain<Base>(retaining:region.partition.source,using:&a)
         try a.admitDepth(value:region.depth.value,coefficient:region.depth.coefficient)
         let scalar = try domain.coefficientField(of:region.partition.source,using:&a)
         let polynomials = domain.polynomials
