@@ -533,7 +533,7 @@ lanes, followed by scoped review and latest-main delivery.
 
 PROGRESS.md remains the sole execution/status record. The finite catalog is not
 yet exhaustive: remaining family/variant/consumer definitions belong to its
-mapping item. These six explicit cells do not stand in for missing inputs.
+mapping item. The explicitly defined cells do not stand in for missing inputs.
 M7/M8 closure requires every applicable cell and the cumulative integration
 evidence; historical source-only completions remain internal premises.
 
