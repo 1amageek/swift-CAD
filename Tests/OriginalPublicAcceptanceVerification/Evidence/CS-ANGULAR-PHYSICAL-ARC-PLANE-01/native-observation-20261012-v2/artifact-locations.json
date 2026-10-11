@@ -1,0 +1,873 @@
+{
+  "cell": "CS-ANGULAR-PHYSICAL-ARC-PLANE-01",
+  "operation": "Relocate existing owned binary artifacts without regeneration",
+  "originalReceipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/receipt.json",
+  "originalReceiptSHA256": "b78b854fdacd065f5a234b54e5c131c4d8790aa51227115785b797da66829406",
+  "originalReceiptPreserved": true,
+  "originalCompilerCommandSHA256": "e4df46b65dab48a52c6b92ae8da2ca4026fcb1f978eef417f5b04ab1153c7a3d",
+  "originalPathsNowAbsent": true,
+  "receiptInterpretation": "Original immutable receipts and commands retain their historical paths. Resolve moved artifact paths through this manifest; do not treat the old paths as present.",
+  "roots": [
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/Observation",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/Observation",
+      "kind": "file",
+      "fileCount": 1,
+      "byteCount": 67617448
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/Observation.dSYM",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/Observation.dSYM",
+      "kind": "directory",
+      "fileCount": 3,
+      "byteCount": 42317830
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache",
+      "kind": "directory",
+      "fileCount": 99,
+      "byteCount": 76672896
+    }
+  ],
+  "files": [
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/Observation",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/Observation",
+      "byteCount": 67617448,
+      "beforeSHA256": "20bf2a096b6d3c0ae57e22f6bb37f6d3b5d5b5ac8ce2db1dbe5807301569e9f8",
+      "originalReceiptCheckSHA256": "20bf2a096b6d3c0ae57e22f6bb37f6d3b5d5b5ac8ce2db1dbe5807301569e9f8",
+      "afterSHA256": "20bf2a096b6d3c0ae57e22f6bb37f6d3b5d5b5ac8ce2db1dbe5807301569e9f8",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/Observation.dSYM/Contents/Info.plist",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/Observation.dSYM/Contents/Info.plist",
+      "byteCount": 640,
+      "beforeSHA256": "ba7385966fadc584cd60844b7d9c98225fe66ce8931550ef11532a17b5b0ce2b",
+      "afterSHA256": "ba7385966fadc584cd60844b7d9c98225fe66ce8931550ef11532a17b5b0ce2b",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/Observation.dSYM/Contents/Resources/DWARF/Observation",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/Observation.dSYM/Contents/Resources/DWARF/Observation",
+      "byteCount": 41756880,
+      "beforeSHA256": "af741fb9493a449410ea7ee548e7524e26db5572978f156829646501f6ec800a",
+      "afterSHA256": "af741fb9493a449410ea7ee548e7524e26db5572978f156829646501f6ec800a",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/Observation.dSYM/Contents/Resources/Relocations/aarch64/Observation.yml",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/Observation.dSYM/Contents/Resources/Relocations/aarch64/Observation.yml",
+      "byteCount": 560310,
+      "beforeSHA256": "bd5e3e857f537fbda7c41edb6dbc6284c561d289989a4730b28430464aaa7073",
+      "afterSHA256": "bd5e3e857f537fbda7c41edb6dbc6284c561d289989a4730b28430464aaa7073",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/CFNetwork-1PNPO1ORVQZLS.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/CFNetwork-1PNPO1ORVQZLS.pcm",
+      "byteCount": 329888,
+      "beforeSHA256": "3de95ba861febf6cb2e5b4fb1d9273dd876f084c54d10e530a027cdccf328b50",
+      "afterSHA256": "3de95ba861febf6cb2e5b4fb1d9273dd876f084c54d10e530a027cdccf328b50",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/CoreFoundation-16SA8WK3L6MQN.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/CoreFoundation-16SA8WK3L6MQN.pcm",
+      "byteCount": 1403248,
+      "beforeSHA256": "b06ed49b2dd259cf1edfa8881796d69a24e3ec548e95c9def21b7e5997581b71",
+      "afterSHA256": "b06ed49b2dd259cf1edfa8881796d69a24e3ec548e95c9def21b7e5997581b71",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/CoreServices-39NCTJOEW7PQ2.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/CoreServices-39NCTJOEW7PQ2.pcm",
+      "byteCount": 4517448,
+      "beforeSHA256": "1200e030d4356319105bf06840fe815e03e07be07c0638bf0084e8c20c48359a",
+      "afterSHA256": "1200e030d4356319105bf06840fe815e03e07be07c0638bf0084e8c20c48359a",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/Darwin-1FXX23EKWOBA9.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/Darwin-1FXX23EKWOBA9.pcm",
+      "byteCount": 6027968,
+      "beforeSHA256": "1e09cd2a83a9644466ced7619a3a240995639716fbeae4ffdc650588e8f90e3a",
+      "afterSHA256": "1e09cd2a83a9644466ced7619a3a240995639716fbeae4ffdc650588e8f90e3a",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/DiskArbitration-3LBJF5I58QD8.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/DiskArbitration-3LBJF5I58QD8.pcm",
+      "byteCount": 145008,
+      "beforeSHA256": "fb47f8f79e2eae72e1223d8cb9139fdef7b0a3773171123a18f061149dfe9a05",
+      "afterSHA256": "fb47f8f79e2eae72e1223d8cb9139fdef7b0a3773171123a18f061149dfe9a05",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/Dispatch-R76HXUP80TVL.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/Dispatch-R76HXUP80TVL.pcm",
+      "byteCount": 301736,
+      "beforeSHA256": "ff55897debb736506fda1918ac560200b801ea1339c4b2c96ad1363d3c4533b5",
+      "afterSHA256": "ff55897debb736506fda1918ac560200b801ea1339c4b2c96ad1363d3c4533b5",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/Foundation-24LYWIP48SHNP.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/Foundation-24LYWIP48SHNP.pcm",
+      "byteCount": 6574568,
+      "beforeSHA256": "73dacd939f2cd34d02e3e0b0e2042a2143d6b4f669cfc713d4b079bbfeb526a5",
+      "afterSHA256": "73dacd939f2cd34d02e3e0b0e2042a2143d6b4f669cfc713d4b079bbfeb526a5",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/IOKit-1IAL9NTK1TABA.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/IOKit-1IAL9NTK1TABA.pcm",
+      "byteCount": 3729552,
+      "beforeSHA256": "654cb5a02eb73a34519e36661591064e8587a8afa0644ea59a1261de763b14ae",
+      "afterSHA256": "654cb5a02eb73a34519e36661591064e8587a8afa0644ea59a1261de763b14ae",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/MachO-20RPYVQSX341K.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/MachO-20RPYVQSX341K.pcm",
+      "byteCount": 474904,
+      "beforeSHA256": "b48c3cf3c542bf2acd3984dff5fd8090b3370eb2d43dbe2275e566b8a50b3610",
+      "afterSHA256": "b48c3cf3c542bf2acd3984dff5fd8090b3370eb2d43dbe2275e566b8a50b3610",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/ObjectiveC-1G8H182PQX3QE.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/ObjectiveC-1G8H182PQX3QE.pcm",
+      "byteCount": 339288,
+      "beforeSHA256": "a79e7038cb2037bb77b4e91f15a2962393328cac0549385daca99a6bfa7af7b8",
+      "afterSHA256": "a79e7038cb2037bb77b4e91f15a2962393328cac0549385daca99a6bfa7af7b8",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/Security-3QCVXOV25KK54.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/Security-3QCVXOV25KK54.pcm",
+      "byteCount": 3128664,
+      "beforeSHA256": "f3650f933d49eb0baab00c5d3737929ec0335aed80acbfdea68a082f788a5991",
+      "afterSHA256": "f3650f933d49eb0baab00c5d3737929ec0335aed80acbfdea68a082f788a5991",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/SwiftShims-3KC02E5RH2AH.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/SwiftShims-3KC02E5RH2AH.pcm",
+      "byteCount": 180176,
+      "beforeSHA256": "9734a8bb388620a9bd3c676ac2bcb3bf90628f7bd810329326916255ebe91bb9",
+      "afterSHA256": "9734a8bb388620a9bd3c676ac2bcb3bf90628f7bd810329326916255ebe91bb9",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/XPC-T0ZXCAST7PE3.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/XPC-T0ZXCAST7PE3.pcm",
+      "byteCount": 417640,
+      "beforeSHA256": "4958305fa7970f8c74403f88293df820098d25c82a7d7e35b5ea594ac9535572",
+      "afterSHA256": "4958305fa7970f8c74403f88293df820098d25c82a7d7e35b5ea594ac9535572",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_AvailabilityInternal-2YSBQADOLX02V.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_AvailabilityInternal-2YSBQADOLX02V.pcm",
+      "byteCount": 436768,
+      "beforeSHA256": "740f494cb85ebcff82f2b59c1a41a92029639598d352e4725afbe7a04a3361d4",
+      "afterSHA256": "740f494cb85ebcff82f2b59c1a41a92029639598d352e4725afbe7a04a3361d4",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_Builtin_float-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_Builtin_float-269YRWV9BT409.pcm",
+      "byteCount": 50240,
+      "beforeSHA256": "7dc98c7617f4e72424491c459acc047943bfd4135e457037c4621a4068799c94",
+      "afterSHA256": "7dc98c7617f4e72424491c459acc047943bfd4135e457037c4621a4068799c94",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_Builtin_inttypes-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_Builtin_inttypes-269YRWV9BT409.pcm",
+      "byteCount": 49744,
+      "beforeSHA256": "578c520f9cccb5852634cb394a149bd9b8a3d85f72a52a3dbd579f84608e97e4",
+      "afterSHA256": "578c520f9cccb5852634cb394a149bd9b8a3d85f72a52a3dbd579f84608e97e4",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_Builtin_limits-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_Builtin_limits-269YRWV9BT409.pcm",
+      "byteCount": 49760,
+      "beforeSHA256": "aaf116df05070f1823855b05791465d3db71f87ac900246a56d707f69cb7fc0b",
+      "afterSHA256": "aaf116df05070f1823855b05791465d3db71f87ac900246a56d707f69cb7fc0b",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_Builtin_stdarg-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_Builtin_stdarg-269YRWV9BT409.pcm",
+      "byteCount": 45992,
+      "beforeSHA256": "26422e4c20ff5ee3fc50ed3ec5d2a1bf6327ad411f1c476e230c249915bbd86f",
+      "afterSHA256": "26422e4c20ff5ee3fc50ed3ec5d2a1bf6327ad411f1c476e230c249915bbd86f",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_Builtin_stdbool-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_Builtin_stdbool-269YRWV9BT409.pcm",
+      "byteCount": 42816,
+      "beforeSHA256": "a2fd21a549f81786a3bf6598935b9d2fd731f142e90098a2fd13890bb16a2461",
+      "afterSHA256": "a2fd21a549f81786a3bf6598935b9d2fd731f142e90098a2fd13890bb16a2461",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_Builtin_stddef-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_Builtin_stddef-269YRWV9BT409.pcm",
+      "byteCount": 47832,
+      "beforeSHA256": "d0741b40117ef6c640a770273ba5ecf83ed666324929dac1d05c2118bb9620c2",
+      "afterSHA256": "d0741b40117ef6c640a770273ba5ecf83ed666324929dac1d05c2118bb9620c2",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_Builtin_stdint-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_Builtin_stdint-269YRWV9BT409.pcm",
+      "byteCount": 48992,
+      "beforeSHA256": "4e2a0b2e9a2fc50a2f41729a3c5aa56dec2fabb73a670af5ebfb46f4e69cb6c2",
+      "afterSHA256": "4e2a0b2e9a2fc50a2f41729a3c5aa56dec2fabb73a670af5ebfb46f4e69cb6c2",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_DarwinFoundation1-2YSBQADOLX02V.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_DarwinFoundation1-2YSBQADOLX02V.pcm",
+      "byteCount": 471656,
+      "beforeSHA256": "ece67c536ee5057b16f2442aa73dced23f14238683beff6d9d2d39669e7667d3",
+      "afterSHA256": "ece67c536ee5057b16f2442aa73dced23f14238683beff6d9d2d39669e7667d3",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_DarwinFoundation2-3J4ZFA06I5V1P.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_DarwinFoundation2-3J4ZFA06I5V1P.pcm",
+      "byteCount": 491504,
+      "beforeSHA256": "d4e411502878d44391014fc74fd3d7d4d43e7e7f510a03dc6926b56d0bd9c723",
+      "afterSHA256": "d4e411502878d44391014fc74fd3d7d4d43e7e7f510a03dc6926b56d0bd9c723",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_DarwinFoundation3-2NSGASPTSNBVQ.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_DarwinFoundation3-2NSGASPTSNBVQ.pcm",
+      "byteCount": 634768,
+      "beforeSHA256": "c4bda2b8b78552c48f382f085068df26517a71bf6a0f910a4d9d514f2ebae6b6",
+      "afterSHA256": "c4bda2b8b78552c48f382f085068df26517a71bf6a0f910a4d9d514f2ebae6b6",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/_SwiftConcurrencyShims-3KC02E5RH2AH.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/_SwiftConcurrencyShims-3KC02E5RH2AH.pcm",
+      "byteCount": 43112,
+      "beforeSHA256": "e84690ea6df39d674b5264b4865aed16b9bb495e88bad81d44eb4a596dcbbfe4",
+      "afterSHA256": "e84690ea6df39d674b5264b4865aed16b9bb495e88bad81d44eb4a596dcbbfe4",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/launch-3T3BU4MASLMUM.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/launch-3T3BU4MASLMUM.pcm",
+      "byteCount": 102984,
+      "beforeSHA256": "d565359f7a364bbfd84f84002a58c96bf07a4fbf8d98908a3216ce3e33ba8502",
+      "afterSHA256": "d565359f7a364bbfd84f84002a58c96bf07a4fbf8d98908a3216ce3e33ba8502",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/libDER-26DYHF6GC6WWA.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/libDER-26DYHF6GC6WWA.pcm",
+      "byteCount": 62192,
+      "beforeSHA256": "60041e064e9fa6de42b8855e7f0c1acf3a409b83f3bdaa1c0ac839df66d5db28",
+      "afterSHA256": "60041e064e9fa6de42b8855e7f0c1acf3a409b83f3bdaa1c0ac839df66d5db28",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/libkern-2KQ0X67RTM1JF.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/libkern-2KQ0X67RTM1JF.pcm",
+      "byteCount": 80056,
+      "beforeSHA256": "f0f18634d0a6d501079e71fbd062b3b827a0d6c2f29a810974cf9cb56a032515",
+      "afterSHA256": "f0f18634d0a6d501079e71fbd062b3b827a0d6c2f29a810974cf9cb56a032515",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/os_object-2MV8OP7R98AN8.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/os_object-2MV8OP7R98AN8.pcm",
+      "byteCount": 66096,
+      "beforeSHA256": "99a6f15741c454cffd8e577ad8240b7d10cc2a266429ba06dff0c6eaea5b4dc5",
+      "afterSHA256": "99a6f15741c454cffd8e577ad8240b7d10cc2a266429ba06dff0c6eaea5b4dc5",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/os_workgroup-2MV8OP7R98AN8.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/os_workgroup-2MV8OP7R98AN8.pcm",
+      "byteCount": 98976,
+      "beforeSHA256": "69977016d114334a1080d2181a814511caa83476f5fd2575b155a40bb8ea2281",
+      "afterSHA256": "69977016d114334a1080d2181a814511caa83476f5fd2575b155a40bb8ea2281",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/ptrauth-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/ptrauth-269YRWV9BT409.pcm",
+      "byteCount": 53008,
+      "beforeSHA256": "6471a0dc6b2805c90e42bb178c7cf3ee8d1ff9db5440fa043009c933abc49b35",
+      "afterSHA256": "6471a0dc6b2805c90e42bb178c7cf3ee8d1ff9db5440fa043009c933abc49b35",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/ptrcheck-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/ptrcheck-269YRWV9BT409.pcm",
+      "byteCount": 48144,
+      "beforeSHA256": "0dd41f5929d7dfce4a0b144623f1f5f43bb5323bb6c67b3f7836dad520f9f43a",
+      "afterSHA256": "0dd41f5929d7dfce4a0b144623f1f5f43bb5323bb6c67b3f7836dad520f9f43a",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/string_h-47SZ9A199RUD.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/string_h-47SZ9A199RUD.pcm",
+      "byteCount": 49016,
+      "beforeSHA256": "0b2e0aac4ed34d7a8a4ad8c3c4f7624c2f14a3b277592abca0035d6329161f97",
+      "afterSHA256": "0b2e0aac4ed34d7a8a4ad8c3c4f7624c2f14a3b277592abca0035d6329161f97",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/2L3Z4IPEF2548/sys_types-3J4ZFA06I5V1P.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/2L3Z4IPEF2548/sys_types-3J4ZFA06I5V1P.pcm",
+      "byteCount": 48760,
+      "beforeSHA256": "9bd1b6920076a679145960d4313b55f2524b7c4b82fd6edf361d11eb7ca8c6f2",
+      "afterSHA256": "9bd1b6920076a679145960d4313b55f2524b7c4b82fd6edf361d11eb7ca8c6f2",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/CFNetwork-1PNPO1ORVQZLS.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/CFNetwork-1PNPO1ORVQZLS.pcm",
+      "byteCount": 329928,
+      "beforeSHA256": "d4aa98e8f567177601ad8c7f7e36fdda166d2c82e810c20dbb91ccd25e31fc8d",
+      "afterSHA256": "d4aa98e8f567177601ad8c7f7e36fdda166d2c82e810c20dbb91ccd25e31fc8d",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/CoreFoundation-16SA8WK3L6MQN.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/CoreFoundation-16SA8WK3L6MQN.pcm",
+      "byteCount": 1402880,
+      "beforeSHA256": "f00e1aa28f572ca246533ad6f221776576f2670e1df58506e5e3dedadd2f35d8",
+      "afterSHA256": "f00e1aa28f572ca246533ad6f221776576f2670e1df58506e5e3dedadd2f35d8",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/CoreServices-39NCTJOEW7PQ2.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/CoreServices-39NCTJOEW7PQ2.pcm",
+      "byteCount": 4528416,
+      "beforeSHA256": "b63c4248a10ddfcfb3693b027e267f78fd79ddaf5e7eaebf618233c93ecd9c17",
+      "afterSHA256": "b63c4248a10ddfcfb3693b027e267f78fd79ddaf5e7eaebf618233c93ecd9c17",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/Darwin-1FXX23EKWOBA9.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/Darwin-1FXX23EKWOBA9.pcm",
+      "byteCount": 6014848,
+      "beforeSHA256": "d929cc3ae1c3142780836af07796274073a5d7ed88d5d0faed5f1b97db58e5e7",
+      "afterSHA256": "d929cc3ae1c3142780836af07796274073a5d7ed88d5d0faed5f1b97db58e5e7",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/DiskArbitration-3LBJF5I58QD8.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/DiskArbitration-3LBJF5I58QD8.pcm",
+      "byteCount": 145168,
+      "beforeSHA256": "824dd3a0bce6e6604e8f73a271c4d64f7757573ba775e29e70808703bd19fb9d",
+      "afterSHA256": "824dd3a0bce6e6604e8f73a271c4d64f7757573ba775e29e70808703bd19fb9d",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/Dispatch-R76HXUP80TVL.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/Dispatch-R76HXUP80TVL.pcm",
+      "byteCount": 301632,
+      "beforeSHA256": "cc54484b35b0085208dcb1b9f0d69e5ca68075580457b7a8126d0f85d45dacd0",
+      "afterSHA256": "cc54484b35b0085208dcb1b9f0d69e5ca68075580457b7a8126d0f85d45dacd0",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/Foundation-24LYWIP48SHNP.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/Foundation-24LYWIP48SHNP.pcm",
+      "byteCount": 6574224,
+      "beforeSHA256": "c54ac8c63263522d1afe814ca84f3f96a4c5cb99087d05488420c879a6ab2253",
+      "afterSHA256": "c54ac8c63263522d1afe814ca84f3f96a4c5cb99087d05488420c879a6ab2253",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/IOKit-1IAL9NTK1TABA.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/IOKit-1IAL9NTK1TABA.pcm",
+      "byteCount": 3734432,
+      "beforeSHA256": "27ead083fc83c7aae88189723b2c26e9804c243ac6c6815ae3e91b436012bfed",
+      "afterSHA256": "27ead083fc83c7aae88189723b2c26e9804c243ac6c6815ae3e91b436012bfed",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/MachO-20RPYVQSX341K.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/MachO-20RPYVQSX341K.pcm",
+      "byteCount": 474336,
+      "beforeSHA256": "2bd8568cb12c5ec51c3c5f7c6a6f32193851fdd5cf7391b6e937bb34f3f9c9e6",
+      "afterSHA256": "2bd8568cb12c5ec51c3c5f7c6a6f32193851fdd5cf7391b6e937bb34f3f9c9e6",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/ObjectiveC-1G8H182PQX3QE.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/ObjectiveC-1G8H182PQX3QE.pcm",
+      "byteCount": 339376,
+      "beforeSHA256": "7e0173d68c542f6dac0bf17497efccb9182dd841a0fde7ea2f917ea0a189671f",
+      "afterSHA256": "7e0173d68c542f6dac0bf17497efccb9182dd841a0fde7ea2f917ea0a189671f",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/Security-3QCVXOV25KK54.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/Security-3QCVXOV25KK54.pcm",
+      "byteCount": 3130288,
+      "beforeSHA256": "9c3e186d8bc9b9660ef698631cdb7f833d98e34d313ff141e7cf9257f80caeb1",
+      "afterSHA256": "9c3e186d8bc9b9660ef698631cdb7f833d98e34d313ff141e7cf9257f80caeb1",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/SwiftShims-3KC02E5RH2AH.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/SwiftShims-3KC02E5RH2AH.pcm",
+      "byteCount": 179840,
+      "beforeSHA256": "f4db58487cacf850595afec144e365eaab54e0d70b2784561f7d695db8dde2bb",
+      "afterSHA256": "f4db58487cacf850595afec144e365eaab54e0d70b2784561f7d695db8dde2bb",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/XPC-T0ZXCAST7PE3.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/XPC-T0ZXCAST7PE3.pcm",
+      "byteCount": 417720,
+      "beforeSHA256": "2db3c3fd3c7d12b5901f972ea4317201f8a109f48df9e4e3bf947ac6f00a7084",
+      "afterSHA256": "2db3c3fd3c7d12b5901f972ea4317201f8a109f48df9e4e3bf947ac6f00a7084",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_AvailabilityInternal-2YSBQADOLX02V.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_AvailabilityInternal-2YSBQADOLX02V.pcm",
+      "byteCount": 436896,
+      "beforeSHA256": "fee2e201d9359bab60281c6f05b304525e8dcea8f9be5c51bb589c16d2112b6a",
+      "afterSHA256": "fee2e201d9359bab60281c6f05b304525e8dcea8f9be5c51bb589c16d2112b6a",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_Builtin_float-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_Builtin_float-269YRWV9BT409.pcm",
+      "byteCount": 50368,
+      "beforeSHA256": "f600eadfd7da10976c2e6b08f1808dac0ea7c55cf98f0e5e3909cd0e1f766d28",
+      "afterSHA256": "f600eadfd7da10976c2e6b08f1808dac0ea7c55cf98f0e5e3909cd0e1f766d28",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_Builtin_inttypes-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_Builtin_inttypes-269YRWV9BT409.pcm",
+      "byteCount": 49912,
+      "beforeSHA256": "8f0f1c6a000867bfa517dc421ac4568b9db0e3b1b49a6c020b63989cba46f933",
+      "afterSHA256": "8f0f1c6a000867bfa517dc421ac4568b9db0e3b1b49a6c020b63989cba46f933",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_Builtin_limits-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_Builtin_limits-269YRWV9BT409.pcm",
+      "byteCount": 49936,
+      "beforeSHA256": "29cd1750657ace3aa792fdf6012420086dd65ac3223b0d81e0bbd5613ee38c37",
+      "afterSHA256": "29cd1750657ace3aa792fdf6012420086dd65ac3223b0d81e0bbd5613ee38c37",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_Builtin_stdarg-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_Builtin_stdarg-269YRWV9BT409.pcm",
+      "byteCount": 46088,
+      "beforeSHA256": "0439045a2fdbd79ae33add4a241034bf207a114b7d71c6997668e0afd007ad1f",
+      "afterSHA256": "0439045a2fdbd79ae33add4a241034bf207a114b7d71c6997668e0afd007ad1f",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_Builtin_stdbool-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_Builtin_stdbool-269YRWV9BT409.pcm",
+      "byteCount": 42960,
+      "beforeSHA256": "ff406ab46ec3d3af6d5f5747b0340b815dfd6f0145d27170b199e0dc05d7ee8e",
+      "afterSHA256": "ff406ab46ec3d3af6d5f5747b0340b815dfd6f0145d27170b199e0dc05d7ee8e",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_Builtin_stddef-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_Builtin_stddef-269YRWV9BT409.pcm",
+      "byteCount": 47856,
+      "beforeSHA256": "7c14c57f60808b9212f2a3d8fc04b15594b16973823bc9f20cd43b95e661c9e1",
+      "afterSHA256": "7c14c57f60808b9212f2a3d8fc04b15594b16973823bc9f20cd43b95e661c9e1",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_Builtin_stdint-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_Builtin_stdint-269YRWV9BT409.pcm",
+      "byteCount": 49160,
+      "beforeSHA256": "719946c16acbcd41347a681c0cfa78624490f89c84f6c6de424e7a5c3e600122",
+      "afterSHA256": "719946c16acbcd41347a681c0cfa78624490f89c84f6c6de424e7a5c3e600122",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_DarwinFoundation1-2YSBQADOLX02V.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_DarwinFoundation1-2YSBQADOLX02V.pcm",
+      "byteCount": 470280,
+      "beforeSHA256": "1c48f7b5325a4e21f0c829ff57dfb7d132093d2431da48b36353b7294f64e4a8",
+      "afterSHA256": "1c48f7b5325a4e21f0c829ff57dfb7d132093d2431da48b36353b7294f64e4a8",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_DarwinFoundation2-3J4ZFA06I5V1P.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_DarwinFoundation2-3J4ZFA06I5V1P.pcm",
+      "byteCount": 489760,
+      "beforeSHA256": "8fdd06a25ccadaaa8726eee63c134fff7cf0a5f57e943acc464154975d22f919",
+      "afterSHA256": "8fdd06a25ccadaaa8726eee63c134fff7cf0a5f57e943acc464154975d22f919",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_DarwinFoundation3-2NSGASPTSNBVQ.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_DarwinFoundation3-2NSGASPTSNBVQ.pcm",
+      "byteCount": 633568,
+      "beforeSHA256": "eb7874f93f09bb9a8207781b4a545d071ad8f329b35225091034a68762f1903a",
+      "afterSHA256": "eb7874f93f09bb9a8207781b4a545d071ad8f329b35225091034a68762f1903a",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/_SwiftConcurrencyShims-3KC02E5RH2AH.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/_SwiftConcurrencyShims-3KC02E5RH2AH.pcm",
+      "byteCount": 43256,
+      "beforeSHA256": "13bbb181193208f547cae51dbccc683e30e96d88d3f633ae7c255cdf89b14663",
+      "afterSHA256": "13bbb181193208f547cae51dbccc683e30e96d88d3f633ae7c255cdf89b14663",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/launch-3T3BU4MASLMUM.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/launch-3T3BU4MASLMUM.pcm",
+      "byteCount": 103208,
+      "beforeSHA256": "8dc58d553d34748089c211291c8f86b6e275a367e7db20c33bc573f6b60ee9a6",
+      "afterSHA256": "8dc58d553d34748089c211291c8f86b6e275a367e7db20c33bc573f6b60ee9a6",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/libDER-26DYHF6GC6WWA.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/libDER-26DYHF6GC6WWA.pcm",
+      "byteCount": 62256,
+      "beforeSHA256": "429781317960b1e190b1f4cac169cf39744d7c4b6e3446984539e3f2715b7aac",
+      "afterSHA256": "429781317960b1e190b1f4cac169cf39744d7c4b6e3446984539e3f2715b7aac",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/libkern-2KQ0X67RTM1JF.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/libkern-2KQ0X67RTM1JF.pcm",
+      "byteCount": 80152,
+      "beforeSHA256": "9552c47eb0d1d47f9f1159a88c1b749e364138e368d9b1085cc005288f312434",
+      "afterSHA256": "9552c47eb0d1d47f9f1159a88c1b749e364138e368d9b1085cc005288f312434",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/os_object-2MV8OP7R98AN8.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/os_object-2MV8OP7R98AN8.pcm",
+      "byteCount": 66280,
+      "beforeSHA256": "9217cd2e2eee132de42122409ef2618b88b25f4d58785817d3d925c77f2d6c37",
+      "afterSHA256": "9217cd2e2eee132de42122409ef2618b88b25f4d58785817d3d925c77f2d6c37",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/os_workgroup-2MV8OP7R98AN8.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/os_workgroup-2MV8OP7R98AN8.pcm",
+      "byteCount": 99136,
+      "beforeSHA256": "c87d4e16bbe380a3f662439c4aa9364fc5ef1d9ba7145ec450898ce17b5a8ba6",
+      "afterSHA256": "c87d4e16bbe380a3f662439c4aa9364fc5ef1d9ba7145ec450898ce17b5a8ba6",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/ptrauth-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/ptrauth-269YRWV9BT409.pcm",
+      "byteCount": 53128,
+      "beforeSHA256": "0fe4783af7cd932604a8ba4c0d6956a35eb9f53d9e2abd32c8ccadc0cdea1d43",
+      "afterSHA256": "0fe4783af7cd932604a8ba4c0d6956a35eb9f53d9e2abd32c8ccadc0cdea1d43",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/ptrcheck-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/ptrcheck-269YRWV9BT409.pcm",
+      "byteCount": 48272,
+      "beforeSHA256": "8530c6294fc750e9295c0c4d8248f36ef30d8115a3a2406b6b4176fbcb854f16",
+      "afterSHA256": "8530c6294fc750e9295c0c4d8248f36ef30d8115a3a2406b6b4176fbcb854f16",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/string_h-47SZ9A199RUD.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/string_h-47SZ9A199RUD.pcm",
+      "byteCount": 49184,
+      "beforeSHA256": "e6d04794689e4d8ad5659d3b9a3990bbe879c54e43c0689677cf1765448e695e",
+      "afterSHA256": "e6d04794689e4d8ad5659d3b9a3990bbe879c54e43c0689677cf1765448e695e",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/3JQKWJN9UWEJQ/sys_types-3J4ZFA06I5V1P.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/3JQKWJN9UWEJQ/sys_types-3J4ZFA06I5V1P.pcm",
+      "byteCount": 48912,
+      "beforeSHA256": "eca3b1bdbee1cdc07670a1a4806115a02815c4f67f08906528240d010a12d20c",
+      "afterSHA256": "eca3b1bdbee1cdc07670a1a4806115a02815c4f67f08906528240d010a12d20c",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/Combine-1TY86XH33FTGF.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/Combine-1TY86XH33FTGF.swiftmodule",
+      "byteCount": 491188,
+      "beforeSHA256": "5c4e2f10aefc1cee7ab678be0715884debe3f41947370fbdee39c50c5f401159",
+      "afterSHA256": "5c4e2f10aefc1cee7ab678be0715884debe3f41947370fbdee39c50c5f401159",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/CoreFoundation-8KXLWRLBTTUW.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/CoreFoundation-8KXLWRLBTTUW.swiftmodule",
+      "byteCount": 178740,
+      "beforeSHA256": "6a790c67186cf6979927c4e5dad1f26a97e4b9698218e8a6cd69634cd66973c4",
+      "afterSHA256": "6a790c67186cf6979927c4e5dad1f26a97e4b9698218e8a6cd69634cd66973c4",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/Darwin-Z46LURZ8P1DK.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/Darwin-Z46LURZ8P1DK.swiftmodule",
+      "byteCount": 77604,
+      "beforeSHA256": "576c6cc1b60ab4ef2f712f1a0a25a61559f9a12192b63e6838b645e866eb55c3",
+      "afterSHA256": "576c6cc1b60ab4ef2f712f1a0a25a61559f9a12192b63e6838b645e866eb55c3",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/Dispatch-E5RG8SP5MZMV.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/Dispatch-E5RG8SP5MZMV.swiftmodule",
+      "byteCount": 210016,
+      "beforeSHA256": "438e35ba32de0afef6b86810bc50d0fc5d976c4fb9d38b1433c10da47bda03dd",
+      "afterSHA256": "438e35ba32de0afef6b86810bc50d0fc5d976c4fb9d38b1433c10da47bda03dd",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/Foundation-1GJDCHYVH6GSU.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/Foundation-1GJDCHYVH6GSU.swiftmodule",
+      "byteCount": 4043916,
+      "beforeSHA256": "3008a14fd8644f8fe4d46efad784a19cae4ba3565196765a219dc5726dc3fd88",
+      "afterSHA256": "3008a14fd8644f8fe4d46efad784a19cae4ba3565196765a219dc5726dc3fd88",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/IOKit-3R6QYPBX2SYEU.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/IOKit-3R6QYPBX2SYEU.swiftmodule",
+      "byteCount": 30036,
+      "beforeSHA256": "98a7137072e89a9b01216c2647da85697f31b3446142ee712acf9e40302619bc",
+      "afterSHA256": "98a7137072e89a9b01216c2647da85697f31b3446142ee712acf9e40302619bc",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/ObjectiveC-2TX0YU28VR6CK.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/ObjectiveC-2TX0YU28VR6CK.swiftmodule",
+      "byteCount": 50736,
+      "beforeSHA256": "670a39bf98ddf0ebd060988b99454215e1fb7d36f8cc8ee849ccf4cb31b68e40",
+      "afterSHA256": "670a39bf98ddf0ebd060988b99454215e1fb7d36f8cc8ee849ccf4cb31b68e40",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/Darwin-1FXX23EKWOBA9.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/Darwin-1FXX23EKWOBA9.pcm",
+      "byteCount": 6027960,
+      "beforeSHA256": "1810c82ce1ade9b2123991a1d622f1d77e0711375b87778f73f5c375b7ef881d",
+      "afterSHA256": "1810c82ce1ade9b2123991a1d622f1d77e0711375b87778f73f5c375b7ef881d",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/MachO-20RPYVQSX341K.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/MachO-20RPYVQSX341K.pcm",
+      "byteCount": 474896,
+      "beforeSHA256": "e22eeae5cd269ec79e31755eccb355642aecc7278f1a374ac99b695dbbff1790",
+      "afterSHA256": "e22eeae5cd269ec79e31755eccb355642aecc7278f1a374ac99b695dbbff1790",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/ObjectiveC-1G8H182PQX3QE.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/ObjectiveC-1G8H182PQX3QE.pcm",
+      "byteCount": 339280,
+      "beforeSHA256": "7efecb9c015369687033de534ab382f782e96d2959318d67beb077d1d9462d26",
+      "afterSHA256": "7efecb9c015369687033de534ab382f782e96d2959318d67beb077d1d9462d26",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/SwiftShims-3KC02E5RH2AH.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/SwiftShims-3KC02E5RH2AH.pcm",
+      "byteCount": 180176,
+      "beforeSHA256": "372fb392564d95661f9db0e122c941d2c941a0171d7f4687345f89a39a167a07",
+      "afterSHA256": "372fb392564d95661f9db0e122c941d2c941a0171d7f4687345f89a39a167a07",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_AvailabilityInternal-2YSBQADOLX02V.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_AvailabilityInternal-2YSBQADOLX02V.pcm",
+      "byteCount": 436768,
+      "beforeSHA256": "ecc18a667534c2f2930e2f6333c1e6d4c2a2dc231fb08d9d3c413726fca46547",
+      "afterSHA256": "ecc18a667534c2f2930e2f6333c1e6d4c2a2dc231fb08d9d3c413726fca46547",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_Builtin_float-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_Builtin_float-269YRWV9BT409.pcm",
+      "byteCount": 50240,
+      "beforeSHA256": "8ec8110616c11abebf6fee7de5ca7c8b9b492ab59949cebde67b72d33fcae907",
+      "afterSHA256": "8ec8110616c11abebf6fee7de5ca7c8b9b492ab59949cebde67b72d33fcae907",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_Builtin_inttypes-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_Builtin_inttypes-269YRWV9BT409.pcm",
+      "byteCount": 49744,
+      "beforeSHA256": "86b751d4d2e342ec1daf3bb20b3fe2a1b2e1cceb745b5d4830398e2cb8bbe4af",
+      "afterSHA256": "86b751d4d2e342ec1daf3bb20b3fe2a1b2e1cceb745b5d4830398e2cb8bbe4af",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_Builtin_limits-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_Builtin_limits-269YRWV9BT409.pcm",
+      "byteCount": 49760,
+      "beforeSHA256": "088965168dcd43e62431dcac08091ac1c96133d2ef446e36aecb2200c0cfc33c",
+      "afterSHA256": "088965168dcd43e62431dcac08091ac1c96133d2ef446e36aecb2200c0cfc33c",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_Builtin_stdarg-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_Builtin_stdarg-269YRWV9BT409.pcm",
+      "byteCount": 45992,
+      "beforeSHA256": "46e627cf2731b170c69ccaf476c427747ae776a2be03e0744e979149f96f98c6",
+      "afterSHA256": "46e627cf2731b170c69ccaf476c427747ae776a2be03e0744e979149f96f98c6",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_Builtin_stdbool-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_Builtin_stdbool-269YRWV9BT409.pcm",
+      "byteCount": 42816,
+      "beforeSHA256": "bd91216f8f04b4b5fee613eef5c2efc814611b1e88bf8e0c8a2fba5d292c6f95",
+      "afterSHA256": "bd91216f8f04b4b5fee613eef5c2efc814611b1e88bf8e0c8a2fba5d292c6f95",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_Builtin_stddef-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_Builtin_stddef-269YRWV9BT409.pcm",
+      "byteCount": 47832,
+      "beforeSHA256": "1cafc9186b5f564ea3799a4b1ea9cfe122f890bff1259184b374d6641ab18029",
+      "afterSHA256": "1cafc9186b5f564ea3799a4b1ea9cfe122f890bff1259184b374d6641ab18029",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_Builtin_stdint-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_Builtin_stdint-269YRWV9BT409.pcm",
+      "byteCount": 48992,
+      "beforeSHA256": "7ef1a514a2dc7a334c9d84f196eca75f25f320671c1703d2ea9c81a8dbd8a920",
+      "afterSHA256": "7ef1a514a2dc7a334c9d84f196eca75f25f320671c1703d2ea9c81a8dbd8a920",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_DarwinFoundation1-2YSBQADOLX02V.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_DarwinFoundation1-2YSBQADOLX02V.pcm",
+      "byteCount": 471648,
+      "beforeSHA256": "71e9b21a531281505ee602054cca4bfd07881286ccf7943922916c19028a4972",
+      "afterSHA256": "71e9b21a531281505ee602054cca4bfd07881286ccf7943922916c19028a4972",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_DarwinFoundation2-3J4ZFA06I5V1P.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_DarwinFoundation2-3J4ZFA06I5V1P.pcm",
+      "byteCount": 491504,
+      "beforeSHA256": "e417ef9b61374c500b054b69fbaf007d061dd1810b24611e25a600be9977c58f",
+      "afterSHA256": "e417ef9b61374c500b054b69fbaf007d061dd1810b24611e25a600be9977c58f",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_DarwinFoundation3-2NSGASPTSNBVQ.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_DarwinFoundation3-2NSGASPTSNBVQ.pcm",
+      "byteCount": 634768,
+      "beforeSHA256": "e2bf2827bba1a3d5cf475bccf142a58dbb060f7397f62caf38018201cada2b7e",
+      "afterSHA256": "e2bf2827bba1a3d5cf475bccf142a58dbb060f7397f62caf38018201cada2b7e",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/_SwiftConcurrencyShims-3KC02E5RH2AH.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/_SwiftConcurrencyShims-3KC02E5RH2AH.pcm",
+      "byteCount": 43104,
+      "beforeSHA256": "d08829a3f126f1acf96fe52a17082b8a0eec20ba0915dd966eec5e5a8f0faac8",
+      "afterSHA256": "d08829a3f126f1acf96fe52a17082b8a0eec20ba0915dd966eec5e5a8f0faac8",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/ptrcheck-269YRWV9BT409.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/ptrcheck-269YRWV9BT409.pcm",
+      "byteCount": 48144,
+      "beforeSHA256": "8a951bdf1c8f6bc729c6e305b40a956b0c7cb3b6c4b4149c1830d4a30245092a",
+      "afterSHA256": "8a951bdf1c8f6bc729c6e305b40a956b0c7cb3b6c4b4149c1830d4a30245092a",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/PGCI0JBTT15S/sys_types-3J4ZFA06I5V1P.pcm",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/PGCI0JBTT15S/sys_types-3J4ZFA06I5V1P.pcm",
+      "byteCount": 48752,
+      "beforeSHA256": "c6a68ecd0656ffd8e9255d1283afa4379ec246a41ef0be9bae280d1b6df575cc",
+      "afterSHA256": "c6a68ecd0656ffd8e9255d1283afa4379ec246a41ef0be9bae280d1b6df575cc",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/System-4JIX9WQDQS4T.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/System-4JIX9WQDQS4T.swiftmodule",
+      "byteCount": 597428,
+      "beforeSHA256": "84a87131412d4b478ca4c1270ea6ebf651eb0a46665bbb3abe217a4314f39288",
+      "afterSHA256": "84a87131412d4b478ca4c1270ea6ebf651eb0a46665bbb3abe217a4314f39288",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/XPC-3F5AJ0NKBNJHT.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/XPC-3F5AJ0NKBNJHT.swiftmodule",
+      "byteCount": 137972,
+      "beforeSHA256": "4624e26ba2e362a6862b5a8141b2d93ef8bcc08e52523e8e10f0df5899d6e29a",
+      "afterSHA256": "4624e26ba2e362a6862b5a8141b2d93ef8bcc08e52523e8e10f0df5899d6e29a",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/_DarwinFoundation1-2T93YHMI1M70P.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/_DarwinFoundation1-2T93YHMI1M70P.swiftmodule",
+      "byteCount": 92464,
+      "beforeSHA256": "8641deaa516940131b98ca46ceaa10d9076ae59d49d343500f60835e6c88b55a",
+      "afterSHA256": "8641deaa516940131b98ca46ceaa10d9076ae59d49d343500f60835e6c88b55a",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/_DarwinFoundation2-Q9KJRSY6NBCY.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/_DarwinFoundation2-Q9KJRSY6NBCY.swiftmodule",
+      "byteCount": 23460,
+      "beforeSHA256": "85ff81cf04df838be4d17397960751882c57a4bb07f97a3bed624454320b9188",
+      "afterSHA256": "85ff81cf04df838be4d17397960751882c57a4bb07f97a3bed624454320b9188",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/_DarwinFoundation3-305VERK6JLOOM.swiftmodule",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/_DarwinFoundation3-305VERK6JLOOM.swiftmodule",
+      "byteCount": 20800,
+      "beforeSHA256": "c4f140bea77cc8cff208525521e94372f30c9f857d6efc0dd5bc3c52cb83663c",
+      "afterSHA256": "c4f140bea77cc8cff208525521e94372f30c9f857d6efc0dd5bc3c52cb83663c",
+      "beforeAfterEqual": true
+    },
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/module-cache/modules.timestamp",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/module-cache/modules.timestamp",
+      "byteCount": 0,
+      "beforeSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "afterSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "beforeAfterEqual": true
+    }
+  ],
+  "allBeforeAfterHashesEqual": true,
+  "durableTextBeforeAfterHashesEqual": true,
+  "affectedReceiptChecks": [
+    {
+      "originalAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v2/Observation",
+      "retainedAbsolutePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/angular-physical-arc-observation-v2-artifacts/Observation",
+      "byteCount": 67617448,
+      "beforeSHA256": "20bf2a096b6d3c0ae57e22f6bb37f6d3b5d5b5ac8ce2db1dbe5807301569e9f8",
+      "originalReceiptCheckSHA256": "20bf2a096b6d3c0ae57e22f6bb37f6d3b5d5b5ac8ce2db1dbe5807301569e9f8",
+      "afterSHA256": "20bf2a096b6d3c0ae57e22f6bb37f6d3b5d5b5ac8ce2db1dbe5807301569e9f8",
+      "beforeAfterEqual": true
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "cell": "CS-ANGULAR-PHYSICAL-ARC-PLANE-01",
+  "state": "observed-public-typed-failure",
+  "cellComplete": false,
+  "ordinaryPublicCalls": 1,
+  "failure": {
+    "type": "KernelError",
+    "phase": "geometry",
+    "code": "invalidInput",
+    "message": "Adaptive intersection requires an explicit finite surface U range."
+  },
+  "causalPath": [
+    {
+      "file": "Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift",
+      "line": 17,
+      "operation": "Ordinary rich entry delegates to actual overlap resolver."
+    },
+    {
+      "file": "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift",
+      "line": 44,
+      "operation": "Copies supplied options, then unconditionally clears surfaceURange and surfaceVRange at lines46-47."
+    },
+    {
+      "file": "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift",
+      "line": 134,
+      "operation": "Normalized nonperiodic angular wrapper calls actual bare intersector with cleared rawOptions."
+    },
+    {
+      "file": "Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift",
+      "line": 2690,
+      "operation": "Adaptive path requests finite surface U interval."
+    },
+    {
+      "file": "Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift",
+      "line": 4154,
+      "operation": "Unbounded plane U with absent explicit range throws observed invalidInput."
+    }
+  ],
+  "sourceHashes": {
+    "Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift": "99fdacfd9ae4637288c12c99b1fd0c0aecec537672c362899fd284c40d7c4b32",
+    "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift": "2bdd731fbf46142816f3784fc1dd13020eec57e53334d0d80d85048a89e04843",
+    "Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift": "cd18d434736da863752d942ca6bda315672eb038abe4298b9f568e4fb00e94c1"
+  },
+  "resultReceiptAvailability": "No public result was returned; source/T/UV/coverage/image/fiber receipts unavailable.",
+  "independentOracle": "Unchanged exact Q(pi) two-root source-law oracle; not runtime completion evidence.",
+  "nextChangeNotSelected": "No production repair or additional observation performed."
+}

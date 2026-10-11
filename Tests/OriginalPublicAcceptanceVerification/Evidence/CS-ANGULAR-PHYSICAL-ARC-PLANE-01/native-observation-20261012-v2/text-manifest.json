@@ -1,0 +1,59 @@
+{
+  "cell": "CS-ANGULAR-PHYSICAL-ARC-PLANE-01",
+  "scope": "Durable text evidence only; this manifest excludes itself to avoid a recursive hash.",
+  "binaryArtifactManifest": "artifact-locations.json",
+  "files": [
+    {
+      "relativePath": "Proof.swift",
+      "byteCount": 37249,
+      "sha256": "2843fb023e058681fed4331664e086cdc196f1e5a9c11e0c1ecc5d0a33c6378e"
+    },
+    {
+      "relativePath": "artifact-locations.json",
+      "byteCount": 73352,
+      "sha256": "35947e8047c750c96f4cfc7220f28950320da1f67ec03bd1d6a70fe803d52705"
+    },
+    {
+      "relativePath": "causal-stop.json",
+      "byteCount": 2208,
+      "sha256": "299bbe2f5f7baed00496de8bcbd68342dfeb36a3a5d467db7581dcf1e63d64a5"
+    },
+    {
+      "relativePath": "compile-command.json",
+      "byteCount": 10130,
+      "sha256": "e4df46b65dab48a52c6b92ae8da2ca4026fcb1f978eef417f5b04ab1153c7a3d"
+    },
+    {
+      "relativePath": "compile-link.log",
+      "byteCount": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relativePath": "observation.json",
+      "byteCount": 1199,
+      "sha256": "e3f0dc870e10a3cc605f30b1bcd192396a2bb3c84daf0d2674a792d1c83d55de"
+    },
+    {
+      "relativePath": "premises.json",
+      "byteCount": 6983,
+      "sha256": "fd09ead97829cd43341f371597f7b410966f4aca5a48158d326db69b0ee0f8c3"
+    },
+    {
+      "relativePath": "receipt.json",
+      "byteCount": 818822,
+      "sha256": "b78b854fdacd065f5a234b54e5c131c4d8790aa51227115785b797da66829406"
+    },
+    {
+      "relativePath": "runs.json",
+      "byteCount": 11413,
+      "sha256": "12c1a12c8467c7bd0e489eaff68b707f3d99d6af71eaf136269e8d1ea71f768a"
+    },
+    {
+      "relativePath": "runtime-once.log",
+      "byteCount": 787,
+      "sha256": "e4a51d3f5cf6951a98d3c20549bd531aa99356558b36be32b7c39e66f094ed62"
+    }
+  ],
+  "listedFileCount": 10,
+  "listedByteCount": 962143
+}

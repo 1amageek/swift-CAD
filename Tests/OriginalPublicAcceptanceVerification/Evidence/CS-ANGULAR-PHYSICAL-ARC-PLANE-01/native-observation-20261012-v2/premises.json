@@ -1,0 +1,47 @@
+{
+  "parentReceipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-REVOLUTION-AXIS-FIBER-01/acceptance/native-20261012-v16/receipt.json",
+  "parentSHA256": "2562317fd283a1301aa5c54dfc2bcc06f1d22242b4708f979dce082fd1ee3eaf",
+  "head": "0422fa0c6151467da32b5fdf7e00bccbc4f5d64f",
+  "freshProduction": {
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionAxisSectionEvidence.swift": "d8e315532dae1cf2bb4ccbd6ffe1ee5b6abb64ee1d9e2f15f8318b400cc17386",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionAxisSectionReceipt.swift": "af065a2d3070def515d1093a3a5b0a44e8e1c5b085bc89d215214ea410e2ab53",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionAxisSectionIssuing.swift": "482d457874480b21389c072cec9af8075e16ef07cc200837dde3aee5c25f554d",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalRevolutionAxisSectionIssuer.swift": "d75ff85616f4b9fbc931037cf8cb479e26c24b161b913fc00148be1e3f20a929",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionSnapshot.swift": "8e9bfd3055f8d9bb666347012e4f3abda0fc0ac3c14ac4538fbcdaeb2bf1d5ca",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionSnapshotProvider.swift": "c80479c23449f187d72be8b9d15f484d67860400a0a99c1edee96a5201ba7291",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalTraversalSpanSnapshot.swift": "9a3401de21cf305a7fa6b38519de31ce0d4f7d063b26f37d8dc0a4f4c89a28f7",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalTraversalSpanSnapshotProvider.swift": "d2975146ab508ff2d9f237205e7c7e2632a2e6f7765c6cc4b6e0ca07aa8a92c3",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalRevolutionAxisRelations.swift": "59c3016c52caffe96459c048f9c2aadd1b08384caadef64029093a0749922927",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRevolutionAxisGeometricRelationReading.swift": "da82fe753fbc79dec668e85285f319fae174e01efc9235fe62102970b3c7df80",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRevolutionAxisGeometricRelations.swift": "1c885dd4306a6b1e8260d2b45fa390cccccb0cce20270ba22d5d0029d603199b",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRevolutionAxisLinePublicProducer.swift": "76a00991f0929528870c7bb2e8b67433972ba5adce50a40b55aaabbaf1627e8d",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedExactIntersectionPoint.swift": "8e952ba577b9fa876f4020a4fcee3e8db685fe22c58b21c068b403bc6b7c64c6",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricPublication.swift": "b7d324b9b101fafb670e655cb2c0d9e45eaa8505f40624b9297d1d9ef8124e44",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricRelationPair.swift": "69e7fa56a9951dfb1b98a90c7a64c2aa8623fd0a214ed7d3c2eb36549292b3eb",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricRelationReading.swift": "181d4d4e9cfd40216612f8cd3123a9ef0f2e74aa5121a14d3a2b06fbf4c69f3f",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift": "cd18d434736da863752d942ca6bda315672eb038abe4298b9f568e4fb00e94c1",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift": "99fdacfd9ae4637288c12c99b1fd0c0aecec537672c362899fd284c40d7c4b32",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift": "2bdd731fbf46142816f3784fc1dd13020eec57e53334d0d80d85048a89e04843",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift": "b8f1607e4d7669f42ed782349657c8dfe94f461794c22759c8e610112670b5cd",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResolving.swift": "28218d4989807d9868903720b286b247ff94743551541ea8c8bc56b9e1120716",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactCurveSurfacePointProducer.swift": "24e93de2dada584f7830d51b613bf74c5395e81106c3d05940a37b46fb8a1101",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/DefaultCurveSurfaceIntersector+CurveSurfaceGeometry.swift": "4487d79fb5c1afd173892f1550ec48c6fec0f1e28b86ca1b28f4dfd2ebead9b9",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultCurveSurfaceIntersector+ExactRelation.swift": "053aaf3e51436e980d7d0eb8324831ec9429f9133bcbb19ba1af26decfb82303",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactPublicCurveSurfaceProducer.swift": "2672f2a6f23b881fd89d0693de46c55949c89a361a6b71bf481a0c1c371d9602",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/NativeCurveSurfacePointProducer.swift": "121d98a54bcc48ef9e5f8b9ff4afb0c9a13a654eb8d6549cda99af2310f49c46",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/OriginalPolynomialCurveSurfacePointProducer.swift": "b8e6cd79ef9853c0ce5d106491feefa388b1d0705c759f791ad22e02eddac326",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/OriginalAffineCurveSurfacePointProducer.swift": "a2e1aead76e7851e4028e4fa8629243501b7e5d3ca78c7be9bc30f4eae9737b7",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/OriginalCoonsCurveSurfacePointProducer.swift": "ab28e7105f3cd915759e8e6d53e879d304905412634b43c0e067021d8a86d168"
+  },
+  "rebuiltLowerBodies": 0,
+  "unchangedUpperBodies": 29,
+  "ordinaryPublicCalls": 1,
+  "oracleField": "Q(pi)",
+  "historicalComparators": {
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RevolutionAxisFiberAcceptance.py": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v16/RevolutionAxisFiberAcceptance.py",
+      "sha256": "285a601a838c9f9d3904be7de7531f400525a1985c473b21ba80a1d5a284fa2f",
+      "scope": "Immutable prior runner comparator; not current production or this observation runner."
+    }
+  }
+}

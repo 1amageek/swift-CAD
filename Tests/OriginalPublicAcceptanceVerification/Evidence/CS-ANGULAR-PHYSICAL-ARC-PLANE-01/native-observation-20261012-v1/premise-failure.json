@@ -1,0 +1,8 @@
+{
+  "stage": "precompile-receipt-gate",
+  "actualPublicCalls": 0,
+  "compileCalls": 0,
+  "reason": "Prior revolution runner comparator changed during concurrent root work; current production remained matched.",
+  "expectedSHA256": "285a601a838c9f9d3904be7de7531f400525a1985c473b21ba80a1d5a284fa2f",
+  "recovery": "Exact archived runner bytes already admitted by parent receipt; record as historical comparator."
+}
