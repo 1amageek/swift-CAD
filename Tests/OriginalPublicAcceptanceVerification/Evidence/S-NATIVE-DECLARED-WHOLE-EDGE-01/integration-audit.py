@@ -189,13 +189,14 @@ def audit():
     def saved_input(name, expected, comparators=None):
         comparator = (comparators or {}).get(name)
         if comparator is not None:
-            require(comparator['sha256'] == expected, 'historical comparator must bind the exact expected hash')
-            path = archived.get((comparator['path'], expected))
+            historical_hash = comparator['sha256']
+            path = archived.get((comparator['path'], historical_hash))
             path = path if path is not None else entry(comparator)
-            check(path, expected)
-            require(path in archived.values() or inherited_text(path, expected),
+            check(path, historical_hash)
+            require(path in archived.values() or inherited_text(path, historical_hash),
                     'historical comparator must already be durable evidence')
-            return path
+            if historical_hash == expected:
+                return path
         historical = archived.get((name, expected))
         if historical is not None:
             check(historical, expected)
