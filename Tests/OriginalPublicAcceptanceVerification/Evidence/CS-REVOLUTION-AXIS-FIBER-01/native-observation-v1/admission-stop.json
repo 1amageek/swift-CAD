@@ -1,0 +1,9 @@
+{
+  "state": "precompile-receipt-admission-stop",
+  "cellComplete": false,
+  "compileCount": 0,
+  "runtimeCount": 0,
+  "error": "Receipt premise differs: Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphRelationResolver.swift",
+  "cause": "The port freshProduction loop initially required current bytes after the accepted lower graph implementation changed. The build-check loop had already recovered matching historical bytes.",
+  "repair": "Apply the same receipt-bound historical comparator to the existing port freshProduction list. No source or geometry change."
+}

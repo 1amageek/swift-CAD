@@ -1,0 +1,15 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v3/OriginalRevolutionAxisSectionEvidence.swift:460:18: error: no such module 'DI'
+458 | @testable import GuideSeamPort
+459 | @testable import SourceIssuer
+460 | @testable import DI
+    |                  `- error: no such module 'DI'
+461 | @testable import IssuedGraphs
+462 | import struct GuideSeamPort.OriginalIssuedGraphPreparation
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v3/OriginalRevolutionAxisSectionEvidence.swift:460:18: error: no such module 'DI'
+458 | @testable import GuideSeamPort
+459 | @testable import SourceIssuer
+460 | @testable import DI
+    |                  `- error: no such module 'DI'
+461 | @testable import IssuedGraphs
+462 | import struct GuideSeamPort.OriginalIssuedGraphPreparation

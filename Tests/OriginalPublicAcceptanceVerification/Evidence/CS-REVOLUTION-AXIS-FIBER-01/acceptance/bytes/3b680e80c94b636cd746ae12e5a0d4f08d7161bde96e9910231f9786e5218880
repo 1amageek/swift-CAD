@@ -1,0 +1,276 @@
+import CADCore
+@testable import CADGeometry
+@testable import RetainedHostAdapters
+@testable import PublicLiftPlane
+
+/// Independent complete oracle for the frozen weighted reversed axis-fiber input.
+enum RevolutionAxisFiberOracle {
+    typealias Base = OriginalExactScalarDomain
+    typealias Field = PublicLiftPlane.ExactAlgebraicScalarDomain<Base>
+    typealias Cells = PublicLiftPlane.ExactRealCellDomain<Base>
+    typealias Polynomial = CADGeometry.ExactPolynomial<Field>
+
+    private struct Admission: ~Copyable, ExactScalarAdmission {
+        var ledger: ExactScalarLedger
+        init() throws {
+            ledger = .init(limits: try .init(work: 8_388_608, storageBytes: 400_000_000,
+                valueDepth: 32, coefficientDepth: 32))
+        }
+        mutating func checkpoint() throws(ExactScalarFailure) { try ledger.checkpoint() }
+        mutating func consumeWork(_ n: Int) throws(ExactScalarFailure) { try ledger.consumeWork(n) }
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) { try ledger.retainStorage(bytes: bytes) }
+        mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try ledger.visitCell(axis: axis, depth: depth)
+        }
+        mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
+            try ledger.admitDepth(value: value, coefficient: coefficient)
+        }
+    }
+    private static func require(_ value: Bool) throws {
+        if !value { throw ExactScalarFailure.invalidEvidence }
+    }
+
+    /// Checks every terminal cell; no membership sample or second solve is used.
+    private static func complete(_ partition: PublicLiftPlane.ExactRealCellPartition<Base>,
+        included: (PublicLiftPlane.ExactRealCellID<Base>) -> Bool,
+        offset: Int, imageAxes: Bool, bound: OriginalExactScalar, using a: inout Admission) throws {
+        let n = imageAxes ? 6 : 3
+        try require(partition.source.variableCount == n && partition.source.domains.count == n)
+        let cells = try Cells(retaining: partition.source, using: &a), ring = cells.polynomials, f = ring.field
+        let zero = try f.integer(0, using: &a), one = try f.integer(1, using: &a)
+        let b = try f.importingBase(bound, using: &a)
+        let minusB = try f.negated(b, using: &a)
+        // The retained Cartesian domain must contain the entire independent oracle.
+        // Predicate bounds may further restrict it, but cannot hide a missing U endpoint.
+        let lows = imageAxes ? [zero,zero,zero,zero,minusB,one] : [zero,minusB,one]
+        let highs = imageAxes ? [zero,zero,zero,zero,b,one] : [zero,b,one]
+        for axis in 0..<n {
+            try a.consumeWork(1)
+            let domain = partition.source.domains[axis]
+            try require(!domain.isEmpty)
+            switch domain.lower {
+            case .negativeInfinity: break
+            case .positiveInfinity: throw ExactScalarFailure.invalidEvidence
+            case .finite(let value):
+                let order = try f.compare(value, lows[axis], using: &a)
+                try require(order == .less || (order == .equal && domain.includesLower))
+            }
+            switch domain.upper {
+            case .positiveInfinity: break
+            case .negativeInfinity: throw ExactScalarFailure.invalidEvidence
+            case .finite(let value):
+                let order = try f.compare(value, highs[axis], using: &a)
+                try require(order == .greater || (order == .equal && domain.includesUpper))
+            }
+        }
+        var equations: [Polynomial] = []
+        try a.retainStorage(bytes: exactScalarPayloadBytes(count: n + 6, of: Polynomial.self))
+        equations.append(try ring.variable(offset, using: &a))
+        equations.append(try ring.subtracting(ring.variable(offset + 2, using: &a), ring.constant(one, using: &a), using: &a))
+        if imageAxes { for axis in 0..<3 { equations.append(try ring.variable(axis, using: &a)) } }
+        var bounds: [Polynomial] = []
+        for (axis, lower, upper) in [(offset,try f.negated(one, using:&a),one),
+            (offset + 1,minusB,b),(offset + 2,zero,one)] {
+            bounds.append(try ring.subtracting(ring.variable(axis, using:&a),ring.constant(lower, using:&a),using:&a))
+            bounds.append(try ring.subtracting(ring.variable(axis, using:&a),ring.constant(upper, using:&a),using:&a))
+        }
+        var invariants: [PublicLiftPlane.ExactRealCellSignInvariant<Base>] = []
+        try a.retainStorage(bytes: exactScalarPayloadBytes(count: equations.count + bounds.count,
+            of: PublicLiftPlane.ExactRealCellSignInvariant<Base>.self))
+        var laws = equations
+        for bound in bounds { laws.append(bound) }
+        for law in laws {
+            guard let invariant = try cells.signInvariant(for: law, in: partition, using: &a) else {
+                throw ExactScalarFailure.invalidEvidence
+            }
+            invariants.append(invariant)
+        }
+        var selected = 0, interior = false, lowerEndpoint = false, upperEndpoint = false
+        for cell in partition.cells where cell.axis == n - 1 {
+            try a.consumeWork(1)
+            var expected = true
+            for index in equations.indices {
+                if try cells.sign(of: invariants[index], at: cell, using:&a) != .zero { expected = false }
+            }
+            for index in bounds.indices {
+                let sign = try cells.sign(of: invariants[equations.count + index], at: cell, using:&a)
+                if index % 2 == 0 ? sign == .negative : sign == .positive { expected = false }
+            }
+            try require(included(cell) == expected)
+            if expected {
+                selected += 1
+                let lower = try cells.sign(of: invariants[equations.count + 2], at: cell, using:&a)
+                let upper = try cells.sign(of: invariants[equations.count + 3], at: cell, using:&a)
+                if lower == .zero { lowerEndpoint = true }
+                if upper == .zero { upperEndpoint = true }
+                var angular = cell
+                while angular.axis != offset + 1 {
+                    try a.consumeWork(1)
+                    guard let parent = angular.parent else { throw ExactScalarFailure.invalidEvidence }
+                    angular = parent
+                }
+                try require(cell.dimension == angular.dimension && (cell.dimension == 0 || cell.dimension == 1))
+                if lower == .zero || upper == .zero { try require(cell.dimension == 0) }
+                if lower == .positive && upper == .negative && cell.dimension == 1 { interior = true }
+            }
+        }
+        try require(selected > 0 && interior && lowerEndpoint && upperEndpoint)
+    }
+
+    static func verify(_ geometry: any OriginalRevolutionAxisGeometricRelationReading) throws {
+        var a = try Admission()
+        let raw = geometry.original, cover = raw.originalDomain, family = cover.family, f = family.field
+        let limits = try OriginalDomainIdentityLimits(source: .init(remainingSourceDepth: 2),
+            maximumTransportDepth: 32, maximumCharts: 262_144, maximumFamilies: 2, maximumIdentityProofs: 0)
+        try raw.admitProof(limits: limits, using:&a)
+        try require(!geometry.isEmpty && geometry.hasPositiveDimensionalSolutions && !geometry.hasPositiveDimensionalImage
+            && geometry.exactPoints.isEmpty)
+        try require(family.laws.count == 1 && raw.secondGraphs.count == 1 && raw.first.graphs.count == 1
+            && raw.pairs.count == 1 && geometry.pairs.count == 1)
+        let zero = try f.integer(0,using:&a), one = try f.integer(1,using:&a)
+        let b = 2 * Double.pi, lower = try f.binary64(exactly: -b,using:&a), upper = try f.binary64(exactly:b,using:&a)
+        try require(family.support.count == 2 && family.source.owner === cover.source.owner
+            && geometry.originalDomain.source.owner === cover.source.owner
+            && geometry.originalLine.owner === raw.first.source.owner)
+        try require(f.compare(family.period.lower,lower,using:&a) == .equal
+            && f.compare(family.period.upper,zero,using:&a) == .equal
+            && f.compare(family.period.period,upper,using:&a) == .equal)
+        let generator = family.source.original.originalGenerator.original
+        try require(f.compare(generator.originalStart,one,using:&a) == .equal
+            && f.compare(generator.originalEnd,zero,using:&a) == .equal)
+        for axis in 0..<2 {
+            try require(f.compare(family.support[axis].lower,axis == 0 ? lower:zero,using:&a) == .equal)
+            try require(f.compare(family.support[axis].upper,axis == 0 ? upper:one,using:&a) == .equal)
+        }
+        let law = family.laws[0], r = law.polynomials
+        try require(law.normalizedAxis.count == 3)
+        try require(r.variableCount == 3 && law.homogeneous.count == 4)
+        let c = try r.variable(0,using:&a), s = try r.variable(1,using:&a), v = try r.variable(2,using:&a)
+        let two = try r.constant(f.integer(2,using:&a),using:&a), unit = try r.constant(one,using:&a)
+        let numerator = try r.scaled(r.subtracting(unit,v,using:&a),by:f.integer(2,using:&a),using:&a)
+        let denominator = try r.subtracting(two,v,using:&a)
+        let scale = try f.dividing(r.evaluated(law.denominator,at:[zero,zero,zero],using:&a).value,
+            f.integer(2,using:&a),using:&a)
+        try require(f.sign(of:scale,using:&a) == .positive)
+        // W = positiveScale*(2-v), hence W is positive on every v in [0,1].
+        try require(r.equals(law.denominator,r.scaled(denominator,by:scale,using:&a),using:&a))
+        let expected = [try r.multiplying(numerator,c,using:&a),try r.multiplying(numerator,s,using:&a),
+            try r.constant(zero,using:&a)]
+        for axis in 0..<3 {
+            try require(r.equals(r.multiplying(law.homogeneous[axis],denominator,using:&a),
+                r.multiplying(expected[axis],law.denominator,using:&a),using:&a))
+            try require(f.compare(law.normalizedAxis[axis],axis == 2 ? one:zero,using:&a) == .equal)
+        }
+        try require(r.equals(r.multiplying(law.radialSquaredNumerator,r.multiplying(denominator,denominator,using:&a),using:&a),
+            r.multiplying(r.multiplying(numerator,numerator,using:&a),r.multiplying(law.denominator,law.denominator,using:&a),using:&a),using:&a))
+        let parameters = law.parameterPolynomials, transport = law.generatorChartParameter
+        try require(transport.numerators.count == 1 && transport.denominators.count == 1)
+        let reversed = try parameters.subtracting(parameters.constant(one,using:&a),parameters.variable(1,using:&a),using:&a)
+        try require(parameters.equals(transport.numerators[0],
+            parameters.multiplying(reversed,transport.denominators[0],using:&a),using:&a))
+        // Check the complete selected axis-section law and both original guards.
+        let section = raw.secondGraphs[0].original.graph, sr = section.polynomials
+        try require(section.source.owner === family.source.owner
+            && section.layout.variableCount == 2 && section.layout.parameters == [0,1]
+            && section.layout.auxiliaries.isEmpty && section.homogeneous.count == 4 && section.conditions.count == 2)
+        let sectionV = try sr.variable(1,using:&a), sectionOne = try sr.constant(one,using:&a)
+        let sectionD = try sr.subtracting(sr.constant(f.integer(2,using:&a),using:&a),sectionV,using:&a)
+        let sectionN = try sr.scaled(sr.subtracting(sectionOne,sectionV,using:&a),by:f.integer(2,using:&a),using:&a)
+        let sectionRho = try sr.scaled(sr.multiplying(sectionN,sectionN,using:&a),
+            by:f.multiplying(scale,scale,using:&a),using:&a)
+        for axis in 0..<3 { try require(sr.isZero(section.homogeneous[axis],using:&a)) }
+        try require(sr.equals(section.homogeneous[3],sr.scaled(sectionD,by:scale,using:&a),using:&a))
+        guard case .equal = section.conditions[0].relation,case .notEqual = section.conditions[1].relation else {
+            throw ExactScalarFailure.invalidEvidence
+        }
+        try require(sr.equals(section.conditions[0].polynomial,sectionRho,using:&a))
+        try require(sr.equals(section.conditions[1].polynomial,section.homogeneous[3],using:&a))
+        try require(section.parameterTransport.numerators.count == 2 && section.parameterTransport.denominators.count == 2)
+        for axis in 0..<2 {
+            try require(sr.equals(section.parameterTransport.numerators[axis],sr.variable(axis,using:&a),using:&a))
+            try require(sr.equals(section.parameterTransport.denominators[axis],sectionOne,using:&a))
+        }
+        let line = raw.first.source.original, lineGraph = raw.first.graphs[0].original.graph, lr = lineGraph.polynomials
+        try require(line.origin.x == 0 && line.origin.y == 0 && line.origin.z == 0
+            && line.direction.x == 0 && line.direction.y == 0 && line.direction.z == 1)
+        try require(lineGraph.layout.variableCount == 1 && lineGraph.layout.parameters == [0]
+            && lineGraph.layout.auxiliaries.isEmpty && lineGraph.homogeneous.count == 4)
+        try require(lr.isZero(lineGraph.homogeneous[0],using:&a) && lr.isZero(lineGraph.homogeneous[1],using:&a))
+        try require(lr.equals(lineGraph.homogeneous[2],lr.variable(0,using:&a),using:&a))
+        try require(lr.equals(lineGraph.homogeneous[3],lr.constant(one,using:&a),using:&a))
+        // Full authored requests are verified independently of the solver partition.
+        for selected in [cover.support,cover.request,cover.effective] {
+            try require(!selected.isEmpty && selected.arity == 2)
+            for axis in 0..<2 {
+                try require(selected.axes[axis].intervals.count == 1)
+                let interval = selected.axes[axis].intervals[0]
+                guard case .finite(let lo) = interval.lower,case .finite(let hi) = interval.upper else {
+                    throw ExactScalarFailure.invalidEvidence
+                }
+                try require(interval.includesLower && interval.includesUpper && !interval.isEmpty)
+                try require(f.compare(lo,axis == 0 ? lower:zero,using:&a) == .equal)
+                try require(f.compare(hi,axis == 0 ? upper:one,using:&a) == .equal)
+            }
+        }
+        let requestedT = raw.first.coverage.coverage.request.axes[0].intervals
+        try require(requestedT.count == 1 && requestedT[0].includesLower && requestedT[0].includesUpper)
+        guard case .finite(let t0) = requestedT[0].lower,case .finite(let t1) = requestedT[0].upper else {
+            throw ExactScalarFailure.invalidEvidence
+        }
+        try require(f.compare(t0,f.negated(one,using:&a),using:&a) == .equal && f.compare(t1,one,using:&a) == .equal)
+        for u in [lower,zero,upper,try f.dividing(upper,f.integer(4,using:&a),using:&a)] {
+            let occurrences = try cover.incident(at:[u,one],limits:limits,using:&a)
+            let seam = try f.compare(u,lower,using:&a) == .equal || f.compare(u,zero,using:&a) == .equal || f.compare(u,upper,using:&a) == .equal
+            try require(occurrences.count == (seam ? 2:1))
+            var lowerSide = false, upperSide = false
+            for occurrence in occurrences {
+                try require(occurrence.law.source.owner === family.source.owner && occurrence.template == 0)
+                let transporter = DefaultOriginalParameterTransporter<OriginalRevolutionAxisGeometricRelations.Surface,Base>()
+                let reverse = try transporter.inverse(occurrence.transport,limits:limits,using:&a)
+                let local = try transporter.forward([u,one],through:reverse,limits:limits,using:&a)
+                try require(local.count == 2 && f.compare(local[1],one,using:&a) == .equal)
+                if try f.compare(local[0],family.period.lower,using:&a) == .equal { lowerSide = true }
+                if try f.compare(local[0],family.period.upper,using:&a) == .equal { upperSide = true }
+                let map = occurrence.law.generatorChartParameter, ring = occurrence.law.parameterPolynomials
+                let value = try f.dividing(ring.evaluated(map.numerators[0],at:local,using:&a).value,
+                    ring.evaluated(map.denominators[0],at:local,using:&a).value,using:&a)
+                try require(f.compare(value,zero,using:&a) == .equal)
+            }
+            if seam { try require(lowerSide && upperSide) }
+        }
+        for pair in geometry.pairs {
+            let relation = pair.original.relation, selection = relation.projection.original
+            let retained = raw.pairs[0].relation.projection.original.cells
+            try require(selection.cells.count == retained.count)
+            for i in retained.indices { try require(selection.cells[i] == retained[i]) }
+            try require(pair.original.firstGraphIndex == 0 && pair.original.secondGraphIndex == 0)
+            try require(relation.original.firstCoordinates == [0] && relation.original.secondCoordinates == [1,2])
+            try complete(selection.partition,included:{selection.cells.contains($0)},offset:0,imageAxes:false,bound:upper,using:&a)
+            try require(!pair.geometry.strata.isEmpty)
+            var hasInterior = false
+            for stratum in pair.geometry.strata {
+                guard let cell = pair.geometry.parameterCell(forStratum:stratum.ordinal) else { throw ExactScalarFailure.invalidEvidence }
+                try require(relation.selection.cells.contains(cell) && stratum.parameterDimension == cell.dimension
+                    && stratum.imageDimension == 0 && stratum.fiberDimension == cell.dimension
+                    && (cell.dimension == 0 || cell.dimension == 1))
+                if cell.dimension == 1 { hasInterior = true }
+            }
+            for cell in relation.selection.cells {
+                var covered = false
+                for stratum in pair.geometry.strata {
+                    if pair.geometry.parameterCell(forStratum:stratum.ordinal) == cell { covered = true }
+                }
+                try require(covered)
+            }
+            try require(hasInterior)
+            if let graph = pair.geometry.graph {
+                let region = graph.region
+                try complete(region.partition,included:{cell in
+                    for i in region.cells.indices { if region.cells[i] == cell { return region.included[i] } }
+                    return false
+                },offset:3,imageAxes:true,bound:upper,using:&a)
+            }
+        }
+        print("PASS complete original revolution axis fiber: closed U, exact T0/V1, origin image, all strata and seam incidents")
+    }
+}

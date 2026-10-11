@@ -1,0 +1,8 @@
+CONSTRUCTOR_SUCCESS reversed weighted generator; raw axis(0,0,2); U[-B,B]; V[0,1]; B=stored2*Double.pi
+ORACLE T=0,V=1,allU[-B,B]; generatorLocal=0; XYZ=origin; parameter1/image0/fiber1; both seam incidents at -B,0,B
+ORDINARY_RICH_BEGIN unchanged standard ceilings
+SELECTED_PRODUCER_DECLINED OriginalDraftedZeroLinePublicProducer actual current producer returned nil
+SELECTED_PRODUCER_DECLINED OriginalRetainedLiftPlanePublicProducer actual current producer returned nil
+SELECTED_PRODUCER_DECLINED OriginalDraftedZeroLinePublicProducer actual current producer returned nil
+SELECTED_PRODUCER_DECLINED OriginalRetainedLiftPlanePublicProducer actual current producer returned nil
+OBSERVED_OTHER_PUBLIC_FAILURE invalidVectorLength(0.0)

@@ -1,0 +1,7 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v9/DefaultCurveSurfaceIntersector+CurveSurfaceGeometry.swift:14:34: error: cannot find 'exactParameterRelation' in scope
+12 |     ) throws(NativeExactGeometricRelationFailure) -> NativeExactGeometricRelation {
+13 |         do {
+14 |             let parameters = try exactParameterRelation(curve: curve, surface: surface,
+   |                                  `- error: cannot find 'exactParameterRelation' in scope
+15 |                 curveRange: curveRange, surfaceDomain: surfaceDomain, tolerance: tolerance,
+16 |                 maximumPolynomialDegree: maximumPolynomialDegree,

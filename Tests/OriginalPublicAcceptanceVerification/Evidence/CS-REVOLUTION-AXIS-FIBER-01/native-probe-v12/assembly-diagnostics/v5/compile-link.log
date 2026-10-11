@@ -1,0 +1,431 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalRevolutionAxisSectionEvidence.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | #if ORIGINAL_SOURCE_ISOLATED_VERIFICATION
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalRevolutionAxisSectionEvidence.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | #if ORIGINAL_SOURCE_ISOLATED_VERIFICATION
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalRevolutionAxisSectionReceipt.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | #if ORIGINAL_SOURCE_ISOLATED_VERIFICATION
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalRevolutionAxisSectionIssuing.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | #if ORIGINAL_SOURCE_ISOLATED_VERIFICATION
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/DefaultOriginalRevolutionAxisSectionIssuer.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | #if ORIGINAL_SOURCE_ISOLATED_VERIFICATION
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalRevolutionSnapshot.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalRevolutionSnapshotProvider.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalRevolutionAxisRelations.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | #if SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalRevolutionAxisGeometricRelationReading.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalRevolutionAxisGeometricRelations.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalRevolutionAxisLinePublicProducer.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalIssuedExactIntersectionPoint.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | #if ISSUED_GEOMETRY_ISOLATED_VERIFICATION
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalIssuedGeometricPublication.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | #if ISSUED_GEOMETRY_ISOLATED_VERIFICATION
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalIssuedGeometricRelationPair.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | #if ISSUED_GEOMETRY_ISOLATED_VERIFICATION
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalIssuedGeometricRelationReading.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | #if ISSUED_GEOMETRY_ISOLATED_VERIFICATION
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/DefaultCurveSurfaceIntersector.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+ 471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+ 472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+ 473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+     |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+ 474 | import enum GuideSeamPort.NativeExactRelationFailure
+ 475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/DefaultCurveSurfaceIntersector+Overlap.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/CurveSurfaceOverlapResolver.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/CurveSurfaceIntersectionResult.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | /// A complete result in the requested domains, separating points from continuous regions.
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/CurveSurfaceIntersectionResolving.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/NativeExactPublicCurveSurfaceProducer.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/NativeCurveSurfacePointProducer.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalPolynomialCurveSurfacePointProducer.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalAffineCurveSurfacePointProducer.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/OriginalCoonsCurveSurfacePointProducer.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import CADCore
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/ActualSelectorDeclineAdapters.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | struct OriginalDraftedZeroLinePublicProducer {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v5/Proof.swift:473:15: error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+471 | import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+472 | import struct DraftZeroRuledPort.NativeExactPublicAdmission
+473 | import struct DraftZeroRuledPort.NativeExactPublicLimits
+    |               `- error: 'NativeExactPublicLimits' was imported as 'struct', but is an enum
+474 | import enum GuideSeamPort.NativeExactRelationFailure
+475 | import Darwin
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift:448:6: note: 'NativeExactPublicLimits' declared here
+446 | /// The same original caller still bounds cumulative work, storage, visits and depths;
+447 | /// publication separately checks its existing candidate/component/result limits.
+448 | enum NativeExactPublicLimits {
+    |      `- note: 'NativeExactPublicLimits' declared here
+449 |     static func unboundedStructure() throws -> ExactGeometricRelationLimits {
+450 |         try .init(cells: .init(maximumStoredCells: Int.max, maximumRootsPerStack: Int.max),

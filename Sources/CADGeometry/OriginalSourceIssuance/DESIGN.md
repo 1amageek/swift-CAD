@@ -1095,6 +1095,54 @@ or chart-limit failure propagates explicitly. The typed rational-child capabilit
 is not a claim that non-rational generators or other M4 families are complete.
 No old construction/evaluator, domain guard, tolerance or source limit is replaced.
 
+### Checked revolution axis section
+
+`OriginalRevolutionAxisSectionIssuing` consumes an actual sealed finite revolution
+law family and an original linear source binding in the family's exact field.
+Its sealed receipt retains both inputs and one guarded authored U/V graph per
+original law. This is an axis-section theorem for that line/surface pair, never a
+complete graph family for the whole revolution image.
+
+```text
+Actual revolution family + original line binding
+    -> checked raw-axis incidence and nonzero parallel line
+    -> exact Rodrigues coefficient/norm identities
+    -> radial-zero position graphs + radial-nonzero exclusion theorem
+    -> separate DI pair owner retaining the full revolution domain cover
+```
+
+The issuer imports original raw axis/origin and line coefficients, proves both
+directions nonzero, and checks the direction and displaced-origin cross-products
+exactly. A line outside the axis is explicitly unsupported. For each actual law,
+it extracts the constant/cosine/sine coefficients and checks the complete affine
+identity, denominator/radial independence from those symbolic leaves, axial-base
+incidence, perpendicular cosine/sine coefficients, equal squared radial norms and
+their zero dot product. The defined intrinsic cosine/sine leaves have unit squared
+norm. Consequently the rotated radial squared norm equals the retained radial
+squared numerator; a nonzero radial cannot meet the axis. On its zero set the
+ordered-field sum-of-squares theorem makes both radial coefficients zero, so the
+original position is its axial projection for every authored U.
+
+The graph re-expresses that existing homogeneous law at cosine=sine=0 in authored
+`(U,V)`, retains `radialSquared=0` and `W!=0`, uses identity U/V transport and
+closed original support, and introduces no auxiliary, angle sampling or period
+premise. Original generator correspondence, source/line owners, exact residuals
+and all inherited/decision depths remain retained. Re-admission checks the whole
+family, line, graph guards/transports and maximum proof depth with the same caller
+ledger; every persistent array and receipt is charged before publication and final
+cancellation aborts publication.
+
+The DI consumer must separately retain its full `OriginalRevolutionDomainCover`
+and this pair-bound section/exclusion receipt. It may compile each local graph
+through the existing binder/compiler and publish through the shared exact relation
+path. It must not label the restricted graphs a complete `OriginalIssuedGraphFamily`.
+This theorem establishes positional axis incidence, not a normal, differential
+identity or geometric injectivity certificate. Verification belongs to the ordinary
+`CS-REVOLUTION-AXIS-FIBER-01` public acceptance: complete T=0/V=1/all-U, original
+generator parameter zero, image/fiber dimensions, incidents, off-axis refusal,
+guards, owner/field/depth/resource/cancellation/lifetime and Native/WASM/Embedded
+changed-path controls. Source implementation alone does not complete that cell.
+
 The independent source verification owns exact weighted/reversed generator laws,
 axis normalization, support coverage, complete child correspondence, ownership,
 independent resource limits and cancellation. The actual-provider verification

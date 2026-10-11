@@ -1,0 +1,85 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v6/OriginalRevolutionAxisGeometricRelations.swift:509:13: error: ambiguous use of 'OriginalDomainAccess'
+507 |                  original.secondGraphs[pair.secondGraphIndex].original.graph.parameterTransport)
+508 |             },using:&a)
+509 |         try OriginalDomainAccess.owner(Payload.self,&a)
+    |             `- error: ambiguous use of 'OriginalDomainAccess'
+510 |         let result = OriginalRevolutionAxisGeometricRelations(.init(original:original,pairs:publication.pairs,exactPoints:publication.points))
+511 |         try a.checkpoint();return result
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainAccess.swift:8:6: note: found this candidate in module 'CADGeometry'
+ 6 | #endif
+ 7 | 
+ 8 | enum OriginalDomainAccess {
+   |      `- note: found this candidate in module 'CADGeometry'
+ 9 |     static func run<A: ExactScalarAdmission & ~Copyable, R>(_ a: inout A,
+10 |         _ body: (inout A) throws -> R) throws(OriginalDomainIdentityFailure) -> R {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/222-OriginalDomainAccess.swift:10:6: note: found this candidate in module 'RetainedHostAdapters'
+ 8 | #endif
+ 9 | 
+10 | enum OriginalDomainAccess {
+   |      `- note: found this candidate in module 'RetainedHostAdapters'
+11 |     static func run<A: ExactScalarAdmission & ~Copyable, R>(_ a: inout A,
+12 |         _ body: (inout A) throws -> R) throws(OriginalDomainIdentityFailure) -> R {
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v6/OriginalRevolutionAxisLinePublicProducer.swift:522:43: error: cannot infer contextual base in reference to member 'init'
+520 |             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:ExactParameterInterval<OriginalExactScalar>.self))
+521 |             let lineRequest=try lineFrame.selection(intervals:[[interval(range,field:f,using:&a)]],limits:limits,using:&a)
+522 |             let lineChart=try line.chart(.init(lower:range.lower,upper:range.upper),limits:sourceLimits,using:&a)
+    |                                           `- error: cannot infer contextual base in reference to member 'init'
+523 |             let lineLaw=try DefaultOriginalLinearChartIssuer<Line,Base>()
+524 |                 .issue(source:line,chart:lineChart,field:f,limits:sourceLimits,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v6/OriginalRevolutionAxisLinePublicProducer.swift:565:45: error: generic parameter 'S' could not be inferred
+563 |             } else { request=full }
+564 |             let cover=try issuer.issue(request:request,family:family,limits:limits,using:&a)
+565 |             for graph in first.graphs { try checkDegree(graph.original.graph,maximum:options.maximumPolynomialDegree,using:&a) }
+    |                                             `- error: generic parameter 'S' could not be inferred
+566 |             let unbounded=try NativeExactPublicLimits.unboundedStructure(),topology=unbounded.topology
+567 |             let geometryLimits=try ExactGeometricRelationLimits(cells:unbounded.cells,
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v6/OriginalRevolutionAxisLinePublicProducer.swift:565:45: error: generic parameter 'E' could not be inferred
+563 |             } else { request=full }
+564 |             let cover=try issuer.issue(request:request,family:family,limits:limits,using:&a)
+565 |             for graph in first.graphs { try checkDegree(graph.original.graph,maximum:options.maximumPolynomialDegree,using:&a) }
+    |                                             `- error: generic parameter 'E' could not be inferred
+566 |             let unbounded=try NativeExactPublicLimits.unboundedStructure(),topology=unbounded.topology
+567 |             let geometryLimits=try ExactGeometricRelationLimits(cells:unbounded.cells,
+    :
+613 |     }
+614 | 
+615 |     private func checkDegree<S:Sendable,E:Sendable,A:ExactScalarAdmission & ~Copyable>(
+    |                  `- note: in call to function 'checkDegree(_:maximum:using:)'
+616 |         _ graph:OriginalParametricGraphReceipt<S,Base,E>,maximum:Int,using a:inout A) throws {
+617 |         for law in graph.homogeneous { try check(law,maximum:maximum,using:&a) }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v6/OriginalRevolutionAxisLinePublicProducer.swift:601:25: error: ambiguous use of 'NativeExactGeometryPublicationFailure'
+599 |                 originalRevolutionAxisRelation:geometry)
+600 |             try a.checkpoint();return result
+601 |         } catch { throw NativeExactGeometryPublicationFailure.published(error,tolerance:tolerance) }
+    |                         `- error: ambiguous use of 'NativeExactGeometryPublicationFailure'
+602 |     }
+603 | 
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactGeometryPublicationFailure.swift:4:6: note: found this candidate in module 'CADGeometry'
+  2 | 
+  3 | /// Converts nested exact causes once at the existing numerical Geometry boundary.
+  4 | enum NativeExactGeometryPublicationFailure {
+    |      `- note: found this candidate in module 'CADGeometry'
+  5 |     static func published(_ error: any Error, tolerance: ModelingTolerance) -> any Error {
+  6 |         if error is CancellationError { return error }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/NativeExactGeometryPublicationFailure.swift:86:6: note: found this candidate in module 'PublicLiftPlane'
+ 84 | 
+ 85 | /// Converts nested exact causes once at the existing numerical Geometry boundary.
+ 86 | enum NativeExactGeometryPublicationFailure {
+    |      `- note: found this candidate in module 'PublicLiftPlane'
+ 87 |     // Embedded error metadata must match the caller that boxed the incoming failure.
+ 88 |     @_alwaysEmitIntoClient
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactGeometryPublicationFailure.swift:460:6: note: found this candidate in module 'DraftZeroRuledPort'
+458 | 
+459 | /// Converts nested exact causes once at the existing numerical Geometry boundary.
+460 | enum NativeExactGeometryPublicationFailure {
+    |      `- note: found this candidate in module 'DraftZeroRuledPort'
+461 |     // Embedded error metadata must match the caller that boxed the incoming failure.
+462 |     @_alwaysEmitIntoClient

@@ -1,0 +1,8 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v13/Oracle.swift:486:44: error: no type named 'ExactPolynomial' in module 'PublicLiftPlane'
+484 |     typealias Field = PublicLiftPlane.ExactAlgebraicScalarDomain<Base>
+485 |     typealias Cells = PublicLiftPlane.ExactRealCellDomain<Base>
+486 |     typealias Polynomial = PublicLiftPlane.ExactPolynomial<Field>
+    |                                            `- error: no type named 'ExactPolynomial' in module 'PublicLiftPlane'
+487 | 
+488 |     private struct Admission: ~Copyable, ExactScalarAdmission {

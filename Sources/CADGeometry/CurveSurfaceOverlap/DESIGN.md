@@ -1393,3 +1393,19 @@ issued geometric relation and its numerical incidence mapping. A selected
 failure propagates without retry; bare positive-dimensional results fail
 atomically. Capability, source ownership and verification are owned by the
 [finite zero-draft consumer](../NativeExactGeometricRelations/DESIGN.md#finite-original-line-against-a-zero-draft-wall).
+
+
+## Original Revolution Axis Relation Intake
+
+Ordinary rich CS tries the checked finite axis-line producer before overlap or
+adaptive traversal. The result's `originalRevolutionAxisRelation` requirement
+retains the typed original domain for seam/generator queries; the same immutable
+value also satisfies `originalIssuedGeometricRelation`, so existing exactRelation,
+empty and positive-dimensional reporting applies. Pair completeness and image/fiber
+publication are owned by
+[NativeExactGeometricRelations](../NativeExactGeometricRelations/DESIGN.md#ordinary-finite-axis-line--revolution-publication).
+A collapsed XYZ image keeps its entire original angular parameter fiber. Bare
+point-array entries refuse a positive-dimensional relation. Unsupported inputs
+retain the existing explicitly incomplete paths, and accepted axis queries do not
+retry through another solver on failure. The finite public acceptance cell owns
+actual entry-point, output, failure, resource, cancel and retained-owner checks.

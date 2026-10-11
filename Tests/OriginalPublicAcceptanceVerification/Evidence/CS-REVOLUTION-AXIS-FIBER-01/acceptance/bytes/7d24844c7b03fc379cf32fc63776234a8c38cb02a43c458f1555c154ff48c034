@@ -1,0 +1,751 @@
+import CADCore
+@testable import CADGeometry
+@testable import RetainedHostAdapters
+import struct RetainedHostAdapters.OriginalSourceProofAdmission
+@testable import DerivativePayloadAccess
+@testable import PublicLiftPlane
+import struct RetainedHostAdapters.DefaultOriginalAnalyticCoordinateIssuer
+import struct RetainedHostAdapters.DefaultOriginalBSplineChartIssuer
+import struct RetainedHostAdapters.DefaultOriginalBSplineFundamentalChartPreparer
+import struct RetainedHostAdapters.DefaultOriginalBSplinePeriodIssuer
+import struct RetainedHostAdapters.DefaultOriginalConeImageIssuer
+import struct RetainedHostAdapters.DefaultOriginalCoonsChartIssuer
+import struct RetainedHostAdapters.DefaultOriginalCurveEndpointIssuer
+import struct RetainedHostAdapters.DefaultOriginalFiniteBSplineChartPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteCoonsBoundaryPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteCoonsChartPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteGuideChartPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteNativeOffsetLawPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteNativeRollingBallGraphPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteNativeSurfaceLiftGraphPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteParameterImageChartPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteRetainedCurveChartPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteRetainedSurfaceChartPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteRevolutionLawPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteRollingBallGraphPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteRuledChartPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteSpatialChartPreparer
+import struct RetainedHostAdapters.DefaultOriginalFiniteTraversalChartPreparer
+import struct RetainedHostAdapters.DefaultOriginalIntrinsicSphereLawIssuer
+import struct RetainedHostAdapters.DefaultOriginalLinearChartIssuer
+import struct RetainedHostAdapters.DefaultOriginalOffsetGraphIssuer
+import struct RetainedHostAdapters.DefaultOriginalOffsetLawIssuer
+import struct RetainedHostAdapters.DefaultOriginalParameterImageActionIssuer
+import struct RetainedHostAdapters.DefaultOriginalParameterImageChartIssuer
+import struct RetainedHostAdapters.DefaultOriginalPeriodicNativeOffsetLawPreparer
+import struct RetainedHostAdapters.DefaultOriginalPeriodicNativeSurfaceLiftGraphPreparer
+import struct RetainedHostAdapters.DefaultOriginalPhysicalAnalyticCoordinateIssuer
+import struct RetainedHostAdapters.DefaultOriginalPlaneBasisIssuer
+import struct RetainedHostAdapters.DefaultOriginalPrimitiveImageIssuer
+import struct RetainedHostAdapters.DefaultOriginalRationalGraphIssuer
+import struct RetainedHostAdapters.DefaultOriginalRevolutionLawIssuer
+import struct RetainedHostAdapters.DefaultOriginalRuledChartIssuer
+import struct RetainedHostAdapters.DefaultOriginalSourceBindingIssuer
+import struct RetainedHostAdapters.DefaultOriginalSourceCoefficientImporter
+import struct RetainedHostAdapters.DefaultOriginalSpatialActionIssuer
+import struct RetainedHostAdapters.DefaultOriginalSpatialChartIssuer
+import struct RetainedHostAdapters.DefaultOriginalTraversalActionIssuer
+import struct RetainedHostAdapters.DefaultOriginalTraversalChartIssuer
+import struct RetainedHostAdapters.DefaultOriginalWholeLinearLawIssuer
+import protocol RetainedHostAdapters.OriginalAnalyticCoordinateIssuing
+import enum RetainedHostAdapters.OriginalAnalyticCoordinateKind
+import struct RetainedHostAdapters.OriginalAnalyticCoordinateLawReceipt
+import protocol RetainedHostAdapters.OriginalAnalyticCoordinateReading
+import struct RetainedHostAdapters.OriginalBSplineChartSelection
+import protocol RetainedHostAdapters.OriginalBSplineFundamentalChartPreparing
+import struct RetainedHostAdapters.OriginalBSplineFundamentalCharts
+import protocol RetainedHostAdapters.OriginalBSplineSourceReading
+import protocol RetainedHostAdapters.OriginalCoefficientBoundChartIssuing
+import protocol RetainedHostAdapters.OriginalCompleteCurveGraphPreparing
+import struct RetainedHostAdapters.OriginalCompleteCurveGraphs
+import protocol RetainedHostAdapters.OriginalConeImageReading
+import struct RetainedHostAdapters.OriginalCoonsBoundarySelection
+import struct RetainedHostAdapters.OriginalCoonsChartSelection
+import protocol RetainedHostAdapters.OriginalCoonsSourceReading
+import protocol RetainedHostAdapters.OriginalCurveEndpointIssuing
+import struct RetainedHostAdapters.OriginalCurveEndpointReceipt
+import protocol RetainedHostAdapters.OriginalFiniteBSplineChartPreparing
+import struct RetainedHostAdapters.OriginalFiniteBSplineCharts
+import protocol RetainedHostAdapters.OriginalFiniteCoonsBoundaryPreparing
+import protocol RetainedHostAdapters.OriginalFiniteCoonsChartPreparing
+import struct RetainedHostAdapters.OriginalFiniteGuideChartFamily
+import protocol RetainedHostAdapters.OriginalFiniteGuideChartPreparing
+import struct RetainedHostAdapters.OriginalFiniteNativeOffsetLawFamily
+import protocol RetainedHostAdapters.OriginalFiniteNativeOffsetLawPreparing
+import protocol RetainedHostAdapters.OriginalFiniteNativeRollingBallGraphPreparing
+import struct RetainedHostAdapters.OriginalFiniteNativeRollingBallGraphs
+import protocol RetainedHostAdapters.OriginalFiniteNativeSurfaceLiftGraphPreparing
+import struct RetainedHostAdapters.OriginalFiniteNativeSurfaceLiftGraphs
+import protocol RetainedHostAdapters.OriginalFiniteParameterImageChartPreparing
+import protocol RetainedHostAdapters.OriginalFiniteRetainedCurveChartPreparing
+import struct RetainedHostAdapters.OriginalFiniteRetainedCurveCharts
+import protocol RetainedHostAdapters.OriginalFiniteRetainedSurfaceChartPreparing
+import struct RetainedHostAdapters.OriginalFiniteRetainedSurfaceCharts
+import protocol RetainedHostAdapters.OriginalFiniteRetainedSurfaceLiftGraphPreparing
+import struct RetainedHostAdapters.OriginalFiniteRetainedSurfaceLiftGraphs
+import struct RetainedHostAdapters.OriginalFiniteRevolutionLawFamily
+import protocol RetainedHostAdapters.OriginalFiniteRevolutionLawPreparing
+import protocol RetainedHostAdapters.OriginalFiniteRollingBallGraphPreparing
+import struct RetainedHostAdapters.OriginalFiniteRollingBallGraphs
+import protocol RetainedHostAdapters.OriginalFiniteRuledChartPreparing
+import protocol RetainedHostAdapters.OriginalFiniteSpatialChartPreparing
+import protocol RetainedHostAdapters.OriginalFiniteTraversalChartPreparing
+import struct RetainedHostAdapters.OriginalGuideChartReceipt
+import protocol RetainedHostAdapters.OriginalGuideSourceReading
+import protocol RetainedHostAdapters.OriginalImageFrameReading
+import protocol RetainedHostAdapters.OriginalImplicitImageIssuing
+import struct RetainedHostAdapters.OriginalImplicitImageReceipt
+import protocol RetainedHostAdapters.OriginalIntrinsicSphereLawIssuing
+import protocol RetainedHostAdapters.OriginalIntrinsicSphereSourceReading
+import protocol RetainedHostAdapters.OriginalLiftSourceReading
+import struct RetainedHostAdapters.OriginalLinearChartSelection
+import protocol RetainedHostAdapters.OriginalLinearSourceReading
+import protocol RetainedHostAdapters.OriginalOffsetLawIssuing
+import struct RetainedHostAdapters.OriginalOffsetLawReceipt
+import protocol RetainedHostAdapters.OriginalOffsetSourceReading
+import struct RetainedHostAdapters.OriginalParameterImageChartSelection
+import protocol RetainedHostAdapters.OriginalParameterImageSourceReading
+import struct RetainedHostAdapters.OriginalParametricGraphCondition
+import protocol RetainedHostAdapters.OriginalParametricGraphIssuing
+import struct RetainedHostAdapters.OriginalParametricGraphReceipt
+import struct RetainedHostAdapters.OriginalParametricVariableLayout
+import struct RetainedHostAdapters.OriginalPeriodicNativeOffsetLawFamily
+import protocol RetainedHostAdapters.OriginalPeriodicNativeOffsetLawPreparing
+import protocol RetainedHostAdapters.OriginalPeriodicNativeSurfaceLiftGraphPreparing
+import protocol RetainedHostAdapters.OriginalPeriodicNativeSurfaceLiftGraphQuerying
+import struct RetainedHostAdapters.OriginalPeriodicNativeSurfaceLiftGraphs
+import protocol RetainedHostAdapters.ExactPhysicalAngleCoefficients
+import struct RetainedHostAdapters.OriginalPhysicalAngleScalarDomain
+import struct RetainedHostAdapters.OriginalPhysicalAngleValue
+import protocol RetainedHostAdapters.OriginalPiGenerating
+import struct RetainedHostAdapters.OriginalPiScalarDomain
+import struct RetainedHostAdapters.OriginalPiValue
+import protocol RetainedHostAdapters.OriginalPlaneBasisIssuing
+import struct RetainedHostAdapters.OriginalPlaneBasisReceipt
+import protocol RetainedHostAdapters.OriginalPlaneSourceReading
+import enum RetainedHostAdapters.OriginalPrimitiveImageKind
+import protocol RetainedHostAdapters.OriginalPrimitiveImageReading
+import struct RetainedHostAdapters.OriginalPrimitiveImageSelection
+import protocol RetainedHostAdapters.OriginalRationalChartIssuing
+import struct RetainedHostAdapters.OriginalRationalChartReceipt
+import struct RetainedHostAdapters.OriginalRationalParameterTransport
+import protocol RetainedHostAdapters.OriginalRetainedCurveSourceReading
+import struct RetainedHostAdapters.OriginalRetainedSurfaceCell
+import protocol RetainedHostAdapters.OriginalRetainedSurfaceLiftSourceReading
+import protocol RetainedHostAdapters.OriginalRetainedSurfaceSourceReading
+import protocol RetainedHostAdapters.OriginalRevolutionLawIssuing
+import struct RetainedHostAdapters.OriginalRevolutionLawReceipt
+import protocol RetainedHostAdapters.OriginalRevolutionSourceReading
+import struct RetainedHostAdapters.OriginalRollingBallChildGraphEvidence
+import protocol RetainedHostAdapters.OriginalRollingBallChildSourceReading
+import struct RetainedHostAdapters.OriginalRollingBallGraphEvidence
+import protocol RetainedHostAdapters.OriginalRollingBallSourceReading
+import struct RetainedHostAdapters.OriginalRuledChartSelection
+import protocol RetainedHostAdapters.OriginalRuledSourceReading
+import class RetainedHostAdapters.OriginalSourceAffineAction
+import protocol RetainedHostAdapters.OriginalSourceAffineActionIssuing
+import struct RetainedHostAdapters.OriginalSourceAffineActionReceipt
+import enum RetainedHostAdapters.OriginalSourceAngularMap
+import struct RetainedHostAdapters.OriginalSourceBinding
+import protocol RetainedHostAdapters.OriginalSourceBindingIssuing
+import struct RetainedHostAdapters.OriginalSourceChart
+import protocol RetainedHostAdapters.OriginalSourceCoefficientImporting
+import struct RetainedHostAdapters.OriginalSourceCollapsedFiberReceipt
+import struct RetainedHostAdapters.OriginalSourceCoordinateAxis
+import enum RetainedHostAdapters.OriginalSourceCoordinateFunction
+import enum RetainedHostAdapters.OriginalSourceIssuanceFailure
+import struct RetainedHostAdapters.OriginalSourceIssuanceLimits
+import struct RetainedHostAdapters.OriginalSourceParameterInterval
+import enum RetainedHostAdapters.OriginalSourceParameterMeaning
+import protocol RetainedHostAdapters.OriginalSourcePeriodIssuing
+import struct RetainedHostAdapters.OriginalSourcePeriodReceipt
+import struct RetainedHostAdapters.OriginalSourcePoleReceipt
+import struct RetainedHostAdapters.OriginalSourceSnapshot
+import protocol RetainedHostAdapters.OriginalSourceSnapshotting
+import struct RetainedHostAdapters.OriginalSpatialChartSelection
+import protocol RetainedHostAdapters.OriginalSpatialSourceReading
+import struct RetainedHostAdapters.OriginalSurfaceLiftGraphEvidence
+import protocol RetainedHostAdapters.OriginalSurfaceLiftSourceReading
+import struct RetainedHostAdapters.OriginalTransportedSourceCoefficientImporter
+import struct RetainedHostAdapters.OriginalTraversalChartSelection
+import protocol RetainedHostAdapters.OriginalTraversalSourceReading
+import protocol RetainedHostAdapters.OriginalWholeLinearLawIssuing
+import struct RetainedHostAdapters.OriginalWholeLinearLawReceipt
+import protocol RetainedHostAdapters.OriginalPeriodicRetainedSurfaceLiftGraphPreparing
+import protocol RetainedHostAdapters.OriginalLiftGraphSourceReading
+import protocol RetainedHostAdapters.OriginalRetainedPcurveLiftSourceReading
+import protocol RetainedHostAdapters.OriginalRetainedAtlasLiftSourceReading
+import protocol RetainedHostAdapters.OriginalFiniteRetainedAtlasLiftGraphPreparing
+import protocol RetainedHostAdapters.OriginalNativePcurveRetainedAtlasLiftSourceReading
+import protocol RetainedHostAdapters.OriginalFiniteNativePcurveRetainedAtlasLiftGraphPreparing
+import struct RetainedHostAdapters.OriginalBSplineSurfaceSnapshotProvider
+import struct RetainedHostAdapters.OriginalNativeSurfaceFamilySnapshotProvider
+import struct RetainedHostAdapters.OriginalBSplinePcurveSnapshotProvider
+import struct RetainedHostAdapters.OriginalNativeSurfaceLiftSnapshot
+import struct RetainedHostAdapters.OriginalNativeSurfaceLiftSnapshotProvider
+import struct RetainedHostAdapters.OriginalAffinePcurveSnapshot
+import struct RetainedHostAdapters.OriginalAffinePcurveSnapshotProvider
+import struct RetainedHostAdapters.OriginalAffineSurfaceLiftSnapshot
+import struct RetainedHostAdapters.OriginalAffineSurfaceLiftSnapshotProvider
+import enum RetainedHostAdapters.ExactParameterBound
+import protocol RetainedHostAdapters.ExactParameterDomainConstructing
+import protocol RetainedHostAdapters.ExactParameterDomainQuerying
+import struct RetainedHostAdapters.ExactParameterInterval
+import struct RetainedHostAdapters.ExactParameterSet
+import protocol RetainedHostAdapters.ExactParameterDomainFieldQuerying
+import struct RetainedHostAdapters.ExactParameterDomain
+import struct RetainedHostAdapters.ExactParameterProduct
+import enum RetainedHostAdapters.ExactParameterDomainFailure
+import enum RetainedHostAdapters.OriginalDomainIdentityFailure
+import struct RetainedHostAdapters.OriginalDomainIdentityLimits
+import protocol RetainedHostAdapters.OriginalNativeSurfaceLiftDomainIssuing
+import struct RetainedHostAdapters.OriginalDomainBoundParametricGraph
+import struct RetainedHostAdapters.OriginalAffineChildDomainOccurrence
+import protocol RetainedHostAdapters.OriginalPeriodicGuardedChartFamilyQuerying
+import struct RetainedHostAdapters.DefaultOriginalIssuedDomainBinder
+import protocol RetainedHostAdapters.OriginalNativeOffsetDomainIssuing
+import protocol RetainedHostAdapters.OriginalRetainedCurveDomainIssuing
+import struct RetainedHostAdapters.DefaultOriginalAnalyticDomainIssuer
+import struct RetainedHostAdapters.OriginalRevolutionChartOccurrence
+import protocol RetainedHostAdapters.OriginalNativeRollingBallDomainIssuing
+import struct RetainedHostAdapters.OriginalAffineChildDomainCover
+import protocol RetainedHostAdapters.OriginalRetainedSurfaceDomainIssuing
+import protocol RetainedHostAdapters.OriginalParametricGraphDomainBinding
+import struct RetainedHostAdapters.OriginalBSplineChartOccurrence
+import struct RetainedHostAdapters.OriginalPeriodicNativeOffsetChartOccurrence
+import struct RetainedHostAdapters.OriginalDomainCover
+import struct RetainedHostAdapters.DefaultOriginalParameterImageDomainIssuer
+import struct RetainedHostAdapters.OriginalPeriodicNativeSurfaceLiftChartOccurrence
+import protocol RetainedHostAdapters.OriginalDomainCoverQuerying
+import struct RetainedHostAdapters.OriginalPeriodicNativeSurfaceLiftDomainCover
+import struct RetainedHostAdapters.DefaultOriginalTraversalDomainIssuer
+import struct RetainedHostAdapters.OriginalNativeRollingBallDomainCover
+import struct RetainedHostAdapters.OriginalPrimitiveDomainCover
+import struct RetainedHostAdapters.OriginalPeriodicNativeOffsetDomainCover
+import struct RetainedHostAdapters.DefaultOriginalLinearDomainIssuer
+import protocol RetainedHostAdapters.OriginalPeriodicNativeSurfaceLiftDomainIssuing
+import protocol RetainedHostAdapters.OriginalRollingBallGraphDomainIssuing
+import protocol RetainedHostAdapters.OriginalGuardedChartFamilyQuerying
+import struct RetainedHostAdapters.OriginalPeriodicNativeSurfaceLiftDomainSpace
+import struct RetainedHostAdapters.OriginalPeriodicNativeOffsetDomainSpace
+import struct RetainedHostAdapters.OriginalRetainedSurfaceDomainCover
+import protocol RetainedHostAdapters.OriginalBSplineDomainIssuing
+import struct RetainedHostAdapters.OriginalGuideDomainCover
+import protocol RetainedHostAdapters.OriginalIssuedDomainBinding
+import protocol RetainedHostAdapters.OriginalPeriodicNativeSurfaceLiftDomainQuerying
+import struct RetainedHostAdapters.OriginalBSplineDomainSpace
+import struct RetainedHostAdapters.OriginalRetainedSurfaceLiftDomainCover
+import protocol RetainedHostAdapters.OriginalChartFamilyQuerying
+import struct RetainedHostAdapters.OriginalIssuedDomainCover
+import struct RetainedHostAdapters.OriginalBSplineDomainCover
+import struct RetainedHostAdapters.OriginalAnalyticDomainCover
+import struct RetainedHostAdapters.DefaultOriginalBSplineDomainIssuer
+import struct RetainedHostAdapters.OriginalRetainedSurfaceChartOccurrence
+import struct RetainedHostAdapters.DefaultOriginalSpatialChildDomainIssuer
+import struct RetainedHostAdapters.DefaultOriginalDomainCoverIssuer
+import struct RetainedHostAdapters.OriginalGuideChartOccurrence
+import struct RetainedHostAdapters.DefaultOriginalPlaneDomainIssuer
+import struct RetainedHostAdapters.OriginalRetainedCurveDomainCover
+import struct RetainedHostAdapters.OriginalRetainedCurveChartOccurrence
+import struct RetainedHostAdapters.OriginalRollingBallGraphDomainCover
+import protocol RetainedHostAdapters.OriginalDomainCoverIssuing
+import struct RetainedHostAdapters.DefaultOriginalPeriodicNativeOffsetDomainIssuer
+import struct RetainedHostAdapters.DefaultOriginalGuideDomainIssuer
+import struct RetainedHostAdapters.DefaultOriginalDomainBoundBSplineChartIssuer
+import protocol RetainedHostAdapters.OriginalRetainedSurfaceLiftDomainIssuing
+import struct RetainedHostAdapters.DefaultOriginalParametricGraphDomainBinder
+import struct RetainedHostAdapters.DefaultOriginalPeriodicNativeSurfaceLiftDomainIssuer
+import protocol RetainedHostAdapters.OriginalAffineChildDomainIssuing
+import struct RetainedHostAdapters.OriginalIntrinsicSphereDomainCover
+import struct RetainedHostAdapters.OriginalDomainBoundRationalChart
+import struct RetainedHostAdapters.DefaultOriginalRetainedCurveDomainIssuer
+import protocol RetainedHostAdapters.OriginalPlaneDomainIssuing
+import struct RetainedHostAdapters.DefaultOriginalRevolutionDomainIssuer
+import struct RetainedHostAdapters.OriginalNativeOffsetDomainCover
+import struct RetainedHostAdapters.OriginalDomainChart
+import struct RetainedHostAdapters.DefaultOriginalIntrinsicSphereDomainIssuer
+import struct RetainedHostAdapters.OriginalNativeSurfaceLiftDomainCover
+import protocol RetainedHostAdapters.OriginalAnalyticDomainIssuing
+import struct RetainedHostAdapters.DefaultOriginalNativeOffsetDomainIssuer
+import protocol RetainedHostAdapters.OriginalGuideDomainIssuing
+import struct RetainedHostAdapters.DefaultOriginalNativeRollingBallDomainIssuer
+import struct RetainedHostAdapters.OriginalRevolutionDomainCover
+import protocol RetainedHostAdapters.OriginalFiniteChartFamilyQuerying
+import protocol RetainedHostAdapters.OriginalLinearDomainIssuing
+import struct RetainedHostAdapters.DefaultOriginalNativeSurfaceLiftDomainIssuer
+import struct RetainedHostAdapters.DefaultOriginalRetainedSurfaceDomainIssuer
+import struct RetainedHostAdapters.DefaultOriginalRollingBallGraphDomainIssuer
+import protocol RetainedHostAdapters.OriginalPeriodicNativeOffsetDomainIssuing
+import struct RetainedHostAdapters.DefaultOriginalRetainedSurfaceLiftDomainIssuer
+import protocol RetainedHostAdapters.OriginalRevolutionDomainIssuing
+import struct RetainedHostAdapters.OriginalNativeOffsetChartOccurrence
+import protocol RetainedHostAdapters.OriginalDomainBoundRationalChartIssuing
+import struct RetainedHostAdapters.OriginalIssuedDomainChart
+import protocol RetainedHostAdapters.OriginalIntrinsicSphereDomainIssuing
+import protocol RetainedHostAdapters.OriginalParameterIdentityRelationQuerying
+import protocol RetainedHostAdapters.OriginalAffineChildParameterIdentityIssuing
+import struct RetainedHostAdapters.DefaultOriginalAffinePairedParameterIdentityIssuer
+import protocol RetainedHostAdapters.OriginalIntrinsicParameterIdentityIssuing
+import protocol RetainedHostAdapters.OriginalRevolutionParameterIdentityIssuing
+import enum RetainedHostAdapters.OriginalParameterIdentityConstraints
+import struct RetainedHostAdapters.DefaultOriginalAffineChildParameterIdentityIssuer
+import protocol RetainedHostAdapters.OriginalParameterIdentityIssuing
+import struct RetainedHostAdapters.OriginalSourceBoundaryDeclaration
+import struct RetainedHostAdapters.OriginalParameterIdentityRelation
+import protocol RetainedHostAdapters.OriginalAnalyticParameterIdentityIssuing
+import protocol RetainedHostAdapters.OriginalAffinePairedParameterIdentityIssuing
+import enum RetainedHostAdapters.OriginalParameterIdentityKind
+import enum RetainedHostAdapters.OriginalParameterIdentityDecision
+import protocol RetainedHostAdapters.OriginalPeriodicParameterIdentityIssuing
+import protocol RetainedHostAdapters.OriginalParameterIdentityQuerying
+import struct RetainedHostAdapters.DefaultOriginalParameterIdentityIssuer
+import protocol RetainedHostAdapters.OriginalRationalParameterIdentityIssuing
+import struct RetainedHostAdapters.OriginalParameterIdentity
+import struct RetainedHostAdapters.OriginalParameterFrame
+import struct RetainedHostAdapters.OriginalParameterAffineCoordinates
+import struct RetainedHostAdapters.OriginalParameterCycle
+import typealias RetainedHostAdapters.OriginalCoordinateSemantics
+import protocol RetainedHostAdapters.OriginalParameterFieldQueryTransporting
+import struct RetainedHostAdapters.OriginalParameterPeriodicLift
+import struct RetainedHostAdapters.OriginalParameterSelection
+import protocol RetainedHostAdapters.OriginalPlaneCoordinateQuerying
+import struct RetainedHostAdapters.DefaultOriginalParameterTransporter
+import protocol RetainedHostAdapters.OriginalParameterTransporting
+import struct RetainedHostAdapters.OriginalParameterTransport
+import protocol RetainedHostAdapters.OriginalParameterAffineCoordinateQuerying
+import protocol RetainedHostAdapters.OriginalRetainedLiftHostSnapshotting
+import struct RetainedHostAdapters.OriginalRetainedAtlasSurfaceLiftSnapshot
+import struct RetainedHostAdapters.OriginalRetainedAtlasSurfaceLiftSnapshotProvider
+import struct RetainedHostAdapters.OriginalBoundaryCorrectionSnapshot
+import struct RetainedHostAdapters.OriginalBoundaryCorrectionSnapshotProvider
+import struct RetainedHostAdapters.OriginalNativePcurveRetainedAtlasLiftSnapshot
+import struct RetainedHostAdapters.OriginalNativePcurveRetainedAtlasLiftSnapshotProvider
+import struct RetainedHostAdapters.OriginalCoonsAtlasSnapshot
+import struct RetainedHostAdapters.OriginalCoonsAtlasSnapshotProvider
+import struct RetainedHostAdapters.OriginalPlaneDerivativeSurfaceSnapshot
+import struct RetainedHostAdapters.OriginalPlaneDerivativeSurfaceSnapshotProvider
+import struct PublicLiftPlane.DefaultExactOriginalScalarTransporter
+import class PublicLiftPlane.ExactAlgebraicCalculation
+import struct PublicLiftPlane.ExactAlgebraicEmbedding
+import protocol PublicLiftPlane.ExactAlgebraicExtending
+import struct PublicLiftPlane.ExactAlgebraicExtension
+import struct PublicLiftPlane.ExactAlgebraicScalar
+import struct PublicLiftPlane.ExactAlgebraicScalarDomain
+import struct PublicLiftPlane.ExactOriginalScalarTransferReceipt
+import protocol PublicLiftPlane.ExactOriginalScalarTransferring
+import struct PublicLiftPlane.ExactRealRoot
+import enum PublicLiftPlane.ExactRealRootBound
+import enum PublicLiftPlane.ExactRealRootClassification
+import struct PublicLiftPlane.ExactRealRootCount
+import struct PublicLiftPlane.ExactRealRootDomain
+import enum PublicLiftPlane.ExactRealRootFailure
+import struct PublicLiftPlane.ExactRealRootInterval
+import struct PublicLiftPlane.ExactRealRootLimits
+import protocol PublicLiftPlane.ExactRealRootPreparing
+import protocol PublicLiftPlane.ExactRealRootProducing
+import protocol PublicLiftPlane.ExactRealRootQuerying
+import struct PublicLiftPlane.ExactRealRootSeparation
+import struct PublicLiftPlane.ExactRealRootSet
+import struct PublicLiftPlane.ExactRealRootSigns
+import struct PublicLiftPlane.ExactRealRootSource
+import struct PublicLiftPlane.ExactRealRootTransport
+import protocol PublicLiftPlane.ExactRealRootTransporting
+import struct PublicLiftPlane.ExactRealCellBoundaryRoot
+import struct PublicLiftPlane.ExactRealCellCondition
+import struct PublicLiftPlane.ExactRealCellDefinition
+import struct PublicLiftPlane.ExactRealCellDefinitionStep
+import protocol PublicLiftPlane.ExactRealCellDescribing
+import struct PublicLiftPlane.ExactRealCellDomain
+import enum PublicLiftPlane.ExactRealCellFailure
+import struct PublicLiftPlane.ExactRealCellID
+import enum PublicLiftPlane.ExactRealCellInstruction
+import enum PublicLiftPlane.ExactRealCellKind
+import struct PublicLiftPlane.ExactRealCellLimits
+import struct PublicLiftPlane.ExactRealCellPartition
+import struct PublicLiftPlane.ExactRealCellPredicate
+import protocol PublicLiftPlane.ExactRealCellPreparing
+import protocol PublicLiftPlane.ExactRealCellProducing
+import struct PublicLiftPlane.ExactRealCellProjectionBinding
+import struct PublicLiftPlane.ExactRealCellProjectionEvidence
+import enum PublicLiftPlane.ExactRealCellProjectionWitness
+import protocol PublicLiftPlane.ExactRealCellQuerying
+import struct PublicLiftPlane.ExactRealCellSample
+import protocol PublicLiftPlane.ExactRealCellSelecting
+import struct PublicLiftPlane.ExactRealCellSelection
+import struct PublicLiftPlane.ExactRealCellSignInvariant
+import enum PublicLiftPlane.ExactRealCellSignRelation
+import struct PublicLiftPlane.ExactRealCellSource
+import struct PublicLiftPlane.ExactRealCellStackEvidence
+import protocol PublicLiftPlane.ExactRealCellTraversing
+import struct PublicLiftPlane.ExactRealCellView
+import struct PublicLiftPlane.ExactRealAttachment
+import struct PublicLiftPlane.ExactRealCellPullback
+import protocol PublicLiftPlane.ExactRealCellPullbackResolving
+import struct PublicLiftPlane.ExactRealClosure
+import protocol PublicLiftPlane.ExactRealClosureProducing
+import enum PublicLiftPlane.ExactRealClosureProof
+import enum PublicLiftPlane.ExactRealClosureStrategy
+import struct PublicLiftPlane.ExactRealComponents
+import protocol PublicLiftPlane.ExactRealComponentsProducing
+import struct PublicLiftPlane.ExactRealIncidence
+import struct PublicLiftPlane.ExactRealIncidencePair
+import protocol PublicLiftPlane.ExactRealIncidenceProducing
+import struct PublicLiftPlane.ExactRealProjection
+import struct PublicLiftPlane.ExactRealProjectionLifts
+import protocol PublicLiftPlane.ExactRealProjectionProducing
+import typealias PublicLiftPlane.ExactRealTopology
+import struct PublicLiftPlane.ExactRealTopologyDomain
+import struct PublicLiftPlane.ExactRealTopologyElimination
+import struct PublicLiftPlane.ExactRealTopologyFactor
+import enum PublicLiftPlane.ExactRealTopologyFailure
+import struct PublicLiftPlane.ExactRealTopologyLimits
+import protocol PublicLiftPlane.ExactRealTopologyQuerying
+import struct PublicLiftPlane.ExactRealTopologyReduction
+import struct PublicLiftPlane.ExactRealTopologyRegion
+import struct PublicLiftPlane.ExactRealTopologySignInvariant
+import struct PublicLiftPlane.ExactParametricConstraintDivision
+import struct PublicLiftPlane.ExactParametricGraph
+import protocol PublicLiftPlane.ExactParametricGraphConstructing
+import struct PublicLiftPlane.ExactParametricGraphRelation
+import struct PublicLiftPlane.ExactParametricGraphRelationSource
+import protocol PublicLiftPlane.ExactParametricGraphResolving
+import struct PublicLiftPlane.ExactParametricGuardDivision
+import struct PublicLiftPlane.ExactParametricGuardRemainder
+import struct PublicLiftPlane.ExactParametricMap
+import struct PublicLiftPlane.ExactParametricRelation
+import protocol PublicLiftPlane.ExactParametricRelationConstructing
+import struct PublicLiftPlane.ExactParametricRelationDomain
+import enum PublicLiftPlane.ExactParametricRelationFailure
+import enum PublicLiftPlane.ExactParametricRelationKind
+import protocol PublicLiftPlane.ExactParametricRelationResolving
+import struct PublicLiftPlane.ExactParametricRelationSource
+import struct PublicLiftPlane.ExactParametricSquareReduction
+import struct PublicLiftPlane.DefaultExactGeometricGraphRelationResolver
+import struct PublicLiftPlane.DefaultExactGeometricRelationResolver
+import enum PublicLiftPlane.ExactCurveParameterBoundary
+import struct PublicLiftPlane.ExactCurveParameterSpan
+import enum PublicLiftPlane.ExactGeometricEvidenceKind
+import struct PublicLiftPlane.ExactGeometricFiber
+import struct PublicLiftPlane.ExactGeometricGraphFiber
+import struct PublicLiftPlane.ExactGeometricGraphPoint
+import struct PublicLiftPlane.ExactGeometricGraphRelation
+import protocol PublicLiftPlane.ExactGeometricGraphRelationResolving
+import struct PublicLiftPlane.ExactGeometricRelation
+import enum PublicLiftPlane.ExactGeometricRelationFailure
+import struct PublicLiftPlane.ExactGeometricRelationLimits
+import protocol PublicLiftPlane.ExactGeometricRelationQuerying
+import protocol PublicLiftPlane.ExactGeometricRelationResolving
+import enum PublicLiftPlane.ExactGeometricStation
+import struct PublicLiftPlane.ExactGeometricStratumID
+import struct PublicLiftPlane.ExactGeometricStratumRecord
+import struct PublicLiftPlane.ExactGeometricStratumView
+import struct PublicLiftPlane.ExactUV
+import struct PublicLiftPlane.ExactXYZ
+import CADCore
+
+
+@testable import CallerAdapters
+import CADCore
+#if ORIGINAL_SOURCE_GEOMETRY_ADAPTER_VERIFICATION
+import struct CADGeometry.RuledSurface3D
+import L0
+import SourceIssuer
+#endif
+
+
+@testable import DraftZeroRuledPort
+@testable import GuideSeamPort
+@testable import SourceIssuer
+import struct GuideSeamPort.OriginalIssuedGraphPreparation
+import struct GuideSeamPort.OriginalIssuedGraphFamily
+import struct GuideSeamPort.DefaultOriginalIssuedGraphCompiler
+import struct GuideSeamPort.DefaultOriginalRationalGraphFamilyPreparer
+import protocol GuideSeamPort.OriginalIssuedGraphRelationOwning
+import struct GuideSeamPort.OriginalIssuedGraphRelationPair
+import enum DraftZeroRuledPort.GeometryExactScalarFailure
+import struct CallerAdapters.OriginalNativeCurveFamilySnapshotProvider
+import struct DraftZeroRuledPort.OriginalLinearCurveSnapshot
+import struct DraftZeroRuledPort.OriginalLinearCurveSnapshotProvider
+import struct DraftZeroRuledPort.NativeExactPublicAdmission
+import enum GuideSeamPort.NativeExactRelationFailure
+import enum DraftZeroRuledPort.NativeExactPublicLimits
+import enum DraftZeroRuledPort.NativeExactGeometryPublicationFailure
+import enum RetainedHostAdapters.OriginalDomainAccess
+import struct CADGeometry.OriginalTraversalEndpointBinding
+import CADCore
+@testable import CADGeometry
+@testable import RetainedHostAdapters
+@testable import PublicLiftPlane
+
+/// Independent complete oracle for the frozen weighted reversed axis-fiber input.
+enum RevolutionAxisFiberOracle {
+    typealias Base = OriginalExactScalarDomain
+    typealias Field = PublicLiftPlane.ExactAlgebraicScalarDomain<Base>
+    typealias Cells = PublicLiftPlane.ExactRealCellDomain<Base>
+    typealias Polynomial = PublicLiftPlane.ExactPolynomial<Field>
+
+    private struct Admission: ~Copyable, ExactScalarAdmission {
+        var ledger: ExactScalarLedger
+        init() throws {
+            ledger = .init(limits: try .init(work: 8_388_608, storageBytes: 400_000_000,
+                valueDepth: 32, coefficientDepth: 32))
+        }
+        mutating func checkpoint() throws(ExactScalarFailure) { try ledger.checkpoint() }
+        mutating func consumeWork(_ n: Int) throws(ExactScalarFailure) { try ledger.consumeWork(n) }
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) { try ledger.retainStorage(bytes: bytes) }
+        mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try ledger.visitCell(axis: axis, depth: depth)
+        }
+        mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
+            try ledger.admitDepth(value: value, coefficient: coefficient)
+        }
+    }
+    private static func require(_ value: Bool) throws {
+        if !value { throw ExactScalarFailure.invalidEvidence }
+    }
+
+    /// Checks every terminal cell; no membership sample or second solve is used.
+    private static func complete(_ partition: PublicLiftPlane.ExactRealCellPartition<Base>,
+        included: (PublicLiftPlane.ExactRealCellID<Base>) -> Bool,
+        offset: Int, imageAxes: Bool, bound: OriginalExactScalar, using a: inout Admission) throws {
+        let n = imageAxes ? 6 : 3
+        try require(partition.source.variableCount == n && partition.source.domains.count == n)
+        let cells = try Cells(retaining: partition.source, using: &a), ring = cells.polynomials, f = ring.field
+        let zero = try f.integer(0, using: &a), one = try f.integer(1, using: &a)
+        let b = try f.importingBase(bound, using: &a)
+        let minusB = try f.negated(b, using: &a)
+        // The retained Cartesian domain must contain the entire independent oracle.
+        // Predicate bounds may further restrict it, but cannot hide a missing U endpoint.
+        let lows = imageAxes ? [zero,zero,zero,zero,minusB,one] : [zero,minusB,one]
+        let highs = imageAxes ? [zero,zero,zero,zero,b,one] : [zero,b,one]
+        for axis in 0..<n {
+            try a.consumeWork(1)
+            let domain = partition.source.domains[axis]
+            try require(!domain.isEmpty)
+            switch domain.lower {
+            case .negativeInfinity: break
+            case .positiveInfinity: throw ExactScalarFailure.invalidEvidence
+            case .finite(let value):
+                let order = try f.compare(value, lows[axis], using: &a)
+                try require(order == .less || (order == .equal && domain.includesLower))
+            }
+            switch domain.upper {
+            case .positiveInfinity: break
+            case .negativeInfinity: throw ExactScalarFailure.invalidEvidence
+            case .finite(let value):
+                let order = try f.compare(value, highs[axis], using: &a)
+                try require(order == .greater || (order == .equal && domain.includesUpper))
+            }
+        }
+        var equations: [Polynomial] = []
+        try a.retainStorage(bytes: exactScalarPayloadBytes(count: n + 6, of: Polynomial.self))
+        equations.append(try ring.variable(offset, using: &a))
+        equations.append(try ring.subtracting(ring.variable(offset + 2, using: &a), ring.constant(one, using: &a), using: &a))
+        if imageAxes { for axis in 0..<3 { equations.append(try ring.variable(axis, using: &a)) } }
+        var bounds: [Polynomial] = []
+        for (axis, lower, upper) in [(offset,try f.negated(one, using:&a),one),
+            (offset + 1,minusB,b),(offset + 2,zero,one)] {
+            bounds.append(try ring.subtracting(ring.variable(axis, using:&a),ring.constant(lower, using:&a),using:&a))
+            bounds.append(try ring.subtracting(ring.variable(axis, using:&a),ring.constant(upper, using:&a),using:&a))
+        }
+        var invariants: [PublicLiftPlane.ExactRealCellSignInvariant<Base>] = []
+        try a.retainStorage(bytes: exactScalarPayloadBytes(count: equations.count + bounds.count,
+            of: PublicLiftPlane.ExactRealCellSignInvariant<Base>.self))
+        var laws = equations
+        for bound in bounds { laws.append(bound) }
+        for law in laws {
+            guard let invariant = try cells.signInvariant(for: law, in: partition, using: &a) else {
+                throw ExactScalarFailure.invalidEvidence
+            }
+            invariants.append(invariant)
+        }
+        var selected = 0, interior = false, lowerEndpoint = false, upperEndpoint = false
+        for cell in partition.cells where cell.axis == n - 1 {
+            try a.consumeWork(1)
+            var expected = true
+            for index in equations.indices {
+                if try cells.sign(of: invariants[index], at: cell, using:&a) != .zero { expected = false }
+            }
+            for index in bounds.indices {
+                let sign = try cells.sign(of: invariants[equations.count + index], at: cell, using:&a)
+                if index % 2 == 0 ? sign == .negative : sign == .positive { expected = false }
+            }
+            try require(included(cell) == expected)
+            if expected {
+                selected += 1
+                let lower = try cells.sign(of: invariants[equations.count + 2], at: cell, using:&a)
+                let upper = try cells.sign(of: invariants[equations.count + 3], at: cell, using:&a)
+                if lower == .zero { lowerEndpoint = true }
+                if upper == .zero { upperEndpoint = true }
+                var angular = cell
+                while angular.axis != offset + 1 {
+                    try a.consumeWork(1)
+                    guard let parent = angular.parent else { throw ExactScalarFailure.invalidEvidence }
+                    angular = parent
+                }
+                try require(cell.dimension == angular.dimension && (cell.dimension == 0 || cell.dimension == 1))
+                if lower == .zero || upper == .zero { try require(cell.dimension == 0) }
+                if lower == .positive && upper == .negative && cell.dimension == 1 { interior = true }
+            }
+        }
+        try require(selected > 0 && interior && lowerEndpoint && upperEndpoint)
+    }
+
+    static func verify(_ geometry: any OriginalRevolutionAxisGeometricRelationReading) throws {
+        var a = try Admission()
+        let raw = geometry.original, cover = raw.originalDomain, family = cover.family, f = family.field
+        let limits = try OriginalDomainIdentityLimits(source: .init(remainingSourceDepth: 2),
+            maximumTransportDepth: 32, maximumCharts: 262_144, maximumFamilies: 2, maximumIdentityProofs: 0)
+        try raw.admitProof(limits: limits, using:&a)
+        try require(!geometry.isEmpty && geometry.hasPositiveDimensionalSolutions && !geometry.hasPositiveDimensionalImage
+            && geometry.exactPoints.isEmpty)
+        try require(family.laws.count == 1 && raw.secondGraphs.count == 1 && raw.first.graphs.count == 1
+            && raw.pairs.count == 1 && geometry.pairs.count == 1)
+        let zero = try f.integer(0,using:&a), one = try f.integer(1,using:&a)
+        let b = 2 * Double.pi, lower = try f.binary64(exactly: -b,using:&a), upper = try f.binary64(exactly:b,using:&a)
+        try require(family.support.count == 2 && family.source.owner === cover.source.owner
+            && geometry.originalDomain.source.owner === cover.source.owner
+            && geometry.originalLine.owner === raw.first.source.owner)
+        try require(f.compare(family.period.lower,lower,using:&a) == .equal
+            && f.compare(family.period.upper,zero,using:&a) == .equal
+            && f.compare(family.period.period,upper,using:&a) == .equal)
+        let generator = family.source.original.originalGenerator.original
+        try require(f.compare(generator.originalStart,one,using:&a) == .equal
+            && f.compare(generator.originalEnd,zero,using:&a) == .equal)
+        for axis in 0..<2 {
+            try require(f.compare(family.support[axis].lower,axis == 0 ? lower:zero,using:&a) == .equal)
+            try require(f.compare(family.support[axis].upper,axis == 0 ? upper:one,using:&a) == .equal)
+        }
+        let law = family.laws[0], r = law.polynomials
+        try require(law.normalizedAxis.count == 3)
+        try require(r.variableCount == 3 && law.homogeneous.count == 4)
+        let c = try r.variable(0,using:&a), s = try r.variable(1,using:&a), v = try r.variable(2,using:&a)
+        let two = try r.constant(f.integer(2,using:&a),using:&a), unit = try r.constant(one,using:&a)
+        let numerator = try r.scaled(r.subtracting(unit,v,using:&a),by:f.integer(2,using:&a),using:&a)
+        let denominator = try r.subtracting(two,v,using:&a)
+        let scale = try f.dividing(r.evaluated(law.denominator,at:[zero,zero,zero],using:&a).value,
+            f.integer(2,using:&a),using:&a)
+        try require(f.sign(of:scale,using:&a) == .positive)
+        // W = positiveScale*(2-v), hence W is positive on every v in [0,1].
+        try require(r.equals(law.denominator,r.scaled(denominator,by:scale,using:&a),using:&a))
+        let expected = [try r.multiplying(numerator,c,using:&a),try r.multiplying(numerator,s,using:&a),
+            try r.constant(zero,using:&a)]
+        for axis in 0..<3 {
+            try require(r.equals(r.multiplying(law.homogeneous[axis],denominator,using:&a),
+                r.multiplying(expected[axis],law.denominator,using:&a),using:&a))
+            try require(f.compare(law.normalizedAxis[axis],axis == 2 ? one:zero,using:&a) == .equal)
+        }
+        try require(r.equals(r.multiplying(law.radialSquaredNumerator,r.multiplying(denominator,denominator,using:&a),using:&a),
+            r.multiplying(r.multiplying(numerator,numerator,using:&a),r.multiplying(law.denominator,law.denominator,using:&a),using:&a),using:&a))
+        let parameters = law.parameterPolynomials, transport = law.generatorChartParameter
+        try require(transport.numerators.count == 1 && transport.denominators.count == 1)
+        let reversed = try parameters.subtracting(parameters.constant(one,using:&a),parameters.variable(1,using:&a),using:&a)
+        try require(parameters.equals(transport.numerators[0],
+            parameters.multiplying(reversed,transport.denominators[0],using:&a),using:&a))
+        // Check the complete selected axis-section law and both original guards.
+        let section = raw.secondGraphs[0].original.graph, sr = section.polynomials
+        try require(section.source.owner === family.source.owner
+            && section.layout.variableCount == 2 && section.layout.parameters == [0,1]
+            && section.layout.auxiliaries.isEmpty && section.homogeneous.count == 4 && section.conditions.count == 2)
+        let sectionV = try sr.variable(1,using:&a), sectionOne = try sr.constant(one,using:&a)
+        let sectionD = try sr.subtracting(sr.constant(f.integer(2,using:&a),using:&a),sectionV,using:&a)
+        let sectionN = try sr.scaled(sr.subtracting(sectionOne,sectionV,using:&a),by:f.integer(2,using:&a),using:&a)
+        let sectionRho = try sr.scaled(sr.multiplying(sectionN,sectionN,using:&a),
+            by:f.multiplying(scale,scale,using:&a),using:&a)
+        for axis in 0..<3 { try require(sr.isZero(section.homogeneous[axis],using:&a)) }
+        try require(sr.equals(section.homogeneous[3],sr.scaled(sectionD,by:scale,using:&a),using:&a))
+        guard case .equal = section.conditions[0].relation,case .notEqual = section.conditions[1].relation else {
+            throw ExactScalarFailure.invalidEvidence
+        }
+        try require(sr.equals(section.conditions[0].polynomial,sectionRho,using:&a))
+        try require(sr.equals(section.conditions[1].polynomial,section.homogeneous[3],using:&a))
+        try require(section.parameterTransport.numerators.count == 2 && section.parameterTransport.denominators.count == 2)
+        for axis in 0..<2 {
+            try require(sr.equals(section.parameterTransport.numerators[axis],sr.variable(axis,using:&a),using:&a))
+            try require(sr.equals(section.parameterTransport.denominators[axis],sectionOne,using:&a))
+        }
+        let line = raw.first.source.original, lineGraph = raw.first.graphs[0].original.graph, lr = lineGraph.polynomials
+        try require(line.origin.x == 0 && line.origin.y == 0 && line.origin.z == 0
+            && line.direction.x == 0 && line.direction.y == 0 && line.direction.z == 1)
+        try require(lineGraph.layout.variableCount == 1 && lineGraph.layout.parameters == [0]
+            && lineGraph.layout.auxiliaries.isEmpty && lineGraph.homogeneous.count == 4)
+        try require(lr.isZero(lineGraph.homogeneous[0],using:&a) && lr.isZero(lineGraph.homogeneous[1],using:&a))
+        try require(lr.equals(lineGraph.homogeneous[2],lr.variable(0,using:&a),using:&a))
+        try require(lr.equals(lineGraph.homogeneous[3],lr.constant(one,using:&a),using:&a))
+        // Full authored requests are verified independently of the solver partition.
+        for selected in [cover.support,cover.request,cover.effective] {
+            try require(!selected.isEmpty && selected.arity == 2)
+            for axis in 0..<2 {
+                try require(selected.axes[axis].intervals.count == 1)
+                let interval = selected.axes[axis].intervals[0]
+                guard case .finite(let lo) = interval.lower,case .finite(let hi) = interval.upper else {
+                    throw ExactScalarFailure.invalidEvidence
+                }
+                try require(interval.includesLower && interval.includesUpper && !interval.isEmpty)
+                try require(f.compare(lo,axis == 0 ? lower:zero,using:&a) == .equal)
+                try require(f.compare(hi,axis == 0 ? upper:one,using:&a) == .equal)
+            }
+        }
+        let requestedT = raw.first.coverage.request.axes[0].intervals
+        try require(requestedT.count == 1 && requestedT[0].includesLower && requestedT[0].includesUpper)
+        guard case .finite(let t0) = requestedT[0].lower,case .finite(let t1) = requestedT[0].upper else {
+            throw ExactScalarFailure.invalidEvidence
+        }
+        try require(f.compare(t0,f.negated(one,using:&a),using:&a) == .equal && f.compare(t1,one,using:&a) == .equal)
+        for u in [lower,zero,upper,try f.dividing(upper,f.integer(4,using:&a),using:&a)] {
+            let occurrences = try cover.incident(at:[u,one],limits:limits,using:&a)
+            let seam = try f.compare(u,lower,using:&a) == .equal || f.compare(u,zero,using:&a) == .equal || f.compare(u,upper,using:&a) == .equal
+            try require(occurrences.count == (seam ? 2:1))
+            var lowerSide = false, upperSide = false
+            for occurrence in occurrences {
+                try require(occurrence.law.source.owner === family.source.owner && occurrence.template == 0)
+                let transporter = DefaultOriginalParameterTransporter<OriginalRevolutionAxisGeometricRelations.Surface,Base>()
+                let reverse = try transporter.inverse(occurrence.transport,limits:limits,using:&a)
+                let local = try transporter.forward([u,one],through:reverse,limits:limits,using:&a)
+                try require(local.count == 2 && f.compare(local[1],one,using:&a) == .equal)
+                if try f.compare(local[0],family.period.lower,using:&a) == .equal { lowerSide = true }
+                if try f.compare(local[0],family.period.upper,using:&a) == .equal { upperSide = true }
+                let map = occurrence.law.generatorChartParameter, ring = occurrence.law.parameterPolynomials
+                let value = try f.dividing(ring.evaluated(map.numerators[0],at:local,using:&a).value,
+                    ring.evaluated(map.denominators[0],at:local,using:&a).value,using:&a)
+                try require(f.compare(value,zero,using:&a) == .equal)
+            }
+            if seam { try require(lowerSide && upperSide) }
+        }
+        for pair in geometry.pairs {
+            let relation = pair.original.relation, selection = relation.projection.original
+            let retained = raw.pairs[0].relation.projection.original.cells
+            try require(selection.cells.count == retained.count)
+            for i in retained.indices { try require(selection.cells[i] == retained[i]) }
+            try require(pair.original.firstGraphIndex == 0 && pair.original.secondGraphIndex == 0)
+            try require(relation.original.firstCoordinates == [0] && relation.original.secondCoordinates == [1,2])
+            try complete(selection.partition,included:{selection.cells.contains($0)},offset:0,imageAxes:false,bound:upper,using:&a)
+            try require(!pair.geometry.strata.isEmpty)
+            var hasInterior = false
+            for stratum in pair.geometry.strata {
+                guard let cell = pair.geometry.parameterCell(forStratum:stratum.ordinal) else { throw ExactScalarFailure.invalidEvidence }
+                try require(relation.selection.cells.contains(cell) && stratum.parameterDimension == cell.dimension
+                    && stratum.imageDimension == 0 && stratum.fiberDimension == cell.dimension
+                    && (cell.dimension == 0 || cell.dimension == 1))
+                if cell.dimension == 1 { hasInterior = true }
+            }
+            for cell in relation.selection.cells {
+                var covered = false
+                for stratum in pair.geometry.strata {
+                    if pair.geometry.parameterCell(forStratum:stratum.ordinal) == cell { covered = true }
+                }
+                try require(covered)
+            }
+            try require(hasInterior)
+            if let graph = pair.geometry.graph {
+                let region = graph.region
+                try complete(region.partition,included:{cell in
+                    for i in region.cells.indices { if region.cells[i] == cell { return region.included[i] } }
+                    return false
+                },offset:3,imageAxes:true,bound:upper,using:&a)
+            }
+        }
+        print("PASS complete original revolution axis fiber: closed U, exact T0/V1, origin image, all strata and seam incidents")
+    }
+}

@@ -591,3 +591,54 @@ charged; retained relation arrays are shared. NativeExactRelationFailure preserv
 original causes. Foreign fields/templates/cycle layouts fail explicitly. Four
 fixed target changed-path checks and finite-family regression own this delta;
 unchanged lower/DTO evidence is reused under admitted receipts, not rebuilt.
+
+
+## Pair-Bound Revolution Axis Intake
+
+The finite `CS-REVOLUTION-AXIS-FIBER-01` observation stops in the ordinary
+adaptive path with `invalidVectorLength(0.0)` before publishing its nonempty
+original angular fiber. Its source-owned Rodrigues law and complete revolution
+cover already exist. A normal-only repair cannot publish this relation.
+
+`OriginalRevolutionAxisRelations` owns one checked axis query, rather than a
+complete surface graph family. It retains the actual line graph family, full
+`OriginalRevolutionDomainCover`, source-issued axis-section receipt, compiled
+local sections and every ordered solved pair. The source contract is owned by
+[OriginalSourceIssuance](../OriginalSourceIssuance/DESIGN.md). Its checked theorem
+proves that every nonzero-radial original point is outside the exact line axis;
+radial-zero points use the same original position with every authored U retained.
+
+```mermaid
+flowchart LR
+ C[Full original revolution cover] --> A[Checked pair-bound axis intake]
+ S[Source axis section and complement exclusion] --> A
+ L[Exact original axis-line graph] --> A
+ A --> G[Existing local graph compiler]
+ G --> P[Existing L5 pair decomposition]
+ P --> O[Immutable pair-bound owner]
+ O --> U[Shared L6 geometric publication]
+```
+
+The intake verifies exact source ownership and scalar compatibility between the
+full cover, every section and the actual line. Sections are in family-law order,
+with no omitted chart. They keep authored U/V, generator correspondence,
+radial-zero and nonzero-denominator guards. The existing DI binder intersects
+requests and the existing graph compiler preserves all guards and parameter slots.
+The restricted sections are never passed as a complete `OriginalIssuedGraphFamily`
+for the original surface. Whole-query completeness comes from the retained full
+cover plus the checked axis complement exclusion. No source equation, trigonometric
+coefficient or original intersection is regenerated in the consumer.
+
+One caller admission accounts for source preparation, bindings, graphs, pairs,
+L5/L6 and publication, with inherited proof and decision depths readmitted.
+Every source, cover and intermediate owner remains immutable and retained by the
+result. Typed failures propagate; cancellation is checked on entry, during work,
+and at final publication, including empty results. No approximate axis test or
+fallback is permitted after this producer accepts the exact-axis query.
+
+Verification belongs to the public acceptance cell and checks the whole original
+T/U/V set, exact XYZ image and coordinate fiber, all seam/generator incidents,
+clipped and empty requests, false/foreign axis inputs, independent resource
+limits, cancellation and detached lifetime. Fixed lower receipts are reused;
+only changed upper bodies are compiled. Full revolution and M4-M8 coverage remain
+outside this finite cell.

@@ -505,3 +505,38 @@ Existing lift/plane cells are dispatch regressions. Unchanged lower contracts
 and products are reused by receipt/hash admission; focused Native assembly is
 followed by stable Native/ASAN/normal-WASM/Embedded changed-path evidence. This
 finite cell does not establish general drafted-wall or whole-line completion.
+
+
+## Ordinary Finite Axis-Line / Revolution Publication
+
+`OriginalRevolutionAxisLinePublicProducer` selects a finite authored line on the
+exact axis of a retained rational-generator original revolution. Its initial
+coefficient capability is a signed coordinate axis with a rational exact length;
+other axes or child capabilities retain the existing explicit incomplete route.
+The producer consumes original line/source law preparation and the full selected
+revolution cover. The pair intake contract is owned by
+[NativeExactRelations](../NativeExactRelations/DESIGN.md#pair-bound-revolution-axis-intake).
+It does not replace the revolution by its axial projection over the whole source.
+
+`OriginalRevolutionAxisGeometricRelationReading` extends the existing issued
+geometric reading protocol with the typed original cover and pair-bound owner.
+Its immutable implementation retains the source-issued axis-section and complement
+exclusion. `OriginalIssuedGeometricPublication` publishes the existing solved L5
+pairs once, using their authored forward maps. Every U remains a parameter even
+when the XYZ image is a singleton; no root or chart incident is merged by XYZ.
+The full cover owns seam and generator incident queries through protocol requirements
+available on Native, WASM and Embedded.
+
+The ordinary rich result retains this exact relation and reports exactRelation
+representation. Bare point-array entry points explicitly refuse any nonempty
+positive-dimensional parameter relation. A nonempty isolated-only section without
+a certified numerical publisher is also an explicit unsupported result; it never
+becomes an empty successful array. Full empty exclusion may publish an empty array.
+The public result retains the same immutable owner without cloning graph/pair arrays.
+
+Public limits, source/value/coefficient/transport depths, guard failures, cancel
+and typed publication failures use the original caller allowance. This finite
+cell adds no mutable shared state or target-dependent synchronization. Tests use
+the actual ordinary rich entry, including final publication and later retained
+incident queries, with resource and lifetime checks. Lower proof premises are
+reused and their evidence scope is preserved.

@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+"""Compile and verify one current original revolution axis public cell."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import signal
+import subprocess
+import time
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--output', required=True, type=Path)
+args = parser.parse_args()
+root = Path(__file__).resolve().parents[2]
+out = args.output.resolve()
+out.mkdir(parents=True, exist_ok=False)
+checks, fresh, runs = {}, {}, []
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def read(path):
+    return json.loads(Path(path).read_text())
+
+
+def save(name, value):
+    (out / name).write_text(json.dumps(value, indent=2) + '\n')
+
+
+def admit(path, expected):
+    path = Path(path)
+    if not path.is_file() or sha(path) != expected:
+        raise RuntimeError('Receipt premise differs: ' + str(path))
+    checks[str(path)] = expected
+
+
+def descendants(pid):
+    tree = {}
+    for line in subprocess.check_output(['ps', '-axo', 'pid=,ppid='], text=True, timeout=120).splitlines():
+        child, parent = map(int, line.split())
+        tree.setdefault(parent, []).append(child)
+    pending, found = [pid], []
+    while pending:
+        children = tree.get(pending.pop(), [])
+        found.extend(children)
+        pending.extend(children)
+    return found
+
+
+def execute(label, arguments):
+    def constrain():
+        resource.setrlimit(resource.RLIMIT_CPU, (120, 120))
+    log = out / (label + '.log')
+    started = time.monotonic()
+    descendants, peak_rss, cpu_by_pid = set(), 0, {}
+    with log.open('w') as stream:
+        with subprocess.Popen(arguments, cwd=root, stdout=stream, stderr=subprocess.STDOUT,
+                start_new_session=True, preexec_fn=constrain) as process:
+            def sample():
+                nonlocal peak_rss
+                lines = subprocess.check_output(['ps', '-axo', 'pid=,ppid=,rss=,time='], text=True).splitlines()
+                rows = [line.split() for line in lines if line.strip()]
+                owners = {process.pid} | descendants
+                while True:
+                    found = {int(pid) for pid, parent, rss, cpu in rows if int(parent) in owners}
+                    if found <= owners:
+                        break
+                    owners |= found
+                descendants.update(owners - {process.pid})
+                peak_rss = max(peak_rss, sum(int(rss) for pid, parent, rss, cpu in rows if int(pid) in owners))
+                for pid, parent, rss, cpu in rows:
+                    if int(pid) in owners:
+                        seconds = sum(float(value) * 60 ** index for index, value in enumerate(reversed(cpu.split(':'))))
+                        cpu_by_pid[int(pid)] = max(cpu_by_pid.get(int(pid), 0), seconds)
+                return {int(pid) for pid, parent, rss, cpu in rows}
+            timed_out = False
+            while process.poll() is None:
+                sample()
+                if time.monotonic() - started >= 120:
+                    timed_out = True
+                    break
+                try:
+                    process.wait(timeout=0.25)
+                except subprocess.TimeoutExpired:
+                    pass
+            alive = sample()
+            survivors = descendants & alive
+            if timed_out or survivors:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                for pid in survivors:
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+            process.wait()
+            remaining = descendants & sample()
+    run = dict(label=label, command=arguments, exitCode=process.returncode, timedOut=timed_out,
+        elapsedSeconds=time.monotonic() - started, wallLimitSeconds=120, cpuLimitSecondsPerProcess=120,
+        sampledCPUSeconds=sum(cpu_by_pid.values()), peakOwnedProcessResidentSumKiB=peak_rss,
+        ownedDescendantsRemaining=sorted(remaining), logSHA256=sha(log))
+    runs.append(run)
+    save('runs.json', runs)
+    admit(log, run['logSHA256'])
+    print(label, process.returncode, round(run['elapsedSeconds'], 3), flush=True)
+    assert not remaining, run
+    return ('timeout' if timed_out else process.returncode), log.read_text()
+
+
+head = subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True,timeout=120).strip()
+historical={}
+guide=root/'.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v10'
+prior=read(guide/'receipt.json');assert prior['success']
+# Preserve archived comparators as historical, never as current production.
+for name,expected in prior['checks'].items():
+ path=Path(name)
+ if path.is_file() and sha(path)==expected:admit(path,expected);continue
+ found=False
+ for record in prior.get('historicalComparators',{}).values():
+  candidate=Path(record['path'])
+  if candidate.is_file() and sha(candidate)==expected:
+   admit(candidate,expected);historical[name]=record;found=True;break
+ if found:continue
+ for candidate in guide.rglob(path.name):
+  if candidate.is_file() and sha(candidate)==expected:
+   admit(candidate,expected);historical[name]=dict(path=str(candidate),sha256=expected,scope='Exact archived acceptance input');found=True;break
+ if found:continue
+ relative=path.relative_to(root)
+ content=subprocess.check_output(['git','show',head+':'+str(relative)],cwd=root,timeout=120)
+ assert hashlib.sha256(content).hexdigest()==expected,name
+ target=out/'historical-source'/relative;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(content)
+ admit(target,expected);historical[name]=dict(path=str(target),sha256=expected,commit=head)
+admit(guide/'receipt.json',sha(guide/'receipt.json'))
+base=read(guide/'compile-proof.json');flags=base[:base.index('-emit-executable')]
+flags += ['-num-threads','2']
+assert 'swift-6.4.0-RELEASE.xctoolchain' in flags[0]
+for tool in [Path(flags[0]),Path(flags[0]).with_name('swift-frontend')]:admit(tool,sha(tool))
+prefix=(root/'.build/s-ruled-closed-guide-seam-native-20261012-v1/OriginalRuledSurfaceSnapshot.swift').read_text().split('/// The original ruled value',1)[0]
+prefix += '\n@testable import DraftZeroRuledPort\n@testable import GuideSeamPort\n@testable import SourceIssuer\n'
+for name in ['OriginalIssuedGraphPreparation','OriginalIssuedGraphFamily','DefaultOriginalIssuedGraphCompiler','DefaultOriginalRationalGraphFamilyPreparer','OriginalIssuedGraphRelationOwning','OriginalIssuedGraphRelationPair']:
+ kind='protocol' if name.endswith('Owning') else 'struct'
+ prefix += 'import '+kind+' GuideSeamPort.'+name+'\n'
+prefix += 'import enum DraftZeroRuledPort.GeometryExactScalarFailure\n'
+for kind,owner,names in [
+ ('struct','CallerAdapters',['OriginalNativeCurveFamilySnapshotProvider']),
+ ('struct','DraftZeroRuledPort',['OriginalLinearCurveSnapshot','OriginalLinearCurveSnapshotProvider','NativeExactPublicAdmission']),
+ ('enum','GuideSeamPort',['NativeExactRelationFailure']),
+ ('enum','DraftZeroRuledPort',['NativeExactPublicLimits','NativeExactGeometryPublicationFailure']),
+ ('enum','RetainedHostAdapters',['OriginalDomainAccess']),
+ ('struct','CADGeometry',['OriginalTraversalEndpointBinding'])]:
+ for name in names:prefix += 'import '+kind+' '+owner+'.'+name+'\n'
+
+paths=[]
+source=root/'Sources/CADGeometry/OriginalSourceIssuance'
+for name in ['OriginalRevolutionAxisSectionEvidence','OriginalRevolutionAxisSectionReceipt','OriginalRevolutionAxisSectionIssuing','DefaultOriginalRevolutionAxisSectionIssuer','OriginalRevolutionSnapshot','OriginalRevolutionSnapshotProvider','OriginalTraversalSpanSnapshot','OriginalTraversalSpanSnapshotProvider']:
+ paths.append(source/(name+'.swift'))
+paths += [root/'Sources/CADGeometry/NativeExactRelations/OriginalRevolutionAxisRelations.swift']
+geom=root/'Sources/CADGeometry/NativeExactGeometricRelations'
+for name in ['OriginalRevolutionAxisGeometricRelationReading','OriginalRevolutionAxisGeometricRelations','OriginalRevolutionAxisLinePublicProducer','OriginalIssuedExactIntersectionPoint','OriginalIssuedGeometricPublication','OriginalIssuedGeometricRelationPair','OriginalIssuedGeometricRelationReading']:
+ paths.append(geom/(name+'.swift'))
+for name in ['DefaultCurveSurfaceIntersector.swift','CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift','CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift','CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift','CurveSurfaceOverlap/CurveSurfaceIntersectionResolving.swift']:
+ paths.append(root/'Sources/CADGeometry'/name)
+
+for name in ['NativeExactCurveSurfacePointProducer','DefaultCurveSurfaceIntersector+CurveSurfaceGeometry','DefaultCurveSurfaceIntersector+ExactRelation','NativeExactPublicCurveSurfaceProducer','NativeCurveSurfacePointProducer','OriginalPolynomialCurveSurfacePointProducer','OriginalAffineCurveSurfacePointProducer','OriginalCoonsCurveSurfacePointProducer']:
+ paths.append(next((root/'Sources/CADGeometry').rglob(name+'.swift')))
+sources=[]
+for original in paths:
+ fresh[str(original)]=sha(original);target=out/original.name
+ body_prefix=prefix
+ if original.name in {'NativeExactPublicCurveSurfaceProducer.swift','NativeExactCurveSurfacePointProducer.swift','DefaultCurveSurfaceIntersector+CurveSurfaceGeometry.swift','DefaultCurveSurfaceIntersector+ExactRelation.swift'}:
+  body_prefix='import CADCore\n@testable import CADGeometry\n'
+ target.write_text(body_prefix+original.read_text());admit(target,sha(target));sources.append(str(target))
+fixture=Path(__file__).with_suffix('.swift')
+helper=fixture.with_name('RevolutionAxisFiberOracle.swift')
+assert helper.is_file(),str(helper)
+for original in [fixture,helper,Path(__file__)]:
+ target=out/original.name;target.write_bytes(original.read_bytes());admit(target,sha(target));admit(original,sha(original))
+adapter=out/'ActualSelectorDeclineAdapters.swift'
+wrapper="""struct SELECTOR {
+ enum AssemblyFailure: Error { case unexpectedSelectedResult }
+ func resolve(curve:Curve3D,surface:Surface3D,options:CurveSurfaceIntersectionOptions,tolerance:ModelingTolerance,
+ invocation:CurveSurfaceQueryInvocation? = nil,retainingRelations:Bool = false) throws -> CurveSurfaceIntersectionResult? {
+ let actual=try DraftZeroRuledPort.SELECTOR().resolve(curve:curve,surface:surface,options:options,tolerance:tolerance,invocation:invocation,retainingRelations:retainingRelations)
+ guard actual == nil else { throw AssemblyFailure.unexpectedSelectedResult };return nil
+ }
+}
+"""
+adapter.write_text(prefix+'\n'.join(wrapper.replace('SELECTOR',name) for name in ['OriginalDraftedZeroLinePublicProducer','OriginalRetainedLiftPlanePublicProducer']))
+admit(adapter,sha(adapter));sources.append(str(adapter))
+proof=out/'Proof.swift';proof.write_text(prefix+fixture.read_text());admit(proof,sha(proof))
+oracle=out/'Oracle.swift';oracle.write_text(prefix+helper.read_text());admit(oracle,sha(oracle));sources.append(str(oracle))
+archives=[x for x in base if x.endswith('.a')]
+archives.append(str(root/'.build/cs-draft-zero-ruled-native-20261011-v2/libDraftZeroRuledPort.a'))
+for archive in archives:admit(archive,checks[str(archive)])
+product=out/'Acceptance'
+command=flags+['-module-cache-path',str(out/'module-cache'),'-emit-executable','-module-name','RevolutionAxisAcceptance',*sources,str(proof),*archives,'-o',str(product)]
+save('compile-command.json',command)
+def recheck():
+ for n,h in checks.items():assert sha(n)==h,n
+ for n,h in fresh.items():assert sha(n)==h,n
+state='assembly-unavailable'
+try:
+ recheck();code,log=execute('compile-link',command)
+ if code==0:
+  admit(product,sha(product));state='compiled'
+  for group in ['complete','empty']:
+   recheck();code,log=execute('runtime-'+group,[str(product),group]);assert code==0,(group,log)
+  state='native-focused-complete-empty-green'
+finally:
+ recheck();save('receipt.json',dict(cell='CS-REVOLUTION-AXIS-FIBER-01',state=state,cellComplete=False,headBefore=head,
+ checks=checks,freshProduction=fresh,historicalComparators=historical,postHashesMatch=True,runs=runs,
+ scope='Current selected source and upper bodies; current DTO and ordinary rich API; admitted Guide lower reused.'))
+print(state,flush=True)

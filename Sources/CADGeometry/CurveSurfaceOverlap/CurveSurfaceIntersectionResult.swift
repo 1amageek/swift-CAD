@@ -30,6 +30,9 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Complete contained polynomial lifts, including every original chart and UV law.
     public let originalContainedLiftPlaneFamily: (any OriginalContainedLiftPlaneFamilyReading)?
 
+    /// Complete original axis-query relation and retained seam/generator domain authority.
+    public let originalRevolutionAxisRelation: (any OriginalRevolutionAxisGeometricRelationReading)?
+
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
         (originalContainedLiftPlaneFamily != nil || originalIssuedGeometricRelation != nil && originalIssuedNumericalPoints == nil) ? .exactRelation : .numericalRepresentatives
@@ -52,7 +55,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalExactGeometricRelation: NativeExactGeometricRelation? = nil,
         originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)? = nil,
         originalIssuedNumericalPoints: OriginalIssuedNumericalCurveSurfacePoints? = nil,
-        originalContainedLiftPlaneFamily: (any OriginalContainedLiftPlaneFamilyReading)? = nil) {
+        originalContainedLiftPlaneFamily: (any OriginalContainedLiftPlaneFamilyReading)? = nil,
+        originalRevolutionAxisRelation: (any OriginalRevolutionAxisGeometricRelationReading)? = nil) {
         self.points = points
         self.overlaps = overlaps
         self.originalNativePoints = originalNativePoints
@@ -64,5 +68,6 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         self.originalIssuedGeometricRelation = originalIssuedGeometricRelation
         self.originalIssuedNumericalPoints = originalIssuedNumericalPoints
         self.originalContainedLiftPlaneFamily = originalContainedLiftPlaneFamily
+        self.originalRevolutionAxisRelation = originalRevolutionAxisRelation
     }
 }

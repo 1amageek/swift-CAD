@@ -1,0 +1,8 @@
+(node:50645) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS complete original revolution axis fiber: closed U, exact T0/V1, origin image, all strata and seam incidents
+QUERY_WORK: 338147
+QUERY_STORAGE: 4887824
+PASS complete original revolution axis fiber: closed U, exact T0/V1, origin image, all strata and seam incidents
+PASS complete original revolution axis fiber: closed U, exact T0/V1, origin image, all strata and seam incidents
+PASS exact work/storage limits, one-unit refusals, source/algebraic depth, degree/candidates and callback cancellation

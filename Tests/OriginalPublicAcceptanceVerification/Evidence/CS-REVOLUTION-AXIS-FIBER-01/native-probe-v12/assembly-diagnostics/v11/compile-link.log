@@ -1,0 +1,24 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v11/OriginalTraversalSpanSnapshotProvider.swift:494:77: error: 'OriginalTraversalEndpointBinding' is ambiguous for type lookup in this context
+492 |         } catch { throw .init(preserving: error) }
+493 |     }
+494 |     func snapshotPrepared<A: ExactScalarAdmission & ~Copyable>(_ endpoints: OriginalTraversalEndpointBinding,
+    |                                                                             `- error: 'OriginalTraversalEndpointBinding' is ambiguous for type lookup in this context
+495 |         limits: OriginalSourceIssuanceLimits, using admission: inout A
+496 |     ) throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalTraversalSpanSnapshot<Child.Source>> {
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalTraversalEndpointBinding.swift:4:8: note: found this candidate
+ 2 | 
+ 3 | /// Only original retained endpoint definitions can create this coefficient binding.
+ 4 | struct OriginalTraversalEndpointBinding: Sendable {
+   |        `- note: found this candidate
+ 5 |     let original: OriginalCurveRootSpan3D
+ 6 |     let start: OriginalExactScalar
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/native/6ac72d917f8d4afd89fd104f4172c2f8/OriginalTraversalEndpointBinding.swift:31:8: note: found this candidate
+ 29 | 
+ 30 | /// Only original retained endpoint definitions can create this coefficient binding.
+ 31 | struct OriginalTraversalEndpointBinding: Sendable {
+    |        `- note: found this candidate
+ 32 |     let original: OriginalCurveRootSpan3D
+ 33 |     let start: OriginalExactScalar

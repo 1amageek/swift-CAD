@@ -1,0 +1,187 @@
+{
+  "ActualSelectorDeclineAdapters.swift": {
+    "sha256": "f61665687d9729fb4c25f31848c9c2d23989ebe95aa6a0075b260c92fddb0484",
+    "bytes": "acceptance/bytes/f61665687d9729fb4c25f31848c9c2d23989ebe95aa6a0075b260c92fddb0484",
+    "size": 32027
+  },
+  "CurveSurfaceIntersectionResolving.swift": {
+    "sha256": "c6b415526f1eefa956a452cbe5651508f475204af4356559bbc75e715e6a4fbb",
+    "bytes": "acceptance/bytes/c6b415526f1eefa956a452cbe5651508f475204af4356559bbc75e715e6a4fbb",
+    "size": 32528
+  },
+  "CurveSurfaceIntersectionResult.swift": {
+    "sha256": "550296841f3190bbbc49380590c0a7e82cae1c3d01945af21727000be83daf2c",
+    "bytes": "acceptance/bytes/550296841f3190bbbc49380590c0a7e82cae1c3d01945af21727000be83daf2c",
+    "size": 35111
+  },
+  "CurveSurfaceOverlapResolver.swift": {
+    "sha256": "c825445e0e3bb27d075f685efe2e9a15315129bdcde14685e1382d44dde1e5ee",
+    "bytes": "acceptance/bytes/c825445e0e3bb27d075f685efe2e9a15315129bdcde14685e1382d44dde1e5ee",
+    "size": 62680
+  },
+  "DefaultCurveSurfaceIntersector+CurveSurfaceGeometry.swift": {
+    "sha256": "a88f2b36c5107220b5984047133b20a82cdada65a563bfe7b58c8aefe9de04ac",
+    "bytes": "acceptance/bytes/a88f2b36c5107220b5984047133b20a82cdada65a563bfe7b58c8aefe9de04ac",
+    "size": 1266
+  },
+  "DefaultCurveSurfaceIntersector+ExactRelation.swift": {
+    "sha256": "546cfec031a969b9aaa4370f3eddd35b5efcfdbc2f5f5c0c636ba169899e99e9",
+    "bytes": "acceptance/bytes/546cfec031a969b9aaa4370f3eddd35b5efcfdbc2f5f5c0c636ba169899e99e9",
+    "size": 2550
+  },
+  "DefaultCurveSurfaceIntersector+Overlap.swift": {
+    "sha256": "31afb9b56acb9329ef813a1621e9a7d2b185129bb4d2fe056c3c84e66e6e7ff4",
+    "bytes": "acceptance/bytes/31afb9b56acb9329ef813a1621e9a7d2b185129bb4d2fe056c3c84e66e6e7ff4",
+    "size": 33717
+  },
+  "DefaultCurveSurfaceIntersector.swift": {
+    "sha256": "90dc9ef4d17403ccc2c82695046f0344c7eafdbb5a64a5291fd5cbb3ef6194ab",
+    "bytes": "acceptance/bytes/90dc9ef4d17403ccc2c82695046f0344c7eafdbb5a64a5291fd5cbb3ef6194ab",
+    "size": 237950
+  },
+  "DefaultOriginalRevolutionAxisSectionIssuer.swift": {
+    "sha256": "72cfc952594cf1809fa054ca6660f02697a2e0a1c0e97c9f9a6acfabee2a2e42",
+    "bytes": "acceptance/bytes/72cfc952594cf1809fa054ca6660f02697a2e0a1c0e97c9f9a6acfabee2a2e42",
+    "size": 42529
+  },
+  "NativeCurveSurfacePointProducer.swift": {
+    "sha256": "4192a3e3560f11a95102436cd10ff529739848315a080ea20f2e3f1b5776c950",
+    "bytes": "acceptance/bytes/4192a3e3560f11a95102436cd10ff529739848315a080ea20f2e3f1b5776c950",
+    "size": 53824
+  },
+  "NativeExactCurveSurfacePointProducer.swift": {
+    "sha256": "6c5a68260247c93ce6466c3f479af3722b39274c9802f1b4f2817369e104c30a",
+    "bytes": "acceptance/bytes/6c5a68260247c93ce6466c3f479af3722b39274c9802f1b4f2817369e104c30a",
+    "size": 21869
+  },
+  "NativeExactPublicCurveSurfaceProducer.swift": {
+    "sha256": "f64595f65219b3d5ee3f5a9bdaf89f341b7ccc1cd904a7d95759087ca90c6a17",
+    "bytes": "acceptance/bytes/f64595f65219b3d5ee3f5a9bdaf89f341b7ccc1cd904a7d95759087ca90c6a17",
+    "size": 4534
+  },
+  "Oracle.swift": {
+    "sha256": "b0ac215b4531f424f0b3256dc109d1f0ba64b1afea35cb9b7911d0d230520993",
+    "bytes": "acceptance/bytes/b0ac215b4531f424f0b3256dc109d1f0ba64b1afea35cb9b7911d0d230520993",
+    "size": 49363
+  },
+  "OriginalAffineCurveSurfacePointProducer.swift": {
+    "sha256": "020d2900b6b0c0eb6a1b0ae9bf812f3c563c588d2b02d2222566e5be1d5ba783",
+    "bytes": "acceptance/bytes/020d2900b6b0c0eb6a1b0ae9bf812f3c563c588d2b02d2222566e5be1d5ba783",
+    "size": 40806
+  },
+  "OriginalCoonsCurveSurfacePointProducer.swift": {
+    "sha256": "c7a46a694254b6139818de95fab4b5fa31b97bc7973a4317bacab3f45fe8d0d6",
+    "bytes": "acceptance/bytes/c7a46a694254b6139818de95fab4b5fa31b97bc7973a4317bacab3f45fe8d0d6",
+    "size": 39779
+  },
+  "OriginalIssuedExactIntersectionPoint.swift": {
+    "sha256": "f451875db44339e45b11c5cdfe722cdb9c34ed4565078db3cdbf527b99873a58",
+    "bytes": "acceptance/bytes/f451875db44339e45b11c5cdfe722cdb9c34ed4565078db3cdbf527b99873a58",
+    "size": 32313
+  },
+  "OriginalIssuedGeometricPublication.swift": {
+    "sha256": "a54a63b6a7d6ebe835098eaf4d7ad6fe1bc283aa966ceb2b58ea6915dd43771a",
+    "bytes": "acceptance/bytes/a54a63b6a7d6ebe835098eaf4d7ad6fe1bc283aa966ceb2b58ea6915dd43771a",
+    "size": 39234
+  },
+  "OriginalIssuedGeometricRelationPair.swift": {
+    "sha256": "aa26f7c9809d2d05a3c4a9c92b0368c98c7350b6fc635f22058cd4c3a118288a",
+    "bytes": "acceptance/bytes/aa26f7c9809d2d05a3c4a9c92b0368c98c7350b6fc635f22058cd4c3a118288a",
+    "size": 31289
+  },
+  "OriginalIssuedGeometricRelationReading.swift": {
+    "sha256": "260a4c0ec9e9c92de3a61513e188c619bc0f2a9ef5e47178a086e9caf4071c80",
+    "bytes": "acceptance/bytes/260a4c0ec9e9c92de3a61513e188c619bc0f2a9ef5e47178a086e9caf4071c80",
+    "size": 31371
+  },
+  "OriginalPolynomialCurveSurfacePointProducer.swift": {
+    "sha256": "137f0695ff402a5ca90d0cb6bc0cbb6a9691b19a69c6bb11d7c30540c0d4f159",
+    "bytes": "acceptance/bytes/137f0695ff402a5ca90d0cb6bc0cbb6a9691b19a69c6bb11d7c30540c0d4f159",
+    "size": 39910
+  },
+  "OriginalRevolutionAxisGeometricRelationReading.swift": {
+    "sha256": "101675dd434a4827516a4efaf94627be14aa74a2646749beab2b92da3115a448",
+    "bytes": "acceptance/bytes/101675dd434a4827516a4efaf94627be14aa74a2646749beab2b92da3115a448",
+    "size": 31524
+  },
+  "OriginalRevolutionAxisGeometricRelations.swift": {
+    "sha256": "4307561aba573b973a23944b509701d438b258503886064b7bef369620e95446",
+    "bytes": "acceptance/bytes/4307561aba573b973a23944b509701d438b258503886064b7bef369620e95446",
+    "size": 33421
+  },
+  "OriginalRevolutionAxisLinePublicProducer.swift": {
+    "sha256": "65018da3d255aafe23c4b74d7bd76ad067aca335c9c9c62404e208e8812324fb",
+    "bytes": "acceptance/bytes/65018da3d255aafe23c4b74d7bd76ad067aca335c9c9c62404e208e8812324fb",
+    "size": 43368
+  },
+  "OriginalRevolutionAxisRelations.swift": {
+    "sha256": "274cf5beb2baa89611aa43e9d93990e1932015cb14ed7565896cf839542cff3c",
+    "bytes": "acceptance/bytes/274cf5beb2baa89611aa43e9d93990e1932015cb14ed7565896cf839542cff3c",
+    "size": 37386
+  },
+  "OriginalRevolutionAxisSectionEvidence.swift": {
+    "sha256": "61726523ea57647485da73fd9939b4aa5121d7017cc6f2c53afa0b1d01ee1b46",
+    "bytes": "acceptance/bytes/61726523ea57647485da73fd9939b4aa5121d7017cc6f2c53afa0b1d01ee1b46",
+    "size": 33410
+  },
+  "OriginalRevolutionAxisSectionIssuing.swift": {
+    "sha256": "14ccdc89d38df297d156ef2e48882712fec2a0b8fc05be474a89fcfd12966ec4",
+    "bytes": "acceptance/bytes/14ccdc89d38df297d156ef2e48882712fec2a0b8fc05be474a89fcfd12966ec4",
+    "size": 31602
+  },
+  "OriginalRevolutionAxisSectionReceipt.swift": {
+    "sha256": "8333d149d6b3ac9235f22f5f389b50b147684ebbabf45e01fa0a2671ffa31dbc",
+    "bytes": "acceptance/bytes/8333d149d6b3ac9235f22f5f389b50b147684ebbabf45e01fa0a2671ffa31dbc",
+    "size": 33151
+  },
+  "OriginalRevolutionSnapshot.swift": {
+    "sha256": "c7278d518640fa66234c87fe474f493f530cfab710dc3c85514c2fee0fa7459b",
+    "bytes": "acceptance/bytes/c7278d518640fa66234c87fe474f493f530cfab710dc3c85514c2fee0fa7459b",
+    "size": 31446
+  },
+  "OriginalRevolutionSnapshotProvider.swift": {
+    "sha256": "250058c3593dd500cda281104dacbe7588ca53a6942df896c3d3e3d52644822d",
+    "bytes": "acceptance/bytes/250058c3593dd500cda281104dacbe7588ca53a6942df896c3d3e3d52644822d",
+    "size": 32691
+  },
+  "OriginalTraversalSpanSnapshot.swift": {
+    "sha256": "ef5f50b66e3a753615656e9386e25f1e25452a2649ab63c1dd4cbe827f12733a",
+    "bytes": "acceptance/bytes/ef5f50b66e3a753615656e9386e25f1e25452a2649ab63c1dd4cbe827f12733a",
+    "size": 31471
+  },
+  "OriginalTraversalSpanSnapshotProvider.swift": {
+    "sha256": "b0f94e5a78d28ce3e979a6709e035f554bce281d9027e65c1e42e1758f0debd7",
+    "bytes": "acceptance/bytes/b0f94e5a78d28ce3e979a6709e035f554bce281d9027e65c1e42e1758f0debd7",
+    "size": 33209
+  },
+  "Proof.swift": {
+    "sha256": "0feb582c8545614e32ccce01b6eb833bbe8d3d61a0dfc014158d14da0ed2aa4f",
+    "bytes": "acceptance/bytes/0feb582c8545614e32ccce01b6eb833bbe8d3d61a0dfc014158d14da0ed2aa4f",
+    "size": 43025
+  },
+  "RevolutionAxisFiberAcceptance.py": {
+    "sha256": "6a15dd5bf221f49d00f5a67ebdbf725c94e97783a6e7304baf3093a63d6803ac",
+    "bytes": "acceptance/bytes/6a15dd5bf221f49d00f5a67ebdbf725c94e97783a6e7304baf3093a63d6803ac",
+    "size": 13692
+  },
+  "RevolutionAxisFiberAcceptance.swift": {
+    "sha256": "5113e73538af76f0b4805ec0ea83a0daefc0830967ac4cd96d07ac146150bebf",
+    "bytes": "acceptance/bytes/5113e73538af76f0b4805ec0ea83a0daefc0830967ac4cd96d07ac146150bebf",
+    "size": 12303
+  },
+  "RevolutionAxisFiberOracle.swift": {
+    "sha256": "3b680e80c94b636cd746ae12e5a0d4f08d7161bde96e9910231f9786e5218880",
+    "bytes": "acceptance/bytes/3b680e80c94b636cd746ae12e5a0d4f08d7161bde96e9910231f9786e5218880",
+    "size": 18641
+  },
+  "historical-source/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift": {
+    "sha256": "cd330b8fe7da69cf8ec7070a2246c18c6f5d3c0f8c02a1ec08a338b2e08a25d3",
+    "bytes": "acceptance/bytes/cd330b8fe7da69cf8ec7070a2246c18c6f5d3c0f8c02a1ec08a338b2e08a25d3",
+    "size": 4017
+  },
+  "run.mjs": {
+    "sha256": "9275bfaffc77529e8237384d38d05e3dbae184e061fe199abdf83e340548eade",
+    "bytes": "acceptance/bytes/9275bfaffc77529e8237384d38d05e3dbae184e061fe199abdf83e340548eade",
+    "size": 457
+  }
+}

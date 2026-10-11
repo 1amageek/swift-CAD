@@ -1,0 +1,3 @@
+(node:50309) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS full-domain empty V, T, and outside-support U controls

@@ -223,6 +223,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,
         consumeWork: consumeWork, consumeStorage: consumeStorage,
         maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let axis = try OriginalRevolutionAxisLinePublicProducer().resolve(curve:curve,surface:surface,
+        options:options,tolerance:tolerance,invocation:context) { return axis.points }
       if let drafted = try OriginalDraftedZeroLinePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:context) { return drafted.points }
       if let lift = try OriginalRetainedLiftPlanePublicProducer().resolve(curve: curve, surface: surface,
@@ -267,6 +269,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     tolerance: ModelingTolerance
   ) throws -> [CurveSurfaceIntersection] {
     return try GeometryExactScalarFailure.withPublication {
+      if let axis = try OriginalRevolutionAxisLinePublicProducer().resolve(curve:curve,surface:surface,
+        options:options,tolerance:tolerance,invocation:invocation) { return axis.points }
       if let drafted = try OriginalDraftedZeroLinePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:invocation) { return drafted.points }
       if let lift = try OriginalRetainedLiftPlanePublicProducer().resolve(curve: curve, surface: surface,

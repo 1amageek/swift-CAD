@@ -8,6 +8,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
         tolerance: ModelingTolerance
     ) throws -> CurveSurfaceIntersectionResult {
         return try GeometryExactScalarFailure.withPublication {
+          if let axis = try OriginalRevolutionAxisLinePublicProducer().resolve(curve:curve,surface:surface,
+              options:options,tolerance:tolerance,retainingRelations:true) { return axis }
           if let drafted = try OriginalDraftedZeroLinePublicProducer().resolve(curve:curve,surface:surface,
               options:options,tolerance:tolerance,retainingRelations:true) { return drafted }
           if let lift = try OriginalRetainedLiftPlanePublicProducer().resolve(curve:curve,surface:surface,
@@ -29,6 +31,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
               maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,
               consumeWork: consumeWork, consumeStorage: consumeStorage,
               maximumAlgebraicDepth: maximumAlgebraicDepth)
+          if let axis = try OriginalRevolutionAxisLinePublicProducer().resolve(curve:curve,surface:surface,
+              options:options,tolerance:tolerance,invocation:invocation,retainingRelations:true) { return axis }
           if let drafted = try OriginalDraftedZeroLinePublicProducer().resolve(curve:curve,surface:surface,
               options:options,tolerance:tolerance,invocation:invocation,retainingRelations:true) { return drafted }
           if let lift = try OriginalRetainedLiftPlanePublicProducer().resolve(curve:curve,surface:surface,

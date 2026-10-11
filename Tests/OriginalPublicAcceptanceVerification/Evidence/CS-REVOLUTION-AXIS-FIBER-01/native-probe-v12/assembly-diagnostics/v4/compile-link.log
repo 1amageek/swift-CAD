@@ -1,0 +1,281 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/OriginalRevolutionSnapshot.swift:472:56: error: 'OriginalTraversalSpanSnapshot' is ambiguous for type lookup in this context
+470 | public struct OriginalRevolutionSnapshot<Child:Sendable>:OriginalRevolutionSourceReading {
+471 |     public let original:OriginalRevolutionSurface3D
+472 |     public let originalGenerator:OriginalSourceBinding<OriginalTraversalSpanSnapshot<Child>>
+    |                                                        `- error: 'OriginalTraversalSpanSnapshot' is ambiguous for type lookup in this context
+473 |     public let originalLowerU:Double
+474 |     public let originalUpperU:Double
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalTraversalSpanSnapshot.swift:4:15: note: found this candidate
+ 2 | 
+ 3 | /// Keeps the actual directed source and exact original endpoint coefficients.
+ 4 | public struct OriginalTraversalSpanSnapshot<Child: Sendable>: OriginalTraversalSourceReading {
+   |               `- note: found this candidate
+ 5 |     public let original: OriginalCurveRootSpan3D
+ 6 |     public let originalChild: OriginalSourceBinding<Child>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/native/6ac72d917f8d4afd89fd104f4172c2f8/OriginalTraversalSpanSnapshot.swift:31:15: note: found this candidate
+29 | 
+30 | /// Keeps the actual directed source and exact original endpoint coefficients.
+31 | public struct OriginalTraversalSpanSnapshot<Child: Sendable>: OriginalTraversalSourceReading {
+   |               `- note: found this candidate
+32 |     public let original: OriginalCurveRootSpan3D
+33 |     public let originalChild: OriginalSourceBinding<Child>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/OriginalRevolutionSnapshot.swift:470:15: error: type 'OriginalRevolutionSnapshot<Child>' does not conform to protocol 'OriginalRevolutionSourceReading'
+468 | 
+469 | /// Actual authored revolution and normalized traversal stay retained together.
+470 | public struct OriginalRevolutionSnapshot<Child:Sendable>:OriginalRevolutionSourceReading {
+    |               |- error: type 'OriginalRevolutionSnapshot<Child>' does not conform to protocol 'OriginalRevolutionSourceReading'
+    |               `- note: add stubs for conformance
+471 |     public let original:OriginalRevolutionSurface3D
+472 |     public let originalGenerator:OriginalSourceBinding<OriginalTraversalSpanSnapshot<Child>>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/145-OriginalRevolutionSourceReading.swift:10:20: note: protocol requires nested type 'Generator'
+ 8 | /// Original intrinsic revolution of the retained normalized generator, v in [0,1].
+ 9 | public protocol OriginalRevolutionSourceReading: Sendable {
+10 |     associatedtype Generator: Sendable
+   |                    `- note: protocol requires nested type 'Generator'
+11 |     var originalGenerator: OriginalSourceBinding<Generator> { get }
+12 |     var originalLowerU: Double { get }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/OriginalRevolutionAxisRelations.swift:520:19: error: ambiguous use of 'NativeExactRelationFailure'
+518 |             cover.source.owns(sections.family.period.anchor),
+519 |             sections.graphs.count == cover.family.laws.count else {
+520 |             throw NativeExactRelationFailure.invalidDomain
+    |                   `- error: ambiguous use of 'NativeExactRelationFailure'
+521 |         }
+522 |         for graph in first.graphs {
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/NativeExactRelations/NativeExactRelationFailure.swift:29:13: note: found this candidate in module 'CADGeometry'
+27 | import SourceGeometryAdapters
+28 | #endif
+29 | public enum NativeExactRelationFailure: Error {
+   |             `- note: found this candidate in module 'CADGeometry'
+30 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+31 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/NativeExactRelationFailure.swift:99:13: note: found this candidate in module 'PublicLiftPlane'
+ 97 | import SourceGeometryAdapters
+ 98 | #endif
+ 99 | public enum NativeExactRelationFailure: Error {
+    |             `- note: found this candidate in module 'PublicLiftPlane'
+100 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+101 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactRelationFailure.swift:473:13: note: found this candidate in module 'DraftZeroRuledPort'
+471 | import SourceGeometryAdapters
+472 | #endif
+473 | public enum NativeExactRelationFailure: Error {
+    |             `- note: found this candidate in module 'DraftZeroRuledPort'
+474 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+475 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v6/NativeExactRelationFailure.swift:487:13: note: found this candidate in module 'GuideSeamPort'
+485 | import SourceGeometryAdapters
+486 | #endif
+487 | public enum NativeExactRelationFailure: Error {
+    |             `- note: found this candidate in module 'GuideSeamPort'
+488 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+489 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/OriginalRevolutionAxisRelations.swift:525:23: error: ambiguous use of 'NativeExactRelationFailure'
+523 |             try a.consumeWork(1)
+524 |             guard sections.line.owns(graph.original.graph.evidence.chart) else {
+525 |                 throw NativeExactRelationFailure.invalidDomain
+    |                       `- error: ambiguous use of 'NativeExactRelationFailure'
+526 |             }
+527 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/NativeExactRelations/NativeExactRelationFailure.swift:29:13: note: found this candidate in module 'CADGeometry'
+27 | import SourceGeometryAdapters
+28 | #endif
+29 | public enum NativeExactRelationFailure: Error {
+   |             `- note: found this candidate in module 'CADGeometry'
+30 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+31 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/NativeExactRelationFailure.swift:99:13: note: found this candidate in module 'PublicLiftPlane'
+ 97 | import SourceGeometryAdapters
+ 98 | #endif
+ 99 | public enum NativeExactRelationFailure: Error {
+    |             `- note: found this candidate in module 'PublicLiftPlane'
+100 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+101 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactRelationFailure.swift:473:13: note: found this candidate in module 'DraftZeroRuledPort'
+471 | import SourceGeometryAdapters
+472 | #endif
+473 | public enum NativeExactRelationFailure: Error {
+    |             `- note: found this candidate in module 'DraftZeroRuledPort'
+474 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+475 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v6/NativeExactRelationFailure.swift:487:13: note: found this candidate in module 'GuideSeamPort'
+485 | import SourceGeometryAdapters
+486 | #endif
+487 | public enum NativeExactRelationFailure: Error {
+    |             `- note: found this candidate in module 'GuideSeamPort'
+488 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+489 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/OriginalRevolutionAxisGeometricRelationReading.swift:474:45: error: 'OriginalLinearCurveSnapshot' is ambiguous for type lookup in this context
+472 |         OriginalTraversalChartSelection<BSplineCurve3D,OriginalBSplineChartSelection,OriginalExactScalarDomain>,
+473 |         OriginalExactScalarDomain> { get }
+474 |     var originalLine: OriginalSourceBinding<OriginalLinearCurveSnapshot> { get }
+    |                                             `- error: 'OriginalLinearCurveSnapshot' is ambiguous for type lookup in this context
+475 | }
+476 | 
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalLinearCurveSnapshot.swift:9:15: note: found this candidate
+ 7 | 
+ 8 | /// The exact original line fields; the authored direction keeps its original scale.
+ 9 | public struct OriginalLinearCurveSnapshot: OriginalLinearSourceReading {
+   |               `- note: found this candidate
+10 |     public let original: Curve3D
+11 |     public let origin: Point3D
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLinearCurveSnapshot.swift:453:15: note: found this candidate
+451 | 
+452 | /// The exact original line fields; the authored direction keeps its original scale.
+453 | public struct OriginalLinearCurveSnapshot: OriginalLinearSourceReading {
+    |               `- note: found this candidate
+454 |     public let original: Curve3D
+455 |     public let origin: Point3D
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/OriginalRevolutionAxisGeometricRelations.swift:473:83: error: 'OriginalLinearCurveSnapshot' is ambiguous for type lookup in this context
+471 |     public typealias Surface = OriginalRevolutionSnapshot<BSplineCurve3D>
+472 |     public typealias Selection = OriginalTraversalChartSelection<BSplineCurve3D,OriginalBSplineChartSelection,OriginalExactScalarDomain>
+473 |     public typealias Original = OriginalRevolutionAxisRelations<Surface,Selection,OriginalLinearCurveSnapshot>
+    |                                                                                   `- error: 'OriginalLinearCurveSnapshot' is ambiguous for type lookup in this context
+474 |     private struct Payload: Sendable {
+475 |         let original: Original
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalLinearCurveSnapshot.swift:9:15: note: found this candidate
+ 7 | 
+ 8 | /// The exact original line fields; the authored direction keeps its original scale.
+ 9 | public struct OriginalLinearCurveSnapshot: OriginalLinearSourceReading {
+   |               `- note: found this candidate
+10 |     public let original: Curve3D
+11 |     public let origin: Point3D
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLinearCurveSnapshot.swift:453:15: note: found this candidate
+451 | 
+452 | /// The exact original line fields; the authored direction keeps its original scale.
+453 | public struct OriginalLinearCurveSnapshot: OriginalLinearSourceReading {
+    |               `- note: found this candidate
+454 |     public let original: Curve3D
+455 |     public let origin: Point3D
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/OriginalRevolutionAxisGeometricRelations.swift:484:52: error: 'OriginalLinearCurveSnapshot' is ambiguous for type lookup in this context
+482 |     public var exactPoints: [OriginalIssuedExactIntersectionPoint] { payload.exactPoints }
+483 |     public var originalDomain: OriginalRevolutionDomainCover<Surface,Selection,OriginalExactScalarDomain> { payload.original.originalDomain }
+484 |     public var originalLine: OriginalSourceBinding<OriginalLinearCurveSnapshot> { payload.original.sections.line }
+    |                                                    `- error: 'OriginalLinearCurveSnapshot' is ambiguous for type lookup in this context
+485 |     public var kind: ExactParametricRelationKind { .curveSurface }
+486 |     public var hasPositiveDimensionalSolutions: Bool { payload.pairs.contains { $0.geometry.hasPositiveDimensionalSolutions } }
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalLinearCurveSnapshot.swift:9:15: note: found this candidate
+ 7 | 
+ 8 | /// The exact original line fields; the authored direction keeps its original scale.
+ 9 | public struct OriginalLinearCurveSnapshot: OriginalLinearSourceReading {
+   |               `- note: found this candidate
+10 |     public let original: Curve3D
+11 |     public let origin: Point3D
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLinearCurveSnapshot.swift:453:15: note: found this candidate
+451 | 
+452 | /// The exact original line fields; the authored direction keeps its original scale.
+453 | public struct OriginalLinearCurveSnapshot: OriginalLinearSourceReading {
+    |               `- note: found this candidate
+454 |     public let original: Curve3D
+455 |     public let origin: Point3D
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/OriginalRevolutionAxisLinePublicProducer.swift:474:30: error: 'OriginalLinearCurveSnapshot' is ambiguous for type lookup in this context
+472 |     private typealias Surface = OriginalRevolutionAxisGeometricRelations.Surface
+473 |     private typealias Selection = OriginalRevolutionAxisGeometricRelations.Selection
+474 |     private typealias Line = OriginalLinearCurveSnapshot
+    |                              `- error: 'OriginalLinearCurveSnapshot' is ambiguous for type lookup in this context
+475 |     private typealias Admission = NativeExactPublicAdmission<NativeCurveSurfacePointAllowance>
+476 | 
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalLinearCurveSnapshot.swift:9:15: note: found this candidate
+ 7 | 
+ 8 | /// The exact original line fields; the authored direction keeps its original scale.
+ 9 | public struct OriginalLinearCurveSnapshot: OriginalLinearSourceReading {
+   |               `- note: found this candidate
+10 |     public let original: Curve3D
+11 |     public let origin: Point3D
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLinearCurveSnapshot.swift:453:15: note: found this candidate
+451 | 
+452 | /// The exact original line fields; the authored direction keeps its original scale.
+453 | public struct OriginalLinearCurveSnapshot: OriginalLinearSourceReading {
+    |               `- note: found this candidate
+454 |     public let original: Curve3D
+455 |     public let origin: Point3D
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/OriginalRevolutionAxisLinePublicProducer.swift:475:35: error: 'NativeExactPublicAdmission' is ambiguous for type lookup in this context
+473 |     private typealias Selection = OriginalRevolutionAxisGeometricRelations.Selection
+474 |     private typealias Line = OriginalLinearCurveSnapshot
+475 |     private typealias Admission = NativeExactPublicAdmission<NativeCurveSurfacePointAllowance>
+    |                                   `- error: 'NativeExactPublicAdmission' is ambiguous for type lookup in this context
+476 | 
+477 |     func resolve(curve:Curve3D,surface:Surface3D,options:CurveSurfaceIntersectionOptions,
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactPublicAdmission.swift:5:8: note: found this candidate
+ 3 | /// Exclusive query-local bridge to the original Geometry allowance.
+ 4 | /// Lower layers report already mapped depths and every actual cell visit.
+ 5 | struct NativeExactPublicAdmission<Usage: RationalAlgebraAdmitting>: ~Copyable, ExactScalarAdmission {
+   |        `- note: found this candidate
+ 6 |     var usage: Usage
+ 7 |     let maximumValueDepth: Int
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicAdmission.swift:449:8: note: found this candidate
+447 | /// Exclusive query-local bridge to the original Geometry allowance.
+448 | /// Lower layers report already mapped depths and every actual cell visit.
+449 | struct NativeExactPublicAdmission<Usage: RationalAlgebraAdmitting>: ~Copyable, ExactScalarAdmission {
+    |        `- note: found this candidate
+450 |     var usage: Usage
+451 |     let maximumValueDepth: Int
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/CurveSurfaceOverlapResolver.swift:658:112: error: cannot convert return expression of type 'CADGeometry.CurveSurfaceIntersectionResult' to return type 'RevolutionAxisAcceptance.CurveSurfaceIntersectionResult'
+656 |         invocation: CurveSurfaceQueryInvocation) throws -> CurveSurfaceIntersectionResult {
+657 |         if let exact = try NativeExactPublicCurveSurfaceProducer().resolve(curve: curve, surface: surface,
+658 |             options: options, tolerance: tolerance, invocation: invocation, retainingRelations: true) { return exact }
+    |                                                                                                                `- error: cannot convert return expression of type 'CADGeometry.CurveSurfaceIntersectionResult' to return type 'RevolutionAxisAcceptance.CurveSurfaceIntersectionResult'
+659 |         if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+660 |             options: options, tolerance: tolerance, invocation: invocation, retainingRelations: true) { return native }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/CurveSurfaceOverlapResolver.swift:660:112: error: cannot convert return expression of type 'CADGeometry.CurveSurfaceIntersectionResult' to return type 'RevolutionAxisAcceptance.CurveSurfaceIntersectionResult'
+658 |             options: options, tolerance: tolerance, invocation: invocation, retainingRelations: true) { return exact }
+659 |         if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+660 |             options: options, tolerance: tolerance, invocation: invocation, retainingRelations: true) { return native }
+    |                                                                                                                `- error: cannot convert return expression of type 'CADGeometry.CurveSurfaceIntersectionResult' to return type 'RevolutionAxisAcceptance.CurveSurfaceIntersectionResult'
+661 |         if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+662 |             options: options, tolerance: tolerance, invocation: invocation) { return original }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/CurveSurfaceOverlapResolver.swift:662:86: error: cannot convert return expression of type 'CADGeometry.CurveSurfaceIntersectionResult' to return type 'RevolutionAxisAcceptance.CurveSurfaceIntersectionResult'
+660 |             options: options, tolerance: tolerance, invocation: invocation, retainingRelations: true) { return native }
+661 |         if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+662 |             options: options, tolerance: tolerance, invocation: invocation) { return original }
+    |                                                                                      `- error: cannot convert return expression of type 'CADGeometry.CurveSurfaceIntersectionResult' to return type 'RevolutionAxisAcceptance.CurveSurfaceIntersectionResult'
+663 |         if let affine = try OriginalAffineCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+664 |             options: options, tolerance: tolerance, invocation: invocation) { return affine }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/CurveSurfaceOverlapResolver.swift:664:86: error: cannot convert return expression of type 'CADGeometry.CurveSurfaceIntersectionResult' to return type 'RevolutionAxisAcceptance.CurveSurfaceIntersectionResult'
+662 |             options: options, tolerance: tolerance, invocation: invocation) { return original }
+663 |         if let affine = try OriginalAffineCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+664 |             options: options, tolerance: tolerance, invocation: invocation) { return affine }
+    |                                                                                      `- error: cannot convert return expression of type 'CADGeometry.CurveSurfaceIntersectionResult' to return type 'RevolutionAxisAcceptance.CurveSurfaceIntersectionResult'
+665 |         if let coons = try OriginalCoonsCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+666 |             options: options, tolerance: tolerance, invocation: invocation) { return coons }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v4/CurveSurfaceOverlapResolver.swift:666:86: error: cannot convert return expression of type 'CADGeometry.CurveSurfaceIntersectionResult' to return type 'RevolutionAxisAcceptance.CurveSurfaceIntersectionResult'
+664 |             options: options, tolerance: tolerance, invocation: invocation) { return affine }
+665 |         if let coons = try OriginalCoonsCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+666 |             options: options, tolerance: tolerance, invocation: invocation) { return coons }
+    |                                                                                      `- error: cannot convert return expression of type 'CADGeometry.CurveSurfaceIntersectionResult' to return type 'RevolutionAxisAcceptance.CurveSurfaceIntersectionResult'
+667 |         try options.validate(tolerance: tolerance)
+668 |         try invocation.consumeFixedWork()

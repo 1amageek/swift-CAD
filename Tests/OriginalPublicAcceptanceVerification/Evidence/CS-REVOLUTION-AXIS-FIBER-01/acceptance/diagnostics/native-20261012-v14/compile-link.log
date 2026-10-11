@@ -1,0 +1,7 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v14/Oracle.swift:690:45: error: value of type 'OriginalIssuedDomainCover<OriginalLinearCurveSnapshot, OriginalLinearChartSelection, OriginalExactScalarDomain>' has no member 'request'
+688 |             }
+689 |         }
+690 |         let requestedT = raw.first.coverage.request.axes[0].intervals
+    |                                             `- error: value of type 'OriginalIssuedDomainCover<OriginalLinearCurveSnapshot, OriginalLinearChartSelection, OriginalExactScalarDomain>' has no member 'request'
+691 |         try require(requestedT.count == 1 && requestedT[0].includesLower && requestedT[0].includesUpper)
+692 |         guard case .finite(let t0) = requestedT[0].lower,case .finite(let t1) = requestedT[0].upper else {

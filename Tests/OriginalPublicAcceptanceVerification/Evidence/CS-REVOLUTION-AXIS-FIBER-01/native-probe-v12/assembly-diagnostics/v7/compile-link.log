@@ -1,0 +1,7 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-revolution-axis-acceptance-native-20261012-v7/NativeExactPublicCurveSurfaceProducer.swift:517:49: error: cannot convert value of type 'PublicLiftPlane.ExactGeometricRelationLimits' to expected argument type 'CADGeometry.ExactGeometricRelationLimits'
+515 |             let result = try NativeExactCurveSurfacePointProducer().resolve(curve: source, surface: target,
+516 |                 options: options, tolerance: tolerance, maximumExtensionLevel: Int.max,
+517 |                 limits: NativeExactPublicLimits.unboundedStructure(), using: &admission)
+    |                                                 `- error: cannot convert value of type 'PublicLiftPlane.ExactGeometricRelationLimits' to expected argument type 'CADGeometry.ExactGeometricRelationLimits'
+518 |             guard retainingRelations || !result.hasPositiveDimensionalSolutions else {
+519 |                 throw failure(.nonDiscreteIntersection,
