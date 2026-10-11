@@ -1,0 +1,8 @@
+{
+  "state": "receipt-premise-differs-before-compile",
+  "path": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultOriginalLiftPlaneRelationResolver.swift",
+  "expectedSHA256": "208c46b028d60431128d222c1718cc64821ee5653450a228aa641b090cf17dc8",
+  "currentSHA256": "3c047e15c79a75f814733f6eae6d35470d28751245152daf77c1eaf208c0cfc5",
+  "compilerLaunched": false,
+  "runtimeLaunched": false
+}

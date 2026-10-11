@@ -1381,3 +1381,15 @@ empty relations retain the same complete source/coverage owners. Existing numeri
 entry points and Codable point formats are unchanged. No implicit numeric fallback
 or source pair re-solve occurs. The composition contract is owned by
 [NativeExactGeometricRelations](../NativeExactGeometricRelations/DESIGN.md).
+
+### Finite line and original zero-draft wall dispatch
+
+All ordinary and callback-admitted bare/rich entries select
+`OriginalDraftedZeroLinePublicProducer` before legacy numerical dispatch for an
+explicit finite authored line request against an original zero-angle drafted
+wall. Its single caller admission composes existing source/DI, L5/L6 and
+certified numerical publication. The rich result retains both the complete
+issued geometric relation and its numerical incidence mapping. A selected
+failure propagates without retry; bare positive-dimensional results fail
+atomically. Capability, source ownership and verification are owned by the
+[finite zero-draft consumer](../NativeExactGeometricRelations/DESIGN.md#finite-original-line-against-a-zero-draft-wall).

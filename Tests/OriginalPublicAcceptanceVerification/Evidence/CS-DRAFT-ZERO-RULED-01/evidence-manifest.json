@@ -1,0 +1,225 @@
+{
+  "cell": "CS-DRAFT-ZERO-RULED-01",
+  "state": "observed-numerical-public-result-without-complete-original-receipt",
+  "cellComplete": false,
+  "files": [
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v1/admission-failure.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v1/admission-failure.json",
+      "sha256": "f917f131c337f684b65db8d06c8f2fb1e68e7a6e27d833be887c68aaecb489ca",
+      "bytes": 432
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v1/premises-before.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v1/premises-before.json",
+      "sha256": "b9448c824d9d07f56578b58bb9c212e85bb0bbc1820c5420f719142ef821aa71",
+      "bytes": 230
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/ActualLiftDeclineAdapter.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/ActualLiftDeclineAdapter.swift",
+      "sha256": "eef3f7dec8dd4f3e933388e34c12d466b818d749b15fdb18146f9d52fd9e8ea1",
+      "bytes": 1211
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/CurveSurfaceOverlapResolver.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/CurveSurfaceOverlapResolver.swift",
+      "sha256": "2cb63be6d9885d29c842e0e6783c8f507bc356e854e0292adf4afb56d9c0e76e",
+      "bytes": 32225
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/DefaultCurveSurfaceIntersector+Overlap.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/DefaultCurveSurfaceIntersector+Overlap.swift",
+      "sha256": "3accbe70be5cb0cbe3ca1d7e61d8f0c97c4bb0d4a2d2b11013c644927ba0e611",
+      "bytes": 2416
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/DefaultCurveSurfaceIntersector.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/DefaultCurveSurfaceIntersector.swift",
+      "sha256": "c9c1dd9cb3aa7db3cf05fd7047a344e2601a3ed866cd32cf226cc7cb09653331",
+      "bytes": 206719
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/Probe.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/Probe.swift",
+      "sha256": "e7673903ff4c761a3edbc44fb238aba908ece49d1f4716f98ce4d1d9a0cb2e15",
+      "bytes": 3814
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/admission.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/admission.json",
+      "sha256": "40ddd709e9d1ae07fde4ddc0f2aca5c2759119bf0f5ab42185678ba79c06bc19",
+      "bytes": 934890
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/compile-command.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/compile-command.json",
+      "sha256": "45f698b4c328bac47277d92cac5051d660f4190a16d49a73cb5c4f6401d0890c",
+      "bytes": 4732
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/compile-link.log",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/compile-link.log",
+      "sha256": "cededbb1ec5af71802123f18f3f77be3ebf76de6ab8c9c4f96aa512b9aa43976",
+      "bytes": 267946
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/driver.py",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/driver.py",
+      "sha256": "75f5299c6176553e3bb02967e989e4af8d9b5f44c4918b111243e7713c150927",
+      "bytes": 18095
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/historical-source/DefaultOriginalLiftPlaneRelationResolver.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/historical-source/DefaultOriginalLiftPlaneRelationResolver.swift",
+      "sha256": "208c46b028d60431128d222c1718cc64821ee5653450a228aa641b090cf17dc8",
+      "bytes": 8525
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/premises-before.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/premises-before.json",
+      "sha256": "2c1acc369e9c20ee08883bc5a192390c1cae63cda54054f9c12cc5762d92501b",
+      "bytes": 230
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/receipt.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/receipt.json",
+      "sha256": "7020aa6a4bf787a368a376e582c27898b2808d6a6d00651a8512e8d46e900e4c",
+      "bytes": 778646
+    },
+    {
+      "path": "diagnostics/cs-draft-zero-ruled-stop-native-20261011-v2/runs.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v2/runs.json",
+      "sha256": "f4ce9682ff05562aa0eba7a4be3a1317043f0402ba3fa8b0de726ead70aad1a3",
+      "bytes": 5483
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/ActualLiftDeclineAdapter.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/ActualLiftDeclineAdapter.swift",
+      "sha256": "eef3f7dec8dd4f3e933388e34c12d466b818d749b15fdb18146f9d52fd9e8ea1",
+      "bytes": 1211
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/CurveSurfaceOverlapResolver.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/CurveSurfaceOverlapResolver.swift",
+      "sha256": "2cb63be6d9885d29c842e0e6783c8f507bc356e854e0292adf4afb56d9c0e76e",
+      "bytes": 32225
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/DefaultCurveSurfaceIntersector+Overlap.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/DefaultCurveSurfaceIntersector+Overlap.swift",
+      "sha256": "3accbe70be5cb0cbe3ca1d7e61d8f0c97c4bb0d4a2d2b11013c644927ba0e611",
+      "bytes": 2416
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/DefaultCurveSurfaceIntersector.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/DefaultCurveSurfaceIntersector.swift",
+      "sha256": "c9c1dd9cb3aa7db3cf05fd7047a344e2601a3ed866cd32cf226cc7cb09653331",
+      "bytes": 206719
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/Probe.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/Probe.swift",
+      "sha256": "e7673903ff4c761a3edbc44fb238aba908ece49d1f4716f98ce4d1d9a0cb2e15",
+      "bytes": 3814
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/admission.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/admission.json",
+      "sha256": "4bcdff0c0917c50f07a4d4b026bea03b561747647da9bad636a82ed11e4a7a77",
+      "bytes": 934890
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/compile-command.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/compile-command.json",
+      "sha256": "01dac47d5b08daeb35b8432c15ac407e3d69787e7e437d761e3acf401669bc9e",
+      "bytes": 5025
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/compile-link.log",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/compile-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/driver.py",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/driver.py",
+      "sha256": "8b2bc9b0c558034209fa8a86aadc74c835f470ba3ae32587d443e7bb22412907",
+      "bytes": 18340
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/historical-source/DefaultOriginalLiftPlaneRelationResolver.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/historical-source/DefaultOriginalLiftPlaneRelationResolver.swift",
+      "sha256": "208c46b028d60431128d222c1718cc64821ee5653450a228aa641b090cf17dc8",
+      "bytes": 8525
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/observation.log",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/observation.log",
+      "sha256": "ded0df82c44c2b935708e77d4d2691d03940d4c8225096c0213abed04a649e30",
+      "bytes": 784
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/premises-before.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/premises-before.json",
+      "sha256": "d5bb538d6b463b42f06b285c72a238e3a9c497d500e80519519fb7cf1793bedd",
+      "bytes": 230
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/receipt.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/receipt.json",
+      "sha256": "faf2028b95fd9b177a1ba2e1837b96980d98427266eff130a742fed7d5e2bf8a",
+      "bytes": 779981
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/runs.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/runs.json",
+      "sha256": "fa89a4597876f0bdbabe88b3594a41d17ae909b92b8b8682acf7de4847e8c3be",
+      "bytes": 6308
+    },
+    {
+      "path": "observation/cs-draft-zero-ruled-stop-native-20261011-v3/runtime-admission.json",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-stop-native-20261011-v3/runtime-admission.json",
+      "sha256": "29ebc66fa6562bd03698b05832e6beb63e5040904d47024dcc900e46a612ed7b",
+      "bytes": 772723
+    },
+    {
+      "path": "source-snapshots/Sources/CADGeometry/OriginalDraftedSection/OriginalDraftedCurve3D.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDraftedSection/OriginalDraftedCurve3D.swift",
+      "sha256": "fc9fc615841e491fe16c625e1eaa3eb982bf7fbbf45c34ef1cae75a13594f748",
+      "bytes": 17362
+    },
+    {
+      "path": "source-snapshots/Sources/CADGeometry/OriginalDraftedSection/OriginalDraftedRuledSurface3D.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDraftedSection/OriginalDraftedRuledSurface3D.swift",
+      "sha256": "79297f639f7b4c2c86a4ca96f43724cb78da22b8ae7d050effaaabca538c9f9e",
+      "bytes": 7556
+    },
+    {
+      "path": "source-snapshots/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift",
+      "sha256": "cd330b8fe7da69cf8ec7070a2246c18c6f5d3c0f8c02a1ec08a338b2e08a25d3",
+      "bytes": 4017
+    },
+    {
+      "path": "source-snapshots/Tests/OriginalRevolutionSourceVerification/Sources/Proof/Proof.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRevolutionSourceVerification/Sources/Proof/Proof.swift",
+      "sha256": "ccd7378b23cfd2113a4fbd279a7cdb188834812b606cbfe50bb4dfcb232ca4d6",
+      "bytes": 8206
+    },
+    {
+      "path": "source-snapshots/Tests/OriginalPublicAcceptanceVerification/DraftZeroRuledStop.swift",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/DraftZeroRuledStop.swift",
+      "sha256": "e7673903ff4c761a3edbc44fb238aba908ece49d1f4716f98ce4d1d9a0cb2e15",
+      "bytes": 3814
+    },
+    {
+      "path": "source-snapshots/Tests/OriginalPublicAcceptanceVerification/DraftZeroRuledStop.py",
+      "sourcePath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/DraftZeroRuledStop.py",
+      "sha256": "8b2bc9b0c558034209fa8a86aadc74c835f470ba3ae32587d443e7bb22412907",
+      "bytes": 18340
+    }
+  ],
+  "rawReceiptSHA256": "faf2028b95fd9b177a1ba2e1837b96980d98427266eff130a742fed7d5e2bf8a",
+  "scope": "One Native actual constructor and current-facade/real cached fallback observation; old/new DTO boundary explicitly retained; no geometry failure or exact-cell completion claim."
+}

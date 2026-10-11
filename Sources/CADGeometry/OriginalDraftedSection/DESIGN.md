@@ -95,6 +95,46 @@ missing real roots retain typed geometry failures; unresolved speed/branch
 clearance or exhausted capabilities fail as resource exhaustion. Missing
 original higher derivatives propagate the lower typed failure.
 
+### Exact zero-angle Native translation atlas
+
+`OriginalDraftedZeroTranslationRationalAtlas` owns only the position law of the
+exact-zero branch with structurally equal raw axis/pull and exactly one nonzero
+raw axis component. The canonical unit axis is the corresponding signed unit
+coordinate vector, not an interval-cache midpoint. The corresponding original
+raw normal component must be nonzero: division by the positive normal length
+then proves exact nonzero normal/axis clearance. This source theorem authorizes
+the existing constant-ruling identity independently of interval enclosure width.
+Other angles, axes, clearances and child source families remain explicitly
+unsupported by this atlas.
+
+The source owns one representation-only capability predicate shared by atlas
+preparation and the source provider's public `supports` query. Public dispatch
+uses it before selecting the exact path, so existing unsupported source families
+continue through their existing legacy paths. This predicate performs no source
+validation or resource admission; once selected, tolerance, invalid-source,
+resource and cancellation failures propagate from the admitted operation.
+
+The generator must be a direct validated positive-weight Native B-spline with
+authored traversal endpoints. The atlas consumes the existing original traversal
+polynomial pieces once and retains their exact reversed parameter law, selected
+owning spans and closed supports. Its position is `(X + D*A.x*h(v),
+Y + D*A.y*h(v), Z + D*A.z*h(v))/D`, with exact original authored heights and
+`h(v)=height+(endHeight-height)*v`. The uncancelled original denominator `D`
+remains unchanged. Native validation supplies finite strictly positive weights,
+ordered knots and continuous closed-span endpoint semantics; the exact Native
+nonnegative partition-of-unity basis therefore proves `D>0` throughout each
+closed retained cell. A nonzero-polynomial test or sampled residual is not this
+denominator authority.
+
+The authored wall domain remains `[0,1]^2` independently of the atlas cells.
+[Source Issuance](../OriginalSourceIssuance/DESIGN.md) imports these immutable
+cells and retains the original generator correspondence
+`generatorStart+(generatorEnd-generatorStart)*u`. Its existing finite preparer
+must separately prove complete authored coverage and identity original UV.
+All exact construction, coefficient import and correspondence evaluation retain
+the same caller work/storage, scalar depth, source depth and cancellation
+contract; no new mutable state or target-specific capability is introduced.
+
 ## Verification and Change Impact
 
 After the source implementation gate, DraftedSection/Extrude tests must exercise

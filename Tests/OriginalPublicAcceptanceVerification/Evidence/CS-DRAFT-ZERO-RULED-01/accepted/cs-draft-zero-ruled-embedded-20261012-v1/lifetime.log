@@ -1,0 +1,3 @@
+(node:19961) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS draft detachedsource/result lifetime, generatorCOW and concurrent independent exactreaders

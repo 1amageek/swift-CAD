@@ -1,0 +1,8 @@
+(node:18723) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+DEPTH_SOURCE0_REFUSAL_BEGIN
+DEPTH_SOURCE1_REFUSAL_BEGIN
+DEPTH_SOURCE2_SUCCESS_BEGIN
+DEPTH_ALGEBRAIC0_REFUSAL_BEGIN
+DEPTH_CANDIDATE1_SUCCESS_BEGIN
+PASS draft sourceDepth2/candidate1/default32 success; sourceDepth1/algebraic0/candidate0/polynomial0 typed refusal

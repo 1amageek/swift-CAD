@@ -1,0 +1,23 @@
+#if ISSUED_GEOMETRY_ISOLATED_VERIFICATION
+import L0
+import L1
+import L2
+import L3
+import L4
+import L5
+import L6
+import DI0
+import DI
+import SourceIssuer
+import IssuedGraphs
+#endif
+
+/// Requirements remain callable through the retained public existential on Embedded.
+public protocol OriginalIssuedGeometricRelationReading: Sendable {
+    var kind: ExactParametricRelationKind { get }
+    var pairs: [OriginalIssuedGeometricRelationPair] { get }
+    var exactPoints: [OriginalIssuedExactIntersectionPoint] { get }
+    var hasPositiveDimensionalSolutions: Bool { get }
+    var hasPositiveDimensionalImage: Bool { get }
+    var isEmpty: Bool { get }
+}

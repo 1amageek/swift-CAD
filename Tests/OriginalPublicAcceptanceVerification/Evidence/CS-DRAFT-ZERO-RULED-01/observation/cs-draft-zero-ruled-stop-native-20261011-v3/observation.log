@@ -1,0 +1,9 @@
+CONSTRUCTOR_SUCCESS original reversed weighted generator; raw normal2/axis4/pull4; angle+0.0; heights1/3; sourceDepth2
+ORACLE sole(T,U,V)=(0,2/3,1/2); originalGenerator=1/3; XYZ=(1/2,0,2); one incident; image/fiber dimensions0
+ORDINARY_RICH_BEGIN unchanged standard ceilings
+SELECTED_PRODUCER_DECLINED actual current producer returned nil
+SELECTED_PRODUCER_DECLINED actual current producer returned nil
+ORDINARY_RICH_RETURNED points=1 overlaps=0
+POINT T=0.0 U=0.6666666666666667 V=0.5000000000000001 XYZ=(0.5,0.0,2.0) kind=transverse
+CACHED_DTO_PROOFS nativePoints=false nativeRelations=false polynomial=false affine=false coons=false exactGeometry=false
+NUMERICAL_RESULT_ONLY newest issued source/DI/UV/image-fiber fields are outside this cached DTO ABI; no complete-cell acceptance

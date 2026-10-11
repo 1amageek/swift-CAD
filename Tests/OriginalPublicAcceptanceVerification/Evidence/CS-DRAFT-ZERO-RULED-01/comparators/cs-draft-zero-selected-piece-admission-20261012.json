@@ -1,0 +1,10 @@
+{
+  "currentSource": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift",
+  "currentSHA256": "aab336598a4a8d36d4a8d7bc07160ad0a0d75bcea5fdf173b63986364127cf99",
+  "cachedHistoricalCommit": "d963399f",
+  "cachedSHA256": "7409f6b78518d3c7d558e952d458238ffeddae31129dd9176452c8f318b885fa",
+  "unselectedCurrentOnlyDeclaration": "constructionPieces(of:maximumSourceDepth:tolerance:usage:)",
+  "normalizedCurrentEqualsCached": true,
+  "scope": "Direct Native original traversal pieces and all their transitive helper bodies are unchanged; no whole-file current/cache equality claim.",
+  "admittedBy": ".build/cs-draft-zero-ruled-native-20261011-v1/receipt.json"
+}

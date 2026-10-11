@@ -1320,6 +1320,50 @@ Coefficient transfer consumes the existing admitted canonical term order, so has
 iteration cannot change polynomial import work between identical preparations.
 The temporary ordered view and imported term storage both use the same caller.
 
+### Exact-zero drafted Native wall intake
+
+`OriginalDraftedRuledSurfaceSnapshotProvider` consumes the single immutable
+`OriginalDraftedZeroTranslationRationalAtlas` owned by
+[Original Drafted Section](../OriginalDraftedSection/DESIGN.md). It accepts only
+the producer's canonical exact-zero constant-ruling branch with a direct
+positive-weight Native generator and authored endpoints. The snapshot retains
+the actual original wall, raw normal/axis/pull, heights, reversed traversal and
+uncancelled original denominator. General draft families fail explicitly before
+source publication.
+
+The provider's static `supports` query delegates the source-owned representation
+predicate before public selection. Unsupported representations retain existing
+legacy dispatch. This capability decline does not catch admitted preparation
+failures: tolerance, invalid-source, resource and cancellation errors propagate
+after selection under the same caller ledger.
+
+The provider imports original ordered coefficients exactly into the supplied
+`OriginalExactScalarDomain` under the caller's existing ledger and source-depth
+limit. `OriginalDraftedRuledSurfaceSnapshot` implements the existing immutable
+retained-surface reading port. The existing finite preparer proves coverage of
+the independent authored `[0,1]^2` domain and identity original UV; an atlas cell
+union does not redefine that domain. Exact denominator authority belongs to the
+source producer's Native positive-weight theorem, not the preparer's corruption
+check.
+
+The snapshot also retains exact generator offset/gain from the original authored
+traversal labels. Its checked `originalGeneratorParameter(atU:using:)` evaluates
+that source-owned affine correspondence only for original `u` in `[0,1]` using
+the independently supplied caller admission and inherited proof depth. It never
+infers generator parameters from numerical XYZ or reconstructs a Native curve.
+
+```text
+original zero-angle wall -> source-owned exact XYZ/D + closed cells
+                        -> exact field import -> retained surface reading
+original traversal labels -> retained exact offset/gain -> checked child parameter
+retained surface reading -> existing complete cover -> identity original UV
+```
+
+The bounded public acceptance case `CS-DRAFT-ZERO-RULED-01` owns Native, WASM,
+Embedded and sanitizer execution, complete public incident/image-fiber receipts,
+the reversed `u=2/3 -> generator=1/3` transport and caller failure boundaries.
+This source intake alone does not establish complete public intersection success.
+
 
 ## Native surface lift graph supply
 

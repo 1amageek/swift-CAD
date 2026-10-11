@@ -1,7 +1,7 @@
 /// Exact authored tuple groups behind ordinary numerical representatives.
 public struct OriginalIssuedNumericalCurveSurfacePoints: Sendable {
     public let geometry: any OriginalIssuedGeometricRelationReading
-    /// Six values per exact point: original T, plane U/V, and XYZ.
+    /// Six values per exact point: original T, surface U/V, and XYZ.
     public let coordinates: ExactOriginalScalarTransferReceipt
     public let incidenceOrdinals: [Int]
     public let incidenceRanges: [Range<Int>]

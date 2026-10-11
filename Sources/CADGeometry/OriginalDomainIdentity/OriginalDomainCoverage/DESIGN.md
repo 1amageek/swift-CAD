@@ -493,8 +493,31 @@ provenance; execution state is recorded only in PROGRESS.md:
 | CS-DERIVATIVE-LIFT-PLANE-01 | Use [DerivativeHostShape.shape(weighted:true, projected:true)](../../../../Tests/OriginalDerivativeLiftHostVerification/Shape.swift), its existing [mode-0 Native diagonal pcurve](../../../../Tests/OriginalDerivativeLiftHostVerification/Proof.swift), SurfaceLiftCurve3D, and the whole plane through (1/2,0,0), normal unitX. Invoke ordinary intersectionResult with full authored T=[0,1]. | The specific row-constant weights cancel from the X quotient, and the existing U basis/control X gives X=u; projection changes only Z and the Hermite correction preserves X. Thus X=t and the complete root is T=1/2. Host UV=(1/2,1/2), XYZ=(1/2,1/2,5/32), plane UV=(5/32,-1/2). Pcurve/U/V knot sides give eight incidents at the same tuple. Image and coordinate-fiber dimensions are0; incidence count is distinct from fiber cardinality. The former65/512 was a derived-oracle arithmetic error, corrected against the original Hermite coefficient owner; the authored construction is unchanged. | [Native selected-entry observation](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-DERIVATIVE-LIFT-PLANE-01/STOP.md) records the historical exact producer returning nil and the actual rich entry reaching an explicit verification-only fallback tripwire. Complete production fallback behavior remains unobserved; the tripwire is not a geometric failure. Existing [derivative lift source/DI evidence](../../../../Tests/OriginalDerivativeLiftHostVerification/VERIFICATION.md) supplies the actual construction and eight incidents. Consume those existing Native-pcurve/retained-host capabilities to close the missing exact publication receipt; no new source prerequisite is inferred. |
 | CS-REVOLUTION-AXIS-FIBER-01 | Use the actual [weighted reversed rational generator revolution](../../../../Tests/OriginalRevolutionSourceVerification/Sources/Proof/Proof.swift): degree1 generator origin to(1,0,0), weights[1,2], reversed authored[0,1], raw axis(0,0,2), U=[-B,B], V=[0,1], where B is the exact binary64 value2*Double.pi. Query the origin/unitZ line with T=[-1,1] through ordinary intersectionResult. | Radius r(v)=2(1-v)/(2-v), denominator in[1,2], zero only atv=1; Z=0. Complete tuples are{(T,U,V):T=0,U in[-B,B],V=1}, XYZ={origin}, parameter dimension1/image dimension0/XYZ fiber dimension1. Retain all U and generator-local parameter0. Fundamental[-B,0] yields cycles-1,0,1,2 with closed seam endpoints; each of U=-B,0,B has two incidents. B is not mathematical2pi. | Public runtime is unobserved. Reuse [revolution source evidence](../../../../Tests/OriginalRevolutionSourceVerification/Evidence/VERIFICATION.md) and [full guarded domain evidence](../../../../Tests/OriginalDomainIdentityVerification/RevolutionDomainEvidence/VERIFICATION.md). M5.R period evidence is not a collapse theorem and is not an additional prerequisite for preserving all UV. Observe actual rich publication and its whole U fiber before selecting a change. |
 | SSI-ROLLING-BALL-PLANE-01 | Use the actual CADGeometry RollingBallBlendSurface3D construction recipe from [the existing shape/lift fixture](../../../../Tests/OriginalRollingBallGraphIntakeVerification/Proof.swift), default radius5, center(0,0,u), rails(3,4,u)/(3,-4,u), full authoredUV=[0,1]^2. Ordinary rich SSI compares this original rollingBall surface with the whole plane through(0,0,1/2), normal unitZ. Do not pass the independent adapter payload as the public shape. | Set q(v)=5-4v+4v^2, X(v)=(15+20v-20v^2)/q, Y(v)=20(1-2v)/q. Complete tuples are u=1/2, allv in[0,1], XYZ=(X,Y,1/2), planeUV=(Y,-X). q>=4 and Y'= -40(3+4v-4v^2)/q^2<0 prove complete exclusion elsewhere, image dimension1 and each station-fiber dimension0. Everyv retains16 closed child-knot incidents at childUV=(1/2,0). Full graph tuple=(1/2,v,1/2,0,1/2,0,1/2,0,5,5,3/5); the last three values are positive radial-length/half-angle witnesses, not additional intersection roots. | Public runtime and stop remain unobserved. Reuse [ff67aa6d source/DI scope](../../../../Tests/OriginalRollingBallGraphIntakeVerification/VERIFICATION.md) and its [main integration premises](../../../../Tests/OriginalRollingBallGraphIntakeVerification/Evidence/main-integration/integration.json). Preserve the original radius, regular minor arc, positive roots, child support/pcurve equations, denominators and owning-side guards. The ordinary bounded parametric fallback is a static route, not a reproduced failure. This cell exercises4-P1/P2/P3/P6/P7/P8/P10/P11/M7 for this input; M5 or boundary/self completion is not a prerequisite. |
-| CS-DRAFT-ZERO-RULED-01 | Reuse the reversed degree1 weighted generator from [the revolution fixture](../../../../Tests/OriginalRevolutionSourceVerification/Sources/Proof/Proof.swift): knots[0,0,1,1], controls[origin,(1,0,0)], weights[1,2], authored[0,1]. Construct [OriginalDraftedCurve3D](../../OriginalDraftedSection/OriginalDraftedCurve3D.swift) with normal(0,0,2), raw axis=pull=(0,0,4), height1, angle=+0.0, remainingSourceDepth1; construct [OriginalDraftedRuledSurface3D](../../OriginalDraftedSection/OriginalDraftedRuledSurface3D.swift) with endHeight3 and depth2. Ordinary rich CS compares the line through(1/2,0,2), direction unitY, T=[-1,1], against the complete original wall[0,1]^2. | The exact zero branch has unitZ ruling and clearance1. S(u,v)=(2(1-u)/(2-u),0,1+2v), L(t)=(1/2,t,2). The complete set is the single tuple(T,U,V)=(0,2/3,1/2), original generator parameter1/3, XYZ=(1/2,0,2), image/coordinate-fiber dimensions0 and one interior chart incident. Denominator2-u is in[1,2] and derivative-2/(2-u)^2 is nonzero; the contact is transverse. | Constructor and public runtime remain unobserved for this exact combination. Existing generator/traversal receipt premises are reusable; revolution law/period proofs are neither needed nor draft acceptance evidence. Observe ordinary rich result or actual stop before choosing source/DI/publication changes. This cell exercises the draft zero branch and 4-P1/P2/P6/P7/P8/P10/M7 only within this input; nonzero angles, other roots, draft-curve publication and drafted-sheet caller migration remain separate. |
+| CS-DRAFT-ZERO-RULED-01 | Reuse the reversed degree1 weighted generator from [the revolution fixture](../../../../Tests/OriginalRevolutionSourceVerification/Sources/Proof/Proof.swift): knots[0,0,1,1], controls[origin,(1,0,0)], weights[1,2], authored[0,1]. Construct [OriginalDraftedCurve3D](../../OriginalDraftedSection/OriginalDraftedCurve3D.swift) with normal(0,0,2), raw axis=pull=(0,0,4), height1, angle=+0.0, remainingSourceDepth1; construct [OriginalDraftedRuledSurface3D](../../OriginalDraftedSection/OriginalDraftedRuledSurface3D.swift) with endHeight3 and depth2. Ordinary rich CS compares the line through(1/2,0,2), direction unitY, T=[-1,1], against the complete original wall[0,1]^2. | The exact zero branch has unitZ ruling and clearance1. S(u,v)=(2(1-u)/(2-u),0,1+2v), L(t)=(1/2,t,2). The complete set is the single tuple(T,U,V)=(0,2/3,1/2), original generator parameter1/3, XYZ=(1/2,0,2), image/coordinate-fiber dimensions0 and one interior chart incident. Denominator2-u is in[1,2] and derivative-2/(2-u)^2 is nonzero; the contact is transverse. | [Selected Native observation](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-DRAFT-ZERO-RULED-01/STOP.md) reaches the actual original constructor and real ordinary rich fallback: one transverse numerical pointT0/U0.6666666666666667/V0.5000000000000001/XYZ(1/2,0,2), overlaps0. Actual current lift selector declines; cached-ABI proof fields are nil. Newer issued fields are outside that diagnostic ABI; current resolver/default initializer statically retains no complete original proof. The concrete missing contract is source/domain/exactUV/incident/image-fiber publication, not numerical contact. Reuse generator/traversal premises and source-own the original zero-translation law; revolution period is neither required nor draft evidence. This cell exercises the draft zero branch and 4-P1/P2/P6/P7/P8/P10/M7 only within this input; nonzero angles, other roots, draft-curve publication and drafted-sheet caller migration remain separate. |
 
+
+##### CS-OFFSET-PERIODIC-ZERO-GEOM-01: original infinite offset family candidate
+
+Use the actual `twoAxes=true,distance=0` constructor in
+[ActualPeriodicOffsetProof](../../../../Tests/OriginalPeriodicOffsetVerification/ActualProof.swift):
+degree(1,1), both knot vectors[-1,0,1,2,3,4], both periodic, and controls
+Pij=(xy[j].x,xy[j].y+yz[i].x,yz[i].y), with
+xy=yz=[(0,0),(1,0),(0,1),(0,0)]. Retain the original
+OffsetSurface3D(source:.bSpline(native),distance:0), including its normal guards.
+The curve is the actual degree1 stationary Native construction in
+[FamilyFixtures.stationary](../../../../Tests/OriginalDomainConsumerVerification/Sources/FamilyFixtures/FamilyFixtures.swift),
+knots[0,0,1,1] and both controls(1/4,1/2,0). Invoke ordinary
+DefaultCurveSurfaceIntersector.intersectionResult with full T=[0,1],
+surface U/V ranges nil and standard tolerance; the periodic authored request is
+all R^2.
+
+| Cell field | Exact scope |
+|---|---|
+| Independent complete oracle | All(T,U,V,q)=(t,1/4+3k,1/2+3l,1), t in[0,1], k,l in Z. XYZ=(1/4,1/2,0). Each cycle pair has parameter dimension1, image dimension0 and coordinate-fiber dimension1; the constrained positive q witness adds no dimension. Each original UV has one interior position incident. |
+| Full fundamental exclusion | On local s in[0,3), (a(s),b(s))=(s,0) on[0,1), (2-s,s-1) on[1,2), and(0,3-s) on[2,3). S(U,V)=(a(U),b(U)+a(V),b(V)). Z=0 restricts V to the first interval including its seam representatives. X=1/4 gives U=1/4 or7/4. At7/4, b(U)=3/4 forces a(V)=-1/4, impossible; at1/4, V=1/2. No knot/seam supplies another solution. All nine patches, rather than only the first patch, enter this exclusion. |
+| Original zero-offset guards | NormalSquared by U/V patch is[[1,2,1],[1,3,2],[0,1,1]]. The law still requires normalSquared>0, q>0 and q^2=normalSquared at zero distance. The sole solution is first/first interior, D=1, normalSquared=1 and q=1. The degenerate patch is excluded by its original guard, not by replacing the zero offset with an unguarded child. |
+| Consumed premises | Existing actual periodic offset binding, fundamental charts, period3 on each independent axis, nine templates and rank2 integer-domain/full-cover receipts in [OriginalPeriodicOffsetVerification](../../../../Tests/OriginalPeriodicOffsetVerification/VERIFICATION.md), actual Native/WASM/Embedded receipts and its main-integration record. Their source/DI/evaluator, signed/zero distance, cycle and COW scope remains unchanged. |
+| Observation and assignment | Ordinary public result remains UNOBSERVED. The finite offset graph preparer statically accepts OriginalNativeOffsetDomainCover rather than the periodic cover; this is not a runtime failure. Observe the actual public call before selecting a change. Required M7 publication must retain the entire Z^2 family, original UV/guard/incident owners and XYZ/image/fiber evidence; finite enumeration or successful stationary samples do not close this cell. No new source or whole-M5 prerequisite is established. |
 
 ##### S-NATIVE-FOLD-01: retained nonstructural contact control
 
@@ -536,14 +559,23 @@ with the authored diagonal. This is not a declaration of the whole U boundary.
 | Unobserved acceptance | Full residual-cell equality and reverse-direction retention for this exact candidate still require observation; membership success is not complete acceptance. The cell maps only the singleton scope of5-C4/C5/C8/C9 and6-S2/S4, not general join or whole paired-boundary completion. |
 
 The [existing paired child identity fixture](../../../../Tests/OriginalAffinePairedIdentityVerification/PairedProof.swift)
-checks a whole shared edge using an OriginalParameterIdentity with its Parent
-source and exact-rational field. There is no corresponding public self/boundary
-consumption receipt: the existing Native self signature fixes BSplineSurface3D
-and the algebraic field, and requires the same original source owner. This is a
-static type/owner limitation, not an observed runtime failure. The paired
-fixture is an identity premise; an actual parent-source public input and
-complete consumer oracle remain unmapped. Neither receipt is a new prerequisite
-for other frozen cells.
+checks the directed whole edge L(u,0)->R(1-u,0), u in[0,1], using an
+OriginalParameterIdentity with its Parent source and exact-rational field.
+Its two cover calls bind distinct Parent owners; the same Source type does not
+make them one original parent. The transverse child derivatives differ, and the
+reverse positional receipt is separately issued.
+There is no corresponding public self/boundary consumption receipt. The current
+[generic issued-graph self query](../../OriginalSurfaceEmbedding/DefaultOriginalIssuedGraphSelfContactQuery.swift)
+is not Native-type-limited, but requires the same original source owner on both
+raw sides and both identity scopes, with OriginalExactScalarDomain identity
+values. The existing paired fixture instead uses ExactRationalScalarDomain and
+two owners. These are static field/owner constraints, not an observed runtime
+failure. A single-child OriginalImageSurface3D constructor does not supply an
+aggregate parent for this pair. The still-unmapped concrete fields are one
+actual parent binding with both original children, its complete request/laws,
+a same-owner/same-field paired identity and an independent complete public
+residual oracle. The existing receipt cannot fill those fields, and is not a new
+prerequisite for other frozen cells.
 
 The correction candidate's nonzero Z distinguishes its actual quintic host law
 from the planar Coons input. Its source field and Euclidean arc-length owner must
@@ -565,7 +597,7 @@ PROGRESS.md and their named receipts; this index is not a second queue.
 | 4-P6 | [Guarded offset](#guarded-offset-domain-composition), [graph/request binding](#local-source-graphrequest-binding-b3) | CS-POLY-01 consumes existing lift guards. Offset normalization/root/branch and general owning-side guard public cells remain unmapped. |
 | 4-P7 | [Contracts and Invariants](#contracts-and-invariants) | Existing Coons four-chart / all16-pair self and Native symbolic-family cells; each remaining family's complete public cover needs its own mapping. |
 | 4-P8 | [Finite selected-family query](#finite-selected-family-query) | CS-POLY-01, S-COONS-PLANE-01 and periodic Native incidents; remaining join/seam/tensor source variants stay unmapped. |
-| 4-P9 | [Native periodic public cell](#cs-native-periodic-param-01-unbounded-independent-native-cycles) | CS-NATIVE-PERIODIC-PARAM-01 covers its symbolic parameter result. Ordinary geometric infinite-family publication, including periodic offset, stays unmapped. |
+| 4-P9 | [Native periodic public cell](#cs-native-periodic-param-01-unbounded-independent-native-cycles) | CS-NATIVE-PERIODIC-PARAM-01 covers its symbolic parameter result. CS-OFFSET-PERIODIC-ZERO-GEOM-01 defines one complete guarded Z^2 geometric-family oracle; ordinary runtime is unobserved. Other ordinary geometric infinite families stay unmapped. |
 | 4-P10 | [Graph/request binding](#local-source-graphrequest-binding-b3) | Existing lift/Coons self cells consume actual auxiliary layouts and retained depths; general graph/source theorem combinations remain unmapped. |
 | 4-P11 | [Source-family obligations](#required-source-family-obligations), [source authority](../../OriginalSourceIssuance/DESIGN.md) | Existing polyline algebraic station and subnormal-normal cells have scoped evidence. General algebraic/physical-angle public coefficient capabilities stay unmapped. |
 
@@ -599,12 +631,43 @@ PROGRESS.md and their named receipts; this index is not a second queue.
 | 6-B3 | [Concrete boundary cells](#concrete-boundary-cells-using-existing-coons-receipts) | Existing outer/inner loops, coedges and directed constant-U/V spans; other loop/span constructions remain unmapped. |
 | 6-B4 | [Required source families](#required-source-family-obligations) | Rational/implicit/certified/nonrational pcurves each need their own exact constructor, request, material oracle and public stop; unmapped beyond existing constant pcurves. |
 | 6-B5 | [Issued boundary handoff](../../../CADKernel/OriginalBoundaryClipping/DESIGN.md#issued-graph-boundary-handoff) | Existing retained pcurves are consumed. Missing-pcurve producer branches remain unmapped; no reconstructed placeholder is authorized. |
-| 6-B6 | [Native M6 handoff](../../../CADKernel/OriginalBoundaryClipping/DESIGN.md#m6-exact-family-handoff) | Existing Native lifted seam/collapse premises; general pole/apex/multicycle/collapse public boundary cells remain unmapped. |
+| 6-B6 | [Native M6 handoff](../../../CADKernel/OriginalBoundaryClipping/DESIGN.md#m6-exact-family-handoff) | B-NATIVE-COLLAPSED-CLOSED-01 below fixes one complete collapsed material-pullback oracle; its whole-cell comparison is unobserved. Existing seam/collapse membership receipts are historical premises only. General pole/apex/multicycle cells remain unmapped. |
 | 6-B7 | [Concrete boundary cells](#concrete-boundary-cells-using-existing-coons-receipts) | Exact hole material over every retained raw cell; other material predicates remain unmapped. |
 | 6-B8 | [Concrete boundary cells](#concrete-boundary-cells-using-existing-coons-receipts) | B-COONS-HOLE-CLOSED-01, B-COONS-HOLE-STRICT-01 and B-COONS-HOLE-BOUNDARY-01 are separate policy cells. |
 | 6-B9 | [Issued boundary handoff](../../../CADKernel/OriginalBoundaryClipping/DESIGN.md#issued-graph-boundary-handoff) | Existing raw/refined ordinal and boundary-span controls; general lifted layouts remain unmapped. |
 | 6-B10 | [Issued boundary handoff](../../../CADKernel/OriginalBoundaryClipping/DESIGN.md#issued-graph-boundary-handoff) | Existing cells retain L5 refinement; each new cell must identify the same owner rather than re-solve. |
 | 6-B11 | [Issued boundary handoff](../../../CADKernel/OriginalBoundaryClipping/DESIGN.md#issued-graph-boundary-handoff) | Existing cells reach validated Kernel parameter/material publication and lifetime queries; remaining source/caller combinations and M7 geometry stay open. |
+
+##### B-NATIVE-COLLAPSED-CLOSED-01: collapsed material pullback
+
+Use the actual constructors in
+[M6ExactBoundaryFixtures.verifyPeriodicAndCollapse](../../../../Tests/OriginalDomainConsumerVerification/Sources/M6BoundaryFixtures/M6ExactBoundaryFixtures.swift):
+degree(1,1), both knot vectors[0,0,1,1], surface control rows
+[(0,0,0),(0,0,0)] and [(0,1,0),(1,1,0)], and a degree1 Native
+curve with both controls at the origin. Thus G(u,v)=(uv,v,0), C(t)=origin,
+with the full closed T/U/V product[0,1]^3. The existing `face` constructor
+retains one outer rectangle[1/4,3/4]x[0,1], four directed constant-U/V
+pcurves and forward coedges, and validates its face/sheet/body with `.exact`.
+Invoke `DefaultOriginalFaceBoundaryClipper.clip(.curveSurface(raw),to:in:selection:.closed,...)`
+using the retained Native CS L5/DI relation and that validated face.
+
+The independent complete oracle is
+{(T,U,V)=(t,u,0):0<=t<=1,1/4<=u<=3/4}: equality forces v=0,
+and the closed material predicate restricts only u. XYZ is the origin,
+image dimension0 and original-coordinate fiber dimension2; these dimensions
+describe the oracle and are not claimed as existing Kernel publication fields.
+Retain every T/U, the bottom boundary and both corner incident sides, every
+raw/refined ordinal and the existing retained refinement owner. No M5 identity
+receipt is needed. This cell maps6-B6/B7/B9/B10/B11 within this input; rational
+curved pcurves, general pole/apex/multicycle and M7 geometry remain separate.
+
+The existing fixture checks inside/outside members and raw/refined correspondence,
+not equality of every refined cell with this complete oracle. Historical
+[M6 receipts](../../../../Tests/OriginalDomainConsumerVerification/Evidence/M6/VERIFICATION.md)
+and Native/ordinary-WASM/Embedded seamPole logs retain their original snapshot;
+the current fixture differs from that receipt. Current whole-cell acceptance,
+ASAN and an actual public stop are unobserved. Observe the complete refinement
+before selecting a change; historical membership success supplies no new prerequisite.
 
 ##### Self-contact, public output and integration requirements
 
@@ -640,18 +703,44 @@ producer boundaries, not a proposal to regenerate their original equations.
 | Rolling-ball: Native, mixed retained graph rails, periodic/non-Native rails, actual offset pullback contacts | [RollingBallBlendSurface3D](../../RollingBall/RollingBallBlendSurface3D.swift), public [RollingBallSectionEvaluator](../../RollingBall/RollingBallSectionEvaluator.swift); actual contactCurve emits offsetSurfaceImage pcurves. [Child source dispatcher](../../OriginalSourceIssuance/OriginalRollingBallCurveSnapshotProvider.swift) has an explicit unmatched-lift refusal. | SSI-ROLLING-BALL-PLANE-01 defines one all-lift child input and complete oracle, with public stop unobserved. Existing supported child receipts do not cover automatic polyline/offsetSurfaceImage dispatch or all periodic rails; those public cells remain unmapped. |
 | Plane-derivative curve and surface: rational versus angular/algebraic child | [Curve constructor](../../OriginalCoons/PlaneDerivatives/OriginalPlaneDerivativeCurve3D.swift), [surface constructor](../../OriginalCoons/PlaneDerivatives/OriginalPlaneDerivativeSurface3D.swift); [curve provider](../../OriginalSourceIssuance/OriginalPlaneDerivativeCurveSnapshotProvider.swift) and [surface provider](../../OriginalSourceIssuance/OriginalPlaneDerivativeSurfaceSnapshotProvider.swift) reuse the original rational producer. | CS-DERIVATIVE-LIFT-PLANE-01 fixes the weighted/projected rational host and Native diagonal pcurve; existing source/DI/lift/rolling child premises remain scoped. General ordered-field sources and other ordinary public cells remain unmapped. |
 | Boundary correction: rational versus angular/algebraic boundary | [OriginalBoundaryCorrectedSurface3D](../../OriginalCoons/BoundaryCorrection/OriginalBoundaryCorrectedSurface3D.swift); [provider](../../OriginalSourceIssuance/OriginalBoundaryCorrectionSnapshotProvider.swift) refuses unavailable original rational atlas authority. | CS-POLY-CORRECTION-01 defines one rational-host input/oracle, historical selected-entry decline and scoped public acceptance receipt. General boundary variants remain unmapped. |
-| Draft curve; drafted ruled surface | [OriginalDraftedCurve3D](../../OriginalDraftedSection/OriginalDraftedCurve3D.swift), [OriginalDraftedRuledSurface3D](../../OriginalDraftedSection/OriginalDraftedRuledSurface3D.swift). | CS-DRAFT-ZERO-RULED-01 defines one exact-zero wall input and complete oracle; its public stop remains unobserved. Original full source/DI graph supply, nonzero-angle/root variants, draft-curve publication and other public requests remain unmapped. |
+| Draft curve; drafted ruled surface | [OriginalDraftedCurve3D](../../OriginalDraftedSection/OriginalDraftedCurve3D.swift), [OriginalDraftedRuledSurface3D](../../OriginalDraftedSection/OriginalDraftedRuledSurface3D.swift). | CS-DRAFT-ZERO-RULED-01 defines one exact-zero wall input and complete oracle; actual constructor/real fallback return a numerical contact, with the complete original publication receipt missing. Original full source/DI graph supply, nonzero-angle/root variants, draft-curve publication and other public requests remain unmapped. |
 | Angular curve; angular surface: intrinsic, physicalRadians, physicalRadianArc | [Curve constructor](../../CanonicalSphereChart/OriginalAngularTransportCurve3D.swift), [surface constructor](../../CanonicalSphereChart/OriginalAngularTransportSurface3D.swift), [source maps](../../OriginalSourceIssuance/OriginalSourceAngularMap.swift). Physical maps require the actual pi-capable field; the intrinsic [coordinate issuer](../../OriginalSourceIssuance/DefaultOriginalAnalyticCoordinateIssuer.swift) explicitly refuses absent mathematical pi. | Source-coordinate/DI capabilities are separate from public geometric consumption. Each applicable primitive/map's exact input/request/oracle/observation remains unmapped. |
 | Implicit stored graph curve | [CertifiedImplicitIntersectionCurve](../../CertifiedImplicitIntersectionCurve.swift) retains source surfaces, validated graph cells, connections and closure. | Its ordinary analytic/rational fallback exists. Complete authored-T/source correspondence and public acceptance input/oracle/observation remain unmapped. |
 | Certified sphereCone | [CertifiedSphereConeIntersectionCurve](../../CertifiedSphereConeIntersectionCurve.swift): negativeFullBranch, positiveFullBranch, boundedAngularInterval, negativeOpenAngularInterval, positiveOpenAngularInterval, apexReducedAngularInterval. | Separate required construction branches; no frozen source/DI/public cell or observed stop. Existing CS reduction/fallback is not proof of whole-family completion. |
 | Certified coneCone | [CertifiedConeConeIntersectionCurve](../../CertifiedConeConeIntersectionCurve.swift): negativeFullBranch, positiveFullBranch, boundedAngularInterval, apexReducedAngularInterval. | Exact source pair, component interval, public target/request/oracle and observation remain unmapped per applicable branch. |
-| Certified coneCylinder | [CertifiedConeCylinderIntersectionCurve](../../CertifiedConeCylinderIntersectionCurve.swift): negativeFullBranch, positiveFullBranch, boundedAngularInterval, apexLowerNodeInterval, apexUpperNodeInterval, rulingParallelLinear. | Exact source pair, component interval, public target/request/oracle and observation remain unmapped per applicable branch. |
+| Certified coneCylinder | [CertifiedConeCylinderIntersectionCurve](../../CertifiedConeCylinderIntersectionCurve.swift): negativeFullBranch, positiveFullBranch, boundedAngularInterval, apexLowerNodeInterval, apexUpperNodeInterval, rulingParallelLinear. | The actual rulingParallelLinear construction and its original-pair oracle gap are identified below. Complete source/request/oracle/observation remains unmapped for each applicable branch; numerical differential tests do not close them. |
 | Certified coneTorus regular certificate; apexReduction constructor | [CertifiedGeneralConeTorusIntersectionCurve](../../CertifiedGeneralConeTorusIntersectionCurve.swift) has the branchIndex/certificate constructor and a separate branchCount/apexReduction constructor. | Keep both constructions visible. Neither inherits another certified variant's source correspondence or public evidence; required concrete source/request/oracle/observation remain unmapped. |
 | Certified parallelTorusTorus | [CertifiedParallelTorusTorusIntersectionCurve](../../CertifiedParallelTorusTorusIntersectionCurve.swift): certificate-owned regularClosed, nodalSelfLoop and nearNodalClosedLoop. | Each kind needs its actual source pair/branch and complete public oracle/observation. The dedicated ordinary plane solver exists; its existence is neither a stop nor general acceptance. |
 | Lift: Native finite/periodic; retained Coons/correction/derivative hosts; Native/affine/constant/prepared polyline pcurves; other hosts/pcurves, priority images and clamp correspondence | [SurfaceLiftCurve3D](../../SurfaceLiftCurve3D.swift), [retained-host polyline provider](../../OriginalSourceIssuance/OriginalPolylineRetainedAtlasLiftSnapshotProvider.swift); priority image and out-of-support clamp inputs explicitly refuse at this source port. | Existing CS-POLY cells cover their Coons/polyline input; correction is its separately named cell. Remaining host/pcurve combinations and general rational/nonlinear UV elimination stay unmapped. |
 | Join/guide: traversal chain, guide endpoint connector, original endpoint connector, affine/nonaffine construction chart | [Guide chain](../../OriginalCoons/GuideTraversalChain/OriginalGuideTraversalChain3D.swift), [guide correction](../../OriginalCoons/EndpointConnector/GuideCorrection/OriginalGuideEndpointConnectorCurve3D.swift), [endpoint connector](../../OriginalCoons/EndpointConnector/OriginalEndpointConnectorCurve3D.swift), [rational admission](../../OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift). | Existing rational retained receipts; nonrational/algebraic joins, nonaffine charts and their applicable public consumers remain unmapped. |
 | Ruled; Coons: rational, angular/algebraic, discontinuous boundaries | [RuledSurface3D](../../RuledSurface3D.swift), [OriginalCoonsSurface3D](../../OriginalCoons/OriginalCoonsSurface3D.swift), [Coons atlas provider](../../OriginalSourceIssuance/OriginalCoonsAtlasSnapshotProvider.swift). | Existing Coons boundary/self/CS cells retain their exact rational inputs. SSI-COONS-PLANE-01 is unobserved; other ruled/Coons source/public branches remain unmapped. |
 | Spatial words; parameter images; directed traversal: finite affine versus nonlinear/singular/infinite correspondence | [Affine child composition](#m4-affine-child-domain-composition), [parameter/traversal graphs](#finite-parameter-image-and-traversal-graph-consumption). | Existing source/DI receipts remain premises. No representative receipt closes the general nonlinear/singular/infinite public branch; missing exact input/oracle/observation remains explicit. |
+
+##### Certified cone-cylinder ruling-parallel definition gap
+
+[CertifiedConeCylinderSpatialDifferentialBoundsTests](../../../../Tests/CADGeometryTests/CertifiedConeCylinderSpatialDifferentialBoundsTests.swift)
+constructs alpha=atan(0.5), cone(apex:origin,axis:+Z,halfAngle:alpha), and
+cylinder(origin:(0,0,4),axis:(sin(alpha),0,cos(alpha)),radius:1). Its ordinary
+SSI fixture requires the rulingParallelLinear branch. The existing ordinary CS
+test uses that curve's own t=1/4 position and normalized tangent to construct the
+target plane, T=[0.2,0.3] and subdivision depth24. That target is not an independent
+complete oracle. The adapter's actual curve is cylinder-hosted
+surfaceLift(.certifiedAnalyticPair), rather than direct
+certifiedIntersection(.coneCylinder), and follows the existing certified lift
+CS structural solver. The direct certified curve is separately constructible;
+its ordinary CS outcome is unobserved.
+
+The source's ruling-parallel admission uses |q|<=quadraticTolerance, while its
+linear height law uses h=-c/(2b) without the quadratic term. The current source-pair
+UV path projects evaluated XYZ, and the constructor validates four residual
+samples. These paths do not issue an exact zero-q theorem or whole original-pair
+correspondence. A world plane y=0 with T=[1/8,3/8] is an independent target
+candidate, but a canonical linear law's proposed sole t=1/4 cannot yet be adopted
+as an original cone/cylinder acceptance oracle. The missing concrete fields are
+the exact branch authority and whole-source correspondence for this actual
+input, together with a complete oracle under that authority. Runtime remains
+unobserved; this static definition gap neither reports a geometric failure nor
+authorizes another solver, rounded equality or a prerequisite for other cells.
 
 #### Concrete boundary cells using existing Coons receipts
 

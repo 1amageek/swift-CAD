@@ -420,3 +420,88 @@ retain the same forward laws and original graphs in the lift/plane relation owne
 Other ordinary lifted-curve and plane capabilities still require explicit
 migration. Neither this prepared capability nor CS-POLY-01 establishes complete
 family coverage; continuous and subnormal-normal public cells remain separate.
+
+## Finite Original Line Against a Zero-Draft Wall
+
+`OriginalDraftedZeroLinePublicProducer` composes an explicitly finite authored
+line request with the source-owned zero-angle wall atlas. The source contract is
+owned by [OriginalSourceIssuance](../OriginalSourceIssuance/DESIGN.md); the
+canonical signed-axis translation and generator traversal law remain owned by
+[OriginalDraftedSection](../OriginalDraftedSection/DESIGN.md). This consumer does
+not reconstruct the wall as a Native or ordinary ruled surface.
+
+```mermaid
+flowchart LR
+ L[Original linear source and finite chart] --> B[Existing issued-domain binder]
+ S[Original drafted snapshot and complete closed atlas] --> B
+ B --> G[Existing rational graph family preparation]
+ G --> R[Existing L5 relation and L6 image/fiber publication]
+ R --> N[OriginalRationalGraphPointPublisher]
+ R --> O[Retained exact original TUV / XYZ / incidents]
+ N --> P[Ordinary bare and rich CS result]
+ O --> P
+```
+
+The existing linear chart issuer supplies the checked line homogeneous law and
+identity authored T transport. The existing retained surface preparer supplies
+the wall laws and proves their authored cells cover [0,1]^2. Its surface frame
+and selected request enter the existing issued-domain binder once with the
+same-owner laws, without a redundant second cover or nominal rewrapping. Both graph
+families share the field created under the single public caller admission.
+`DefaultOriginalIssuedGraphRelationResolver` and
+`DefaultOriginalIssuedGeometricRelationResolver` retain both source bindings,
+complete DI covers, original guards, every closed incident, and image/fiber
+evidence. The retained drafted snapshot exposes its checked exact generator
+parameter map at authored U; no extra intersection coordinate is invented.
+
+The smallest missing consumer is numerical publication from these existing
+generic rational graph receipts. `OriginalRationalGraphPointPublisher<S,E,C,T,F,D>`
+receives the producer's actual original scalar field explicitly, including for
+an empty request; it does not allocate a replacement field. It groups exact
+authored TUV tuples, transfers exact coordinates once through the
+existing scalar transporter, and refines their existing certified isolations.
+It evaluates both retained rational graph laws and denominator/source guards,
+checks the representative displacement and both-source residuals exactly, and
+classifies each incident using rational quotient derivatives and the surface
+Jacobian cross product. Every incident must agree on classification. Its initial
+capability requires proved identity authored parameter transports; other maps
+are explicitly unsupported rather than evaluated in the wrong coordinates.
+The immutable numerical receipt retains all incidence ordinals and the complete
+geometric owner. Exact existence and exclusion remain L5/L6 responsibilities.
+
+Applicability requires a line, an original zero-angle drafted wall, and an
+explicit finite line range. Whole-line requests and the general draft/ruling
+families remain incomplete capabilities. Once selected, source, guard, domain,
+resource, cancellation, non-discrete, or required publication failures propagate
+atomically without a fallback solve. Rich results retain positive-dimensional
+relations; bare results refuse them. Candidate counts bound selected cells,
+components and isolated contacts before numerical materialization.
+
+All source preparation, both domain covers, one graph solve, publication scratch
+and output reservations use the existing `NativeExactPublicAdmission` and
+`NativeCurveSurfacePointAllowance`. Caller work, storage, visits, source/value/
+coefficient depths, chart, degree and candidate ceilings are unchanged. A final
+checkpoint follows result reservation. No shared mutable state, target-specific
+ownership, source fitting or unchecked authority conversion is introduced.
+
+The frozen generic graph path succeeds under the unchanged public algebraic
+depth allowance of 32. An explicit zero-depth query is observed to refuse with
+the typed resource code. Rational final coordinates do not establish zero
+intermediate computational depth, and this cell does not claim an exact minimum
+algebraic depth. Source-depth acceptance is independently checked at the actual
+retained depth two, with refusal at one. Work uses fixed callback caps and the
+successful original allowance; a previous whole-query total is not a required
+deterministic work boundary.
+
+| Frozen cell | Full authored request and independent oracle |
+|---|---|
+| CS-DRAFT-ZERO-RULED-01 | Reversed degree-one Native rational generator with controls (0,0,0),(1,0,0), weights 1,2 and authored span [0,1]; raw axis/pull (0,0,4), normal (0,0,2), height 1, angle +0, wall end height 3. Full UV=[0,1]^2 against line (1/2,T,2), T=[-1,1]. The unique tuple is T=0,U=2/3,V=1/2, original generator parameter 1/3 and XYZ=(1/2,0,2), with one incident and image/fiber dimensions zero. |
+
+The admitted observation establishes numerical contact with no exact receipt.
+Acceptance owns the four actual ordinary/callback bare/rich entries, the exact
+oracle and source mapping, complete-empty and singleton selections, selected
+failures, existing independent budgets, cancellation and detached/COW lifetime.
+Existing lift/plane cells are dispatch regressions. Unchanged lower contracts
+and products are reused by receipt/hash admission; focused Native assembly is
+followed by stable Native/ASAN/normal-WASM/Embedded changed-path evidence. This
+finite cell does not establish general drafted-wall or whole-line completion.
