@@ -1,0 +1,29 @@
+{
+  "observed": {
+    "cellComplete": false,
+    "code": "resourceLimitExceeded",
+    "description": "Curve-surface subdivision could not certify uniqueness and completeness for every remaining non-rational candidate.",
+    "message": "Curve-surface subdivision could not certify uniqueness and completeness for every remaining non-rational candidate.",
+    "phase": "geometry",
+    "stage": "public-failure",
+    "type": "KernelError"
+  },
+  "returnedPublicResult": false,
+  "sourceTUVReceiptAvailable": false,
+  "completeDomainReceiptAvailable": false,
+  "imageFiberReceiptAvailable": false,
+  "cellComplete": false,
+  "previousStopPassed": "Explicit finite original-plane U/V ranges reached adaptive traversal.",
+  "actualBranch": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift",
+    "line": 3184,
+    "condition": "unresolvedResidual != nil",
+    "messageLine": 3191,
+    "contract": "Every remaining non-rational candidate must be uniquely certified or excluded before successful publication."
+  },
+  "unobservedFields": {
+    "residual": "KernelError carries unresolvedResidual here, but the immutable observation fixture did not emit its numerical value.",
+    "tolerance": "Call supplied ModelingTolerance.standard; the fixture did not serialize the error tolerance."
+  },
+  "nextDecision": "Root-owned; no rerun, new prerequisite, solver change, or numerical completeness claim made."
+}

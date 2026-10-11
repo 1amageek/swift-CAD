@@ -1,0 +1,30 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-native-20261012-v5/upper/NativeExactGeometryPublicationFailure.swift:520:34: error: 'NativeExactGeometricRelationFailure' is ambiguous for type lookup in this context
+518 |             return GeometryExactScalarFailure.published(error)
+519 |         }
+520 |         if let error = error as? NativeExactGeometricRelationFailure {
+    |                                  `- error: 'NativeExactGeometricRelationFailure' is ambiguous for type lookup in this context
+521 |             switch error {
+522 |             case .parameter(let cause): return published(cause, tolerance: tolerance)
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactGeometricRelationFailure.swift:2:13: note: found this candidate
+ 1 | /// Preserves lower exact causes and the geometry publication failure boundary.
+ 2 | public enum NativeExactGeometricRelationFailure: Error {
+   |             `- note: found this candidate
+ 3 |     case parameter(NativeExactRelationFailure)
+ 4 |     case geometric(ExactGeometricRelationFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/NativeExactGeometricRelationFailure.swift:77:13: note: found this candidate
+75 | 
+76 | /// Preserves lower exact causes and the geometry publication failure boundary.
+77 | public enum NativeExactGeometricRelationFailure: Error {
+   |             `- note: found this candidate
+78 |     case parameter(NativeExactRelationFailure)
+79 |     case geometric(ExactGeometricRelationFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactGeometricRelationFailure.swift:451:13: note: found this candidate
+449 | 
+450 | /// Preserves lower exact causes and the geometry publication failure boundary.
+451 | public enum NativeExactGeometricRelationFailure: Error {
+    |             `- note: found this candidate
+452 |     case parameter(NativeExactRelationFailure)
+453 |     case geometric(ExactGeometricRelationFailure)

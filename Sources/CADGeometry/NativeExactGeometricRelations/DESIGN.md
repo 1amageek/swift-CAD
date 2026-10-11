@@ -540,3 +540,39 @@ cell adds no mutable shared state or target-dependent synchronization. Tests use
 the actual ordinary rich entry, including final publication and later retained
 incident queries, with resource and lifetime checks. Lower proof premises are
 reused and their evidence scope is preserved.
+
+## Finite Physical-Arc Plane Publication
+
+The ordinary producer for CS-ANGULAR-PHYSICAL-ARC-PLANE-01 recognizes a direct
+stored circle with normal +Z, wrapped in physicalRadianArc(0,1,+1 turn), and an
+analytic stored unitX plane through the circle center's X coordinate, with an
+explicit finite T request. Its scope is this exact construction family; other
+angular/plane inputs retain their existing dispatcher paths. Selection uses
+original stored values, never proximity or a rounded phase ratio. After this
+selector admits the input, every preparation, completeness, resource or cancel
+failure propagates without another solver attempt.
+
+The [Q(pi) pair compiler](../NativeExactRelations/DESIGN.md#source-proved-finite-physical-phase-plane-relations)
+composes actual source/DI proof with generic L5/L6. Ordinary and caller-admitted
+rich and bare entries share one producer and the existing invocation allowance.
+A new immutable `OriginalAngularPlaneRelationReading` protocol exposes exact
+Q(pi) points, all original TUV/phase/child labels/incidents and source-bound L6
+pair owners through non-generic requirements callable on Embedded. The additive
+CurveSurfaceIntersectionResult.originalAngularPlaneRelation slot defaults to nil
+for other producers. Existing fixed-field point DTOs are unchanged. Numerical
+arrays are representatives alongside the exact receipt; they alone never prove
+absence, source equality or complete coverage. Empty exact results retain the
+full source/pair exclusion owner.
+
+Numerical authoredT is enclosed by exact Q(pi) comparisons against binary64
+bracket endpoints in the original finite request. Refinement respects existing
+iteration and caller resource ceilings. Existing original interval evaluation
+establishes forward numerical accuracy; approximation does not merge roots,
+UV or branches. Exact plane UV and XYZ retain their source values. All output
+allocation, comparisons, original interval evaluation and terminal publication
+use the same caller allowance. Detached/COW/independent-reader lifetime,
+source/frame/field/depth/count/resource failures, entry/mid/final and empty
+publication cancellation, finite-UV forwarding and the existing synthetic
+proof-plane path belong to the changed public-cell verification. One stable
+review and exact latest-main delivery are required; broader angular windows,
+other primitives and general M4-M8 completion remain open.

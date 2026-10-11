@@ -1,0 +1,17 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-native-20261012-v8/Proof.swift:751:49: error: value of type 'ExactScalarRationalAdmission<ExactScalarLedger>' has no member 'retainBytes'
+ 749 |                 try arc.intervalTaylorJet(over: .init(lower: lower, upper: upper), throughOrder: 0,
+ 750 |                     tolerance: .standard, consumeWork: { try usage.consumeExactWork(1) },
+ 751 |                     consumeStorage: { try usage.retainBytes($0) })
+     |                                                 `- error: value of type 'ExactScalarRationalAdmission<ExactScalarLedger>' has no member 'retainBytes'
+ 752 |             }.value
+ 753 |             let forwardBounds = [try jet.x.coefficient(0, 0), try jet.y.coefficient(0, 0), try jet.z.coefficient(0, 0)]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-native-20261012-v8/Proof.swift:748:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 746 |             guard case .curve(let authored) = zeros.law.source.original.authored,
+ 747 |                 case .originalAngularTransport(let arc) = authored else { throw Failure(line: #line) }
+ 748 |             let jet = try ExactScalarNumericAccess.withAdmission(&a) { usage in
+     |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 749 |                 try arc.intervalTaylorJet(over: .init(lower: lower, upper: upper), throughOrder: 0,
+ 750 |                     tolerance: .standard, consumeWork: { try usage.consumeExactWork(1) },
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>

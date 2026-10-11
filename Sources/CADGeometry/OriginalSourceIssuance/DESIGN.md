@@ -2346,3 +2346,47 @@ full closed support, reversal, weighted controls, exact resource/depth/cancel,
 detached/COW lifetime and the actual Kernel material result. It reuses unchanged
 B-spline and L5 evidence, rather than generating another source-position formula
 or solving the intersection again.
+
+## Finite Physical-Cosine Zero Authority
+
+The frozen [CS-ANGULAR-PHYSICAL-ARC-PLANE-01 cell](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#cs-angular-physical-arc-plane-01-exact-physical-phase-candidate)
+requires the existing analytic coordinate law's complete zero set, rather than
+adaptive residual candidates. `OriginalAnalyticCosineZeroIssuing` consumes that
+issued law under the same exclusive admission. Its default implementation issues
+an immutable sealed `OriginalAnalyticCosineZeroReceipt` only for an original
+one-parameter circle law with the matching physical cosine/sine gain and offset,
+nonzero gain and finite closed authored support. The complete phase image must
+lie strictly between -pi/2 and5pi/2, as verified in the actual pi-capable field.
+Within that supported window cos(phi)=0 iff phi is pi/2 or3pi/2. Each candidate
+is pulled back through the original affine physical phase and filtered against
+the complete authored support, preserving closed endpoint incidence and either
+gain sign. A wider phase image is explicit unsupported capability, not absence.
+
+```text
+existing full physical analytic law
+  -> checked complete phase window and zero phases
+  -> original T, exact child label, position and derivative at every zero
+  -> retained source theorem + original law/support/depth
+  -> selected-domain/plane consumer -> public exact tuple and image/fiber receipt
+```
+
+The issuer evaluates the existing position polynomials at C=0,S=+1/-1; it does
+not generate another circle formula. The derivative uses the same polynomial
+law and the proved physical phase. Original child labels use the exact imported
+binary angular-label period B and mathematical phase, giving B/4 and3B/4 for
+these phases. Rounded Double angle expressions are not proof coefficients.
+The full law and neighbouring excluded zero phases remain retained beside the
+selected roots; isolated zero graphs never claim to cover the whole circle.
+The consumer must prove its whole original plane equation is a nonzero multiple
+of this cosine law and retain the actual analytic request cover and checked
+plane basis before using this theorem as pair completeness authority.
+
+All roots, polynomial evaluations, proof comparisons, arrays, actual depth and
+terminal checkpoints use the caller admission. `admitProof` readmits retained
+source and attained proof depth without repeating root decomposition. There is
+no public unchecked receipt initializer, shared mutable backing or target-specific
+synchronization branch. Source/field/guard/cancel/resource failures remain typed.
+The cell fixture owns full zero-set/exclusion and original law/label equality,
+foreign-field/refusal, exact resources/depth, cancellation and detached/COW
+lifetime on the changed Native/ASAN/ordinary-WASM/Embedded paths. General angular
+windows, other source families and other trigonometric equations remain open.

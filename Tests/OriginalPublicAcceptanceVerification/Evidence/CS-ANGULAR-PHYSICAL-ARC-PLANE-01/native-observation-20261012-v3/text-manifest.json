@@ -1,0 +1,62 @@
+{
+  "scope": "All durable observation files except this manifest; no binary artifacts.",
+  "files": [
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v3/CurveSurfaceOverlapResolver.swift",
+      "byteCount": 62851,
+      "sha256": "e51ee86737deff66f46d530018404fa2a1bfe08a9f67a79dc1e80b1533559505"
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v3/Proof.swift",
+      "byteCount": 37249,
+      "sha256": "2843fb023e058681fed4331664e086cdc196f1e5a9c11e0c1ecc5d0a33c6378e"
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v3/artifact-locations.json",
+      "byteCount": 30619,
+      "sha256": "1115f6bd1fab7cca20d44e559548bbb3909898328a3db791518bf02944eefaca"
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v3/causal-stop.json",
+      "byteCount": 1464,
+      "sha256": "3b90bc939e106f8b960bdff252d6599c737dab90244fe31db20a7aaf8de935c8"
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v3/compile-command.json",
+      "byteCount": 10063,
+      "sha256": "d7188484da56a92573899e53003392b173c3854c8b256f3ea0da1cd0bcac2d66"
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v3/compile-link.log",
+      "byteCount": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v3/observation.json",
+      "byteCount": 1306,
+      "sha256": "6eeab5ac60aa07f6bff59d11b66edfa9b30e701f1b0eeee3d9bd85cf19f16942"
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v3/premises.json",
+      "byteCount": 8257,
+      "sha256": "693cd06c357b6e0298afc8043b5d581b691256336d0b8afdc55267e3620e4913"
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v3/receipt.json",
+      "byteCount": 820784,
+      "sha256": "38623bcb074dc143909f1dc06f65eae5e67dcc153c2abc87280b1523312721b5"
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v3/runs.json",
+      "byteCount": 11284,
+      "sha256": "815f1536bef4b28854e43239100dababe16d286ce7ff9060d174a12726de95dd"
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-ANGULAR-PHYSICAL-ARC-PLANE-01/native-observation-20261012-v3/runtime-once.log",
+      "byteCount": 894,
+      "sha256": "7db1c80bd9fb18df6ea56a30876f8d593ae3ece73ba2f69e7683f9b5a58924df"
+    }
+  ],
+  "fileCount": 11,
+  "byteCount": 984771
+}

@@ -33,6 +33,9 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Complete original axis-query relation and retained seam/generator domain authority.
     public let originalRevolutionAxisRelation: (any OriginalRevolutionAxisGeometricRelationReading)?
 
+    /// Complete finite physical-phase plane contacts, retaining exact Q(pi) T/UV and L6 evidence.
+    public let originalAngularPlaneRelation: (any OriginalAngularPlaneRelationReading)?
+
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
         (originalContainedLiftPlaneFamily != nil || originalIssuedGeometricRelation != nil && originalIssuedNumericalPoints == nil) ? .exactRelation : .numericalRepresentatives
@@ -44,6 +47,7 @@ public struct CurveSurfaceIntersectionResult: Sendable {
             || originalExactGeometricRelation?.hasPositiveDimensionalSolutions == true
             || originalIssuedGeometricRelation?.hasPositiveDimensionalSolutions == true
             || originalContainedLiftPlaneFamily?.hasPositiveDimensionalSolutions == true
+            || originalAngularPlaneRelation?.hasPositiveDimensionalSolutions == true
     }
 
     init(points: [CurveSurfaceIntersection], overlaps: [CurveSurfaceOverlap],
@@ -56,7 +60,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)? = nil,
         originalIssuedNumericalPoints: OriginalIssuedNumericalCurveSurfacePoints? = nil,
         originalContainedLiftPlaneFamily: (any OriginalContainedLiftPlaneFamilyReading)? = nil,
-        originalRevolutionAxisRelation: (any OriginalRevolutionAxisGeometricRelationReading)? = nil) {
+        originalRevolutionAxisRelation: (any OriginalRevolutionAxisGeometricRelationReading)? = nil,
+        originalAngularPlaneRelation: (any OriginalAngularPlaneRelationReading)? = nil) {
         self.points = points
         self.overlaps = overlaps
         self.originalNativePoints = originalNativePoints
@@ -69,5 +74,6 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         self.originalIssuedNumericalPoints = originalIssuedNumericalPoints
         self.originalContainedLiftPlaneFamily = originalContainedLiftPlaneFamily
         self.originalRevolutionAxisRelation = originalRevolutionAxisRelation
+        self.originalAngularPlaneRelation = originalAngularPlaneRelation
     }
 }

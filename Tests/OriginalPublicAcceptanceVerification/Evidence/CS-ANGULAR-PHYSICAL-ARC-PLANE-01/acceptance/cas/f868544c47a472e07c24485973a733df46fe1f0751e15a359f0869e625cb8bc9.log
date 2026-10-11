@@ -1,0 +1,3 @@
+(node:66264) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS actual non-angular resolver same-frame strict UV forwarding and synthetic affine proof-plane original UV conversion

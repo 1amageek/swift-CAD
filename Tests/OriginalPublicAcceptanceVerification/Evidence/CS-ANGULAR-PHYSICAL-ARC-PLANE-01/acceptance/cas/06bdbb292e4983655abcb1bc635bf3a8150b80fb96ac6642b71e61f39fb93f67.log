@@ -1,0 +1,10 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-native-20261012-v3/Proof.swift:760:17: error: call can throw but is not marked with 'try'
+758 |         var a = try ledger()
+759 |         let f = try Base(using: &a), other = try Base(using: &a)
+760 |         let l = OriginalSourceIssuanceLimits(remainingSourceDepth: 1)
+    |                 |- error: call can throw but is not marked with 'try'
+    |                 |- note: did you mean to use 'try'?
+    |                 |- note: did you mean to handle error as optional value?
+    |                 `- note: did you mean to disable error propagation?
+761 |         let circle = Curve3D.circle(.init(center: .origin, normal: .unitZ, radius: 3))
+762 |         func zeros(_ curve: Curve3D, using a: inout ExactScalarLedger) throws

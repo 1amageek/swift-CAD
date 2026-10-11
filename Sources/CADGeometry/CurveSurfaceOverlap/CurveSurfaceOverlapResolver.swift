@@ -40,11 +40,14 @@ struct CurveSurfaceOverlapResolver {
         guard range.width.isFinite, range.width > 0, try curve.parameterDomain.containsSpan(from: range.lower, to: range.upper, tolerance: tolerance) else {
             throw failure(.invalidInput, "Continuous intersection queries require a positive interval in the curve domain.", tolerance)
         }
-        let support = try proofSupport(surface, tolerance: tolerance)
+        let proof = try proofSupport(surface, tolerance: tolerance)
+        let support = proof.surface
         var rawOptions = options
         rawOptions.curveRange = range
-        rawOptions.surfaceURange = nil
-        rawOptions.surfaceVRange = nil
+        if !proof.preservesOriginalParameters {
+            rawOptions.surfaceURange = nil
+            rawOptions.surfaceVRange = nil
+        }
         var points: [CurveSurfaceIntersection] = []
         var candidates: [Candidate] = []
         var graphBudget = OverlapProofBudget(options: options, tolerance: tolerance)
@@ -348,12 +351,13 @@ struct CurveSurfaceOverlapResolver {
         throw failure(.unsupportedCapability, "This continuous curve-surface domain has no whole-span membership certificate.", tolerance)
     }
 
-    private func proofSupport(_ surface: Surface3D, tolerance: ModelingTolerance) throws -> Surface3D {
+    private func proofSupport(_ surface: Surface3D, tolerance: ModelingTolerance) throws
+        -> (surface: Surface3D, preservesOriginalParameters: Bool) {
         if case .bSpline(let spline) = surface, let affine = ExactAffineBSplineSurfacePatch(spline) {
             let normal = try affine.uDirection.cross(affine.vDirection).normalized(tolerance: tolerance.distance)
-            return .plane(Plane3D(origin: affine.origin, normal: normal))
+            return (.plane(Plane3D(origin: affine.origin, normal: normal)), false)
         }
-        return surface
+        return (surface, true)
     }
 
     private func clip(_ candidate: Candidate, curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,

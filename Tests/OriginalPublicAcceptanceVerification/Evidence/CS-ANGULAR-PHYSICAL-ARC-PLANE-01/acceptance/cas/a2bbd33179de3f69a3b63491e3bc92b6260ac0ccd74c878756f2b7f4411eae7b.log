@@ -1,0 +1,3 @@
+(node:66268) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS ordinary/callback bare and rich dispatch share the same two exact-source points

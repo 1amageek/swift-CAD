@@ -1,0 +1,3 @@
+(node:66410) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS detached source/result lifetime, authored value independence and concurrent immutable readers

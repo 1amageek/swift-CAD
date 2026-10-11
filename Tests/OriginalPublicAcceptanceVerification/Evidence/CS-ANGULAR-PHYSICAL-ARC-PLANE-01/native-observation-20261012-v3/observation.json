@@ -1,0 +1,67 @@
+[
+  {
+    "authority": "Independent source-law oracle; not an observed public receipt.",
+    "B": "exact binary64(2*Double.pi)",
+    "childLabels": [
+      "B/4",
+      "3*B/4"
+    ],
+    "completeRootCount": 2,
+    "field": "Q(pi)",
+    "gain": "1+2*pi",
+    "overlapCount": 0,
+    "roots": [
+      "pi/(2*(1+2*pi))",
+      "3*pi/(2*(1+2*pi))"
+    ],
+    "stage": "exact-oracle",
+    "targetUV": [
+      [
+        0,
+        -3
+      ],
+      [
+        0,
+        3
+      ]
+    ],
+    "xyz": [
+      [
+        0,
+        3,
+        0
+      ],
+      [
+        0,
+        -3,
+        0
+      ]
+    ]
+  },
+  {
+    "curveRange": [
+      0,
+      1
+    ],
+    "entry": "DefaultCurveSurfaceIntersector.intersectionResult",
+    "ordinaryCalls": 1,
+    "stage": "before-public-entry",
+    "surfaceURange": [
+      -1,
+      1
+    ],
+    "surfaceVRange": [
+      -4,
+      4
+    ]
+  },
+  {
+    "cellComplete": false,
+    "code": "resourceLimitExceeded",
+    "description": "Curve-surface subdivision could not certify uniqueness and completeness for every remaining non-rational candidate.",
+    "message": "Curve-surface subdivision could not certify uniqueness and completeness for every remaining non-rational candidate.",
+    "phase": "geometry",
+    "stage": "public-failure",
+    "type": "KernelError"
+  }
+]

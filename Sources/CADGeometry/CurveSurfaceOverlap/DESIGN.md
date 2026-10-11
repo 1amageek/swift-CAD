@@ -288,6 +288,12 @@ flowchart LR
 
 ## Contracts and Invariants
 
+- Discrete discovery on the original surface parameter frame receives the
+  caller's requested U/V ranges unchanged. The private proof-support result
+  identifies whether it preserves that frame. Only the existing affine
+  B-spline-to-synthetic-plane reduction uses a new frame and clears discovery
+  ranges; final selection and publication still use the original surface and
+  caller options. Spatial position agreement does not establish UV identity.
 - The query is bounded by a finite positive curve interval. Closed and periodic
   curves use their default finite domain when no interval is supplied;
   unbounded curves require an explicit range or the existing bounded-target

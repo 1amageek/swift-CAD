@@ -1,0 +1,9 @@
+{
+  "scope": "Native acceptance v1 assembly schema stop before compilation",
+  "observedError": "KeyError: 'lane' at prior['lane']; accepted Revolution native v16 receipt has no lane field",
+  "compilerInvoked": false,
+  "runtimeInvoked": false,
+  "receiptCreated": false,
+  "exactInitialRunnerBytesPreserved": false,
+  "accepted": false
+}

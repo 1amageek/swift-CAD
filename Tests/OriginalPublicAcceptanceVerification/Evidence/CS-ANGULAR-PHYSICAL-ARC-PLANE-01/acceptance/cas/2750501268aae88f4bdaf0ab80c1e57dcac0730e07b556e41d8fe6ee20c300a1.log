@@ -1,0 +1,6 @@
+QUERY_WORK: 3018271
+QUERY_STORAGE: 4451564
+ATTAINED_VALUE_DEPTH: 0
+ATTAINED_COEFFICIENT_DEPTH: 0
+ATTAINED_TRANSPORT_DEPTH: 2
+PASS measured N/N-1 work/storage, attained depth, source depth, pair count and entry/mid callback cancellation

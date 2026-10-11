@@ -1,0 +1,8 @@
+(node:66820) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+QUERY_WORK: 3013688
+QUERY_STORAGE: 3600872
+ATTAINED_VALUE_DEPTH: 0
+ATTAINED_COEFFICIENT_DEPTH: 0
+ATTAINED_TRANSPORT_DEPTH: 2
+PASS measured N/N-1 work/storage, attained depth, source depth, pair count and entry/mid callback cancellation
