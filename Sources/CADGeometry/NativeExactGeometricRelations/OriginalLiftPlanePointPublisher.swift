@@ -1,9 +1,8 @@
 import CADCore
 
 /// Exact parameter grouping and certified numerical publication of retained lift incidents.
-struct OriginalLiftPlanePointPublisher {
+struct OriginalLiftPlanePointPublisher<S: OriginalLiftGraphSourceReading> {
     typealias F = OriginalExactScalarDomain
-    typealias S = OriginalRetainedLiftPlanePublicProducer.Source
     typealias Geometry = OriginalLiftPlaneGeometricRelations<S,OriginalPlaneSnapshot>
 
     func publish<A: ExactScalarAdmission & ~Copyable>(_ geometry: Geometry,

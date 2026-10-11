@@ -1,0 +1,3 @@
+(node:74980) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS corrected ordinary bare/rich; two distinct T, equal nonzero XYZ, exact source/plane UV and all3 incidents

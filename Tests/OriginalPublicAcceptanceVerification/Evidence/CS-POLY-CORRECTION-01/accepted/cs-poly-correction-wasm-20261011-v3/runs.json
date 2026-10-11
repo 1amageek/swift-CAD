@@ -1,0 +1,231 @@
+[
+  {
+    "label": "compile-proof",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v1",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-wasm-20261011",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/libraries",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/wasm/45b961befe8943bfbb365707ef717cc8",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/wasm/ddfebe75f281476585236e87b29e5c0f",
+      "-I",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-wasm-production/wasm32-unknown-wasip1/debug/Modules",
+      "-parse-as-library",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/wasm/a8ff6aea953c48e1bd6df8fdb1d7a826/build/wasm32-unknown-wasip1/debug/Modules",
+      "-target",
+      "wasm32-unknown-wasip1",
+      "-Onone",
+      "-enable-testing",
+      "-j2",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-resource-dir",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static",
+      "-parse-as-library",
+      "-swift-version",
+      "6",
+      "-plugin-path",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+      "-static-stdlib",
+      "-tools-directory",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/bin",
+      "-sdk",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+      "-g",
+      "-Xcc",
+      "--sysroot",
+      "-Xcc",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "nativeexactrelationverification",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/wasm/4a3a24dd92114b40a5b0faa11f748c9b",
+      "-enable-testing",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/libraries",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20",
+      "-parse-as-library",
+      "-Xlinker",
+      "-z",
+      "-Xlinker",
+      "stack-size=67108864",
+      "-Xclang-linker",
+      "-resource-dir",
+      "-Xclang-linker",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang",
+      "-emit-executable",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d1fe705c8a0b-Fixture0.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/739b404c5367-Fixture1.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/00697c9096dd-Regression-OriginalParametricGraphIssuing.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/be93ad506d33-Regression-DefaultOriginalRationalGraphIssuer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0ea32d025cc6-Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v1/libPublicLiftPlanePort.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/libraries/libPublicLiftPlane.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/libraries/libPolylineLiftAdapters.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/wasm/78c362e6197740aea5534947bad5f9fd/libCachedCADCore.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/wasm/78c362e6197740aea5534947bad5f9fd/libCachedHashTreeCollections.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/wasm/78c362e6197740aea5534947bad5f9fd/libCachedInternalCollectionsUtilities.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/wasm/78c362e6197740aea5534947bad5f9fd/libCachedCADGeometry.a",
+      "-o",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.wasm"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 44.87873320793733,
+    "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "runtime-ordinary",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.wasm",
+      "ordinary"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 39.09872858400922,
+    "logSHA256": "cc52e741ced3fa79e48b64452b3f07a745c8d8edebc39a768ec5df44fc0cb26d"
+  },
+  {
+    "label": "runtime-coons-regression",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.wasm",
+      "coons-regression"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 52.639518707990646,
+    "logSHA256": "c6169c8450b318ae4d7e582f2409984efe26c8bfd7ec706042665ea957a7c966"
+  },
+  {
+    "label": "runtime-selections",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.wasm",
+      "selections"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 26.883286125026643,
+    "logSHA256": "aa2abdcb80554333d01b86851709f4f944d6ee70236586b6857d323ff001478c"
+  },
+  {
+    "label": "runtime-query-work",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.wasm",
+      "query-work"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 21.896320083062164,
+    "logSHA256": "bf9c670709a1c495845ac103f4e71743d783e53aff254eb5867f93bf9a2bfad4"
+  },
+  {
+    "label": "runtime-query-storage",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.wasm",
+      "query-storage"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 24.114444957929663,
+    "logSHA256": "6d0a59aee025f84e817a11bb3a0257baf525bfcb16ed8fde410da2a94da30376"
+  },
+  {
+    "label": "runtime-depth",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.wasm",
+      "depth"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 10.246732332976535,
+    "logSHA256": "9f033194c268dba105d9c30c9e0e1fee09469baeeb9267456eb68c8c7715818c"
+  },
+  {
+    "label": "runtime-cancel-entry",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.wasm",
+      "cancel-entry"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 1.9750858329935,
+    "logSHA256": "2155dd227533aa0b5c801f4484fe905a4cfdf4653e96c007d5a3c0eea4ecc441"
+  },
+  {
+    "label": "runtime-cancel-callbacks",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.wasm",
+      "cancel-callbacks"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 4.980688042007387,
+    "logSHA256": "fbd77b039f593ba8a32751535b24d2c78801823b0079aed00a51cde3ce0fd6b8"
+  },
+  {
+    "label": "runtime-cancel-final",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.wasm",
+      "cancel-final"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 13.896085166023113,
+    "logSHA256": "d12c44c4db0fe100850f83c6aa0d599678f3c268d6849a5c5fc0405a012156e3"
+  },
+  {
+    "label": "runtime-lifetime",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-wasm-20261011-v3/Proof.wasm",
+      "lifetime"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 8.645285125006922,
+    "logSHA256": "d9526edd6f8f780085e9af14e70a2feae40d4df9ee6a008c78cadde78a447dcc"
+  }
+]

@@ -1,0 +1,7 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-admitted/DefaultSurfaceSurfaceIntersector.swift:202:20: error: extra argument 'options' in call
+200 |           firstSurface: first,
+201 |           secondSurface: second,
+202 |           options: options,
+    |                    `- error: extra argument 'options' in call
+203 |           tolerance: tolerance
+204 |         )

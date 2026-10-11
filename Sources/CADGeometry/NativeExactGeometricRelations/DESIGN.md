@@ -182,13 +182,52 @@ regressions, not evidence for continuous-family completion.
 
 ### Ordinary retained polyline lift against an axis plane
 
-The ordinary CS selector recognizes a retained rational Coons host with an
+The ordinary CS selector recognizes a retained rational Coons or original boundary-corrected host with an
 authored Euclidean polyline pcurve and an N+origin plane whose normal has one
 nonzero component. Applicability is decided before spending its allowance. This
 axis-plane capability supplies exact positive basis lengths without a rounded
 square root. Other shape/basis capabilities retain their existing dispatch;
 failure after selection never retries a legacy solver. General plane bases and
 remaining lift families stay mandatory open cells.
+
+CS-POLY-CORRECTION-01 consumes the existing
+`OriginalBoundaryCorrectionSnapshotProvider` through
+`OriginalRetainedLiftHostSnapshotting`. The selected host provider binds the
+original authored surface using the polyline's exact field; the common generic
+producer and point publisher retain its concrete source owner. Source laws,
+domain guards, UV reduction, and L5/L6 publication keep their existing authority.
+The provider factory selects a source importer; it cannot issue equality proof
+or replace the original position formula. Each query creates one caller ledger
+before binding either host, and all subsequent work uses that ledger.
+
+| Frozen cell | Public input and complete independent oracle |
+|---|---|
+| CS-POLY-CORRECTION-01 | Existing `PolylineAtlasLiftProof.shape(multi:false).1`, the original repeated-vertex polyline lift, whole authored T and whole plane x=1/2. Distinct roots sqrt(2)-1 and1 both have original UV=(1/2,1/2), XYZ=(1/2,1/2,1/16), plane UV=(1/16,-1/2); the first root has two incident segments and the second one. |
+
+The [observed entry decline](../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-CORRECTION-01/STOP.md)
+binds the unchanged Coons-only producer and the existing correction source/DI
+oracle. It establishes both selected bare/rich producer declines, without
+claiming an unexecuted fallback failure. Acceptance requires the actual ordinary
+and callback-admitted public entries, the complete three-incident oracle,
+request/empty, resource/depth/count, cancellation and detached/COW lifetime
+checks on fixed Native/ASAN/normal-WASM/Embedded changed paths. Existing Coons
+public cells are regressions. General correction atlases, pcurves and plane
+bases remain separate open capabilities. This routing adds no shared mutable
+state, target-specific branch, unsafe owner or buffer copy.
+
+Work-budget edges remain owned by the unchanged `NativeExactPublicAdmission`
+and `NativeCurveSurfacePointAllowance` contracts and their admitted evidence.
+Whole-query work is not specified as deterministic: repeated actual corrected
+queries have different totals even after a warmup and with fresh inputs. A
+previous run's total therefore cannot define the next run's exact work boundary.
+This cell composes the existing per-unit budget proof with actual public-query
+success under the existing finite allowance and exact callback-cap failure
+propagation. Full-query storage totals are stable for the frozen input and are
+verified at the exact total and one byte below it. Final publication cancellation
+is injected after the final storage callback; the unchanged admission checkpoint
+must observe it before returning the result. Diagnostic work-count failures are
+retained as rejected test premises, without changing limits or claiming a solver
+defect. No lower proof is regenerated solely for this routing change.
 
 The producer uses the existing Native caller allowance for source issuance,
 domain selection, one retained L5/L6 solve and numerical publication. Authored

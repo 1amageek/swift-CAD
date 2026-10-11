@@ -2,14 +2,11 @@ import CADCore
 
 /// One original lift/plane solve under the composing public caller allowance.
 struct OriginalRetainedLiftPlanePublicProducer {
-    typealias Source = OriginalPolylineRetainedAtlasLiftSnapshot<OriginalCoonsAtlasSnapshot>
-
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil,
         retainingRelations: Bool = false) throws -> CurveSurfaceIntersectionResult? {
         guard case .surfaceLift(let input) = curve, input.exactBSplineImage == nil,
-            case .polyline = input.parameterCurve,
-            case .procedural(.originalCoons) = input.surface else { return nil }
+            case .polyline = input.parameterCurve else { return nil }
         let normal: Vector3D
         switch surface {
         case .plane(let plane) where plane.uDirection == nil: normal = plane.normal
@@ -24,6 +21,24 @@ struct OriginalRetainedLiftPlanePublicProducer {
         else if normal.y != 0 && normal.x == 0 && normal.z == 0 { length = abs(normal.y) }
         else if normal.z != 0 && normal.x == 0 && normal.y == 0 { length = abs(normal.z) }
         else { return nil }
+        switch input.surface {
+        case .procedural(.originalCoons):
+            return try resolve(input:input,surface:surface,options:options,tolerance:tolerance,
+                invocation:invocation,retainingRelations:retainingRelations,length:length,
+                host:{ OriginalCoonsAtlasSnapshotProvider(field:$0,tolerance:tolerance) })
+        case .procedural(.originalBoundaryCorrected):
+            return try resolve(input:input,surface:surface,options:options,tolerance:tolerance,
+                invocation:invocation,retainingRelations:retainingRelations,length:length,
+                host:{ OriginalBoundaryCorrectionSnapshotProvider(field:$0,tolerance:tolerance) })
+        default: return nil
+        }
+    }
+
+    private func resolve<P: OriginalRetainedLiftHostSnapshotting>(input:SurfaceLiftCurve3D,
+        surface:Surface3D,options:CurveSurfaceIntersectionOptions,tolerance:ModelingTolerance,
+        invocation:CurveSurfaceQueryInvocation?,retainingRelations:Bool,length:Double,
+        host makeHost:(OriginalExactScalarDomain) -> P) throws -> CurveSurfaceIntersectionResult {
+        typealias Source = OriginalPolylineRetainedAtlasLiftSnapshot<P.Source>
         do {
             try options.validate(tolerance:tolerance)
             let usage = try NativeCurveSurfacePointAllowance(options:options,invocation:invocation)
@@ -41,9 +56,9 @@ struct OriginalRetainedLiftPlanePublicProducer {
                 .bind(input.parameterCurve,limits:sourceLimits,using:&a)
             let f = pcurve.original.originalField
             let provider = OriginalPolylineRetainedAtlasLiftSnapshotProvider(
-                host:OriginalCoonsAtlasSnapshotProvider(field:f,tolerance:tolerance),pcurve:pcurve)
+                host:makeHost(f),pcurve:pcurve)
             let source = try DefaultOriginalSourceBindingIssuer(provider:provider).bind(input,limits:sourceLimits,using:&a)
-            let host = try DefaultOriginalFiniteRetainedSurfaceChartPreparer<OriginalCoonsAtlasSnapshot>()
+            let host = try DefaultOriginalFiniteRetainedSurfaceChartPreparer<P.Source>()
                 .prepare(source:source.original.originalSurface,maximumCharts:charts,limits:sourceLimits,using:&a)
             let pc = try DefaultOriginalFiniteRetainedCurveChartPreparer<OriginalPolylinePcurveSnapshot>()
                 .prepare(source:pcurve,maximumCharts:charts,limits:sourceLimits,using:&a)
@@ -144,7 +159,7 @@ struct OriginalRetainedLiftPlanePublicProducer {
                 throw KernelError(phase:.geometry,code:.nonDiscreteIntersection,tolerance:tolerance,
                     message:"The original lift/plane relation contains a positive-dimensional intersection.")
             }
-            let numeric = try OriginalLiftPlanePointPublisher().publish(receipt,options:options,tolerance:tolerance,
+            let numeric = try OriginalLiftPlanePointPublisher<Source>().publish(receipt,options:options,tolerance:tolerance,
                 limits:limits,maximumDepth:depth,using:&a)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:CurveSurfaceIntersectionResult.self))
             let result = CurveSurfaceIntersectionResult(points:numeric.points,overlaps:[],

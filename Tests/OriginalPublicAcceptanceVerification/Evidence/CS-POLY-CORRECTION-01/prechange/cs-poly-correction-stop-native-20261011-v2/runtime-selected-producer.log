@@ -1,0 +1,3 @@
+PASS actual corrected constructor/source/DI; complete three-segment roots sqrt2-1 and1 remain distinct; exact XYZ(.5,.5,1/16), sourceUV(.5,.5), planeUV(1/16,-.5)
+OBSERVED selected exact public producer declined corrected host false result nil
+OBSERVED selected exact public producer declined corrected host true result nil

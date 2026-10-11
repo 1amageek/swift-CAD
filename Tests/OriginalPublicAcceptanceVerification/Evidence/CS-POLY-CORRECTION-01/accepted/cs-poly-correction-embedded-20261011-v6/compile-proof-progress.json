@@ -1,0 +1,32 @@
+[
+  {
+    "elapsedSeconds": 60.798375708051026,
+    "sampledOwnedProcessCPUSeconds": 58.0,
+    "peakOwnedProcessResidentSumKiB": 2338160
+  },
+  {
+    "elapsedSeconds": 120.15624875004869,
+    "sampledOwnedProcessCPUSeconds": 97.63,
+    "peakOwnedProcessResidentSumKiB": 2456352
+  },
+  {
+    "elapsedSeconds": 180.0847270831,
+    "sampledOwnedProcessCPUSeconds": 138.18,
+    "peakOwnedProcessResidentSumKiB": 2456352
+  },
+  {
+    "elapsedSeconds": 240.77009808307048,
+    "sampledOwnedProcessCPUSeconds": 187.85000000000002,
+    "peakOwnedProcessResidentSumKiB": 2456352
+  },
+  {
+    "elapsedSeconds": 300.1939003750449,
+    "sampledOwnedProcessCPUSeconds": 233.05,
+    "peakOwnedProcessResidentSumKiB": 2456352
+  },
+  {
+    "elapsedSeconds": 360.9767646670807,
+    "sampledOwnedProcessCPUSeconds": 267.92,
+    "peakOwnedProcessResidentSumKiB": 2570496
+  }
+]

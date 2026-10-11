@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "cell": "SSI-COONS-PLANE-01",
+  "scope": "Two existing compiler assembly observations only; no geometric runtime observation or geometry failure. No rerun or new prerequisite.",
+  "observations": [
+    {
+      "id": "native-admitted",
+      "receipt": "native-admitted/receipt.json",
+      "receiptSHA256": "1c972106bd6ff7ee96e72bf4ebdffe56582a1a8609a026690a1035f5b03c877f",
+      "assemblyOutcome": "assembly-unavailable",
+      "compilerProcessExit": 1,
+      "ordinaryBareRuntimeCount": 0,
+      "ordinaryRichRuntimeCount": 0,
+      "commandsLocation": "native-admitted/runs.json (each command field; original raw bytes)",
+      "parentReceipt": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-ordinary/native/receipt.json",
+        "sha256": "2ff419dc21f8079e92d14a98d6137957e7f137344f66b98eb7e071240b45b88d"
+      },
+      "causalAssemblyResolution": null
+    },
+    {
+      "id": "native-plane-contract",
+      "receipt": "native-plane-contract/receipt.json",
+      "receiptSHA256": "9e191adfeba86e1d2af200a3903a77e9c52cf8f6a8284f44bd60f8f7596ed1c7",
+      "assemblyOutcome": "assembly-unavailable",
+      "compilerProcessExit": "timeout",
+      "ordinaryBareRuntimeCount": 0,
+      "ordinaryRichRuntimeCount": 0,
+      "commandsLocation": "native-plane-contract/runs.json (each command field; original raw bytes)",
+      "parentReceipt": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-ordinary/native/receipt.json",
+        "sha256": "2ff419dc21f8079e92d14a98d6137957e7f137344f66b98eb7e071240b45b88d"
+      },
+      "causalAssemblyResolution": {
+        "previousReceipt": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-admitted/receipt.json",
+        "previousSHA256": "1c972106bd6ff7ee96e72bf4ebdffe56582a1a8609a026690a1035f5b03c877f",
+        "planeReceipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPlanePlaneIntersectionVerification/Evidence/native/receipt.json",
+        "planeReceiptSHA256": "d5d85a1b6a6dcb3f1f08022bdb3033e0404c7a18a2741dc9648f6e45410e19e4",
+        "productNamespace": "Existing PPFIX product is a Proof executable without an emitted importable module; not linked.",
+        "addedSource": "Sources/CADGeometry/PlanePlaneSurfaceIntersector.swift",
+        "fieldPremiseCount": 127,
+        "existingPPFIXCasesRerun": false
+      }
+    }
+  ],
+  "files": {
+    "native-admitted/receipt.json": {
+      "sha256": "1c972106bd6ff7ee96e72bf4ebdffe56582a1a8609a026690a1035f5b03c877f",
+      "bytes": 738082,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-admitted/receipt.json"
+    },
+    "native-admitted/admission.json": {
+      "sha256": "3df1658ec0dad5758595cb425bd9315aad161633297174e25fc9bf5c5a8f0b93",
+      "bytes": 893863,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-admitted/admission.json"
+    },
+    "native-admitted/runs.json": {
+      "sha256": "3edbb7c78190018db1ef5df637b4df1c1b7ed97ce9641ecb7c3317729d4c1e58",
+      "bytes": 5420,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-admitted/runs.json"
+    },
+    "native-admitted/premises-before.json": {
+      "sha256": "339e5d644b5bea1ea49e0f4ce35b4b14377ce330248052047d1f794b6e3d49cf",
+      "bytes": 230,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-admitted/premises-before.json"
+    },
+    "native-admitted/compiler-version.log": {
+      "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "bytes": 77,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-admitted/compiler-version.log"
+    },
+    "native-admitted/compile-link.log": {
+      "sha256": "b9836612000b990e44bfc7900ad1d5e78e527fa93609d3bb61c6850df3f5682e",
+      "bytes": 424,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-admitted/compile-link.log"
+    },
+    "native-admitted/DefaultSurfaceSurfaceIntersector.swift": {
+      "sha256": "fb969841f9e4caed66bd05ebaabbe5d1399fa703a274d8a4b80cac017261d084",
+      "bytes": 21450,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-admitted/DefaultSurfaceSurfaceIntersector.swift"
+    },
+    "native-admitted/DefaultSurfaceSurfaceIntersector+Result.swift": {
+      "sha256": "fc3f4c3a6582ca11f0b0b87713870b114f28c7f0862d21b9237ba5c66053acc2",
+      "bytes": 6065,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-admitted/DefaultSurfaceSurfaceIntersector+Result.swift"
+    },
+    "native-admitted/SDKSettings.json": {
+      "sha256": "7b93ad7e534cc4b31c6a4e39d19b5e0288acf2168c2649479a796d1cb51939fb",
+      "bytes": 7948,
+      "originalPath": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/SDKSettings.json"
+    },
+    "native-plane-contract/receipt.json": {
+      "sha256": "9e191adfeba86e1d2af200a3903a77e9c52cf8f6a8284f44bd60f8f7596ed1c7",
+      "bytes": 741845,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-plane-contract/receipt.json"
+    },
+    "native-plane-contract/admission.json": {
+      "sha256": "53f9ca8aa28d6ea1787209abafa49c5f07bc3aa66fdbc8ea1a361e647a1c63b4",
+      "bytes": 897445,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-plane-contract/admission.json"
+    },
+    "native-plane-contract/runs.json": {
+      "sha256": "98ee4136dd8674bf2eb19de4950f70709bb16896a4f5b2ee55fa374fbdeba69b",
+      "bytes": 5612,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-plane-contract/runs.json"
+    },
+    "native-plane-contract/premises-before.json": {
+      "sha256": "6fc35a9ced67f3012280638cf47ab4c7f757f6b8f36d1b34f581f603d4851fe6",
+      "bytes": 230,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-plane-contract/premises-before.json"
+    },
+    "native-plane-contract/compiler-version.log": {
+      "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "bytes": 77,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-plane-contract/compiler-version.log"
+    },
+    "native-plane-contract/compile-link.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-plane-contract/compile-link.log"
+    },
+    "native-plane-contract/DefaultSurfaceSurfaceIntersector.swift": {
+      "sha256": "fb969841f9e4caed66bd05ebaabbe5d1399fa703a274d8a4b80cac017261d084",
+      "bytes": 21450,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-plane-contract/DefaultSurfaceSurfaceIntersector.swift"
+    },
+    "native-plane-contract/DefaultSurfaceSurfaceIntersector+Result.swift": {
+      "sha256": "fc3f4c3a6582ca11f0b0b87713870b114f28c7f0862d21b9237ba5c66053acc2",
+      "bytes": 6065,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-plane-contract/DefaultSurfaceSurfaceIntersector+Result.swift"
+    },
+    "native-plane-contract/PlanePlaneSurfaceIntersector.swift": {
+      "sha256": "96a44e43cfdb3c080e60c33dae142c6dc40c89c91794117b0e34903340329ac5",
+      "bytes": 3661,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-plane-contract/PlanePlaneSurfaceIntersector.swift"
+    },
+    "native-plane-contract/cleanup-observation.json": {
+      "sha256": "9c3ced38b6e6699ae1eeff1e4d97f810a50d47a69a92cb54b7db23ed18ff7242",
+      "bytes": 328,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/ssi-coons-plane-01-observation-20261011-native-plane-contract/cleanup-observation.json"
+    },
+    "native-plane-contract/SDKSettings.json": {
+      "sha256": "7b93ad7e534cc4b31c6a4e39d19b5e0288acf2168c2649479a796d1cb51939fb",
+      "bytes": 7948,
+      "originalPath": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/SDKSettings.json"
+    }
+  },
+  "copiedFileCount": 20,
+  "parentEvidenceCopied": false,
+  "binariesOrArchivesCopied": false
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "label": "runtime-selections",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-native-20261011-v1/Proof",
+      "selections"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 2.140338834025897,
+    "logSHA256": "c892d878b7b80c0648153bb9e5149934bac949e251629a613558f8596fb3545d"
+  },
+  {
+    "label": "runtime-query-work",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-native-20261011-v1/Proof",
+      "query-work"
+    ],
+    "timeoutSeconds": 120,
+    "cpuLimitSeconds": 120,
+    "exitCode": 1,
+    "elapsedSeconds": 3.8911602089647204,
+    "logSHA256": "5b408c20b4240432c81032aafdf2be1ca06183b1b14c7e9aca560cf755925c92"
+  }
+]

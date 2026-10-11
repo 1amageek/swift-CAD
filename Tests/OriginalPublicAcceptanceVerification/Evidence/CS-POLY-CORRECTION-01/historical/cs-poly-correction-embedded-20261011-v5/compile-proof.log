@@ -1,0 +1,71 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5/Proof.swift:339:18: error: extra arguments at positions #3, #4 in call
+337 |                 try PolylineLiftProof.require(bounded.totals.work == cap)
+338 |             }
+339 |             print("successfulWork", finite.totals.work, "successfulBytes", finite.totals.bytes)
+    |                  `- error: extra arguments at positions #3, #4 in call
+340 |             marker("PASS corrected finite allowance success; fixed work caps1/1000000 forward typed refusal at exact callback cap")
+341 |         } else if selected == "query-storage" {
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5/Proof.swift:339:51: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+337 |                 try PolylineLiftProof.require(bounded.totals.work == cap)
+338 |             }
+339 |             print("successfulWork", finite.totals.work, "successfulBytes", finite.totals.bytes)
+    |                                                   `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+340 |             marker("PASS corrected finite allowance success; fixed work caps1/1000000 forward typed refusal at exact callback cap")
+341 |         } else if selected == "query-storage" {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5/Proof.swift:349:18: error: missing argument label 'terminator:' in call
+347 |             do { _ = try query(shortCurve, shortPlane, Counter(bytes: totals.bytes - 1)); throw ExactScalarFailure.invalidEvidence }
+348 |             catch let error as KernelError { try PolylineLiftProof.require(error.code == .resourceLimitExceeded) }
+349 |             print("queryBytes", totals.bytes)
+    |                  `- error: missing argument label 'terminator:' in call
+350 |             marker("PASS corrected independent exact storage budget success and one-less typed resource refusal")
+351 |         } else if selected == "depth" {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5/Proof.swift:349:40: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+347 |             do { _ = try query(shortCurve, shortPlane, Counter(bytes: totals.bytes - 1)); throw ExactScalarFailure.invalidEvidence }
+348 |             catch let error as KernelError { try PolylineLiftProof.require(error.code == .resourceLimitExceeded) }
+349 |             print("queryBytes", totals.bytes)
+    |                                        `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+350 |             marker("PASS corrected independent exact storage budget success and one-less typed resource refusal")
+351 |         } else if selected == "depth" {
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5/Proof.swift:339:18: error: extra arguments at positions #3, #4 in call
+337 |                 try PolylineLiftProof.require(bounded.totals.work == cap)
+338 |             }
+339 |             print("successfulWork", finite.totals.work, "successfulBytes", finite.totals.bytes)
+    |                  `- error: extra arguments at positions #3, #4 in call
+340 |             marker("PASS corrected finite allowance success; fixed work caps1/1000000 forward typed refusal at exact callback cap")
+341 |         } else if selected == "query-storage" {
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5/Proof.swift:339:51: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+337 |                 try PolylineLiftProof.require(bounded.totals.work == cap)
+338 |             }
+339 |             print("successfulWork", finite.totals.work, "successfulBytes", finite.totals.bytes)
+    |                                                   `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+340 |             marker("PASS corrected finite allowance success; fixed work caps1/1000000 forward typed refusal at exact callback cap")
+341 |         } else if selected == "query-storage" {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5/Proof.swift:349:18: error: missing argument label 'terminator:' in call
+347 |             do { _ = try query(shortCurve, shortPlane, Counter(bytes: totals.bytes - 1)); throw ExactScalarFailure.invalidEvidence }
+348 |             catch let error as KernelError { try PolylineLiftProof.require(error.code == .resourceLimitExceeded) }
+349 |             print("queryBytes", totals.bytes)
+    |                  `- error: missing argument label 'terminator:' in call
+350 |             marker("PASS corrected independent exact storage budget success and one-less typed resource refusal")
+351 |         } else if selected == "depth" {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5/Proof.swift:349:40: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+347 |             do { _ = try query(shortCurve, shortPlane, Counter(bytes: totals.bytes - 1)); throw ExactScalarFailure.invalidEvidence }
+348 |             catch let error as KernelError { try PolylineLiftProof.require(error.code == .resourceLimitExceeded) }
+349 |             print("queryBytes", totals.bytes)
+    |                                        `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+350 |             marker("PASS corrected independent exact storage budget success and one-less typed resource refusal")
+351 |         } else if selected == "depth" {

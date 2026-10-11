@@ -1,0 +1,14 @@
+{
+  "scope": "Embedded compiler operational wall monitoring only; CAD caller contracts and fixture unchanged",
+  "compileWallSeconds": 600,
+  "compilePerProcessCPUSeconds": 300,
+  "compilerThreads": 2,
+  "runtimeWallSeconds": 120,
+  "runtimePerProcessCPUSeconds": 120,
+  "reason": "Two earlier progressing codegen operations exhausted the estimated300-second wall monitor. This single sequential attempt separates wall monitoring from retained per-process CPU limits.",
+  "priorDiagnostics": [
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v3/runs.json",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v4/runs.json"
+  ],
+  "oldV1ProductAdmission": false
+}

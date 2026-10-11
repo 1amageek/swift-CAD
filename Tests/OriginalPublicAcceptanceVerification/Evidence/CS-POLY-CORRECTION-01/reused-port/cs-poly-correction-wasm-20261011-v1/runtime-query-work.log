@@ -1,0 +1,12 @@
+(node:75021) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL corrected ordinary lift/plane
+KernelError(phase: CADCore.KernelPhase.geometry, code: CADCore.KernelErrorCode.resourceLimitExceeded, featureID: nil, subshapeID: nil, residual: nil, tolerance: Optional(CADCore.ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09)), message: "Original exact geometric publication exhausted caller work.")
+file:///private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs:11
+const code=wasi.start(instance); if(code!==0) throw new Error(`WASI exit ${code}`);
+                                                    ^
+
+Error: WASI exit 1
+    at file:///private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs:11:53
+
+Node.js v24.19.0

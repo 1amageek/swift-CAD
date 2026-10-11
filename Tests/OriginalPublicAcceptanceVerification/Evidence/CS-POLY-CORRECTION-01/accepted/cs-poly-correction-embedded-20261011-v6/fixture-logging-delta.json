@@ -1,0 +1,8 @@
+{
+  "fixtureSHA256": "5894c92b68690789f03b0ecfa78c8805f07dc5042a19db4b900dce41f584a7d0",
+  "driverSHA256": "6db89f41837075c9d4641b2e6ae43dcd46b490f892c5475d8da0fb73e8bed761",
+  "priorFixtureSHA256": "6ab027c0ad51b3915b77dcbba4c25019a100466616b677443a799a06d32789b7",
+  "selectedNonEmbeddedBodyRestoredSHA256": "6ab027c0ad51b3915b77dcbba4c25019a100466616b677443a799a06d32789b7",
+  "selectedNonEmbeddedBodyExactEquivalent": true,
+  "scope": "Only Embedded logCount helper and two conditional numeric logging blocks differ; all assertions/input/query/source code unchanged"
+}
