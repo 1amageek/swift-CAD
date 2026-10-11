@@ -400,8 +400,14 @@ def audit():
         if sources.get(relative) != digest:
             updates[relative] = {'before': sources.get(relative), 'after': digest}
         sources[relative] = digest
-    require(len(updates) == 12 and sum(item['before'] is None for item in updates.values()) == 8 and
-            len(sources) == 2168, 'expected 12 source updates, eight additions, 2168 retained premises')
+    existing_newly_indexed = ['Sources/CADGeometry/DefaultSurfaceSurfaceIntersector.swift',
+                             'Sources/CADGeometry/PlanePlaneSurfaceIntersector.swift']
+    for relative in existing_newly_indexed:
+        require(updates[relative]['before'] is None and
+                hashlib.sha256(git(ROOT, 'show', f'{BASE}:{relative}')).hexdigest() == sources[relative],
+                'newly indexed SSI/PlanePlane body must equal baseline main')
+    require(len(updates) == 14 and sum(item['before'] is None for item in updates.values()) == 10 and
+            len(sources) == 2170, 'expected 12 changed bodies, two unchanged newly indexed bodies, 2170 premises')
     changed, deleted = {}, []
     for value in git(ROOT, 'diff', '--name-only', '-z', BASE, implementation).split(b'\0'):
         if value:
