@@ -1,0 +1,44 @@
+{
+  "cell": "CS-POLY-NORMAL-SUBNORMAL-01",
+  "sourceCommit": "5c1ca440a3a2659f796cd96c5096dfd546585df4",
+  "mainBefore": "c4fe771848a1a9cba32890ab13ac4bbad4340b55",
+  "candidateWorktree": "/private/tmp/cad-m4-ds-main-integration-20261010",
+  "productionAndFixtureHashesMatch": true,
+  "lanes": {
+    "native": {
+      "parentInputs": 3288,
+      "compilerInputs": 22,
+      "products": 3,
+      "acceptedRuntimeExecutions": 6,
+      "receiptSHA256": "e8359f633ecfe561f0060c2c9d63bb715b7cb48dea7e148ffd6a4ddcafac2116"
+    },
+    "asan": {
+      "parentInputs": 3288,
+      "compilerInputs": 22,
+      "products": 3,
+      "acceptedRuntimeExecutions": 6,
+      "receiptSHA256": "48bc5c0acaa72d7561ea658613e5143601d3b0ac3395bfbf0876290eab9cbbb9"
+    },
+    "wasm": {
+      "parentInputs": 5120,
+      "compilerInputs": 22,
+      "products": 3,
+      "acceptedRuntimeExecutions": 6,
+      "receiptSHA256": "ebfcdeb3f96751b59c3b1dfd5cba31cfe1076c7f1c39b85917d34fc328b469be"
+    },
+    "embedded": {
+      "parentInputs": 5118,
+      "compilerInputs": 22,
+      "products": 3,
+      "acceptedRuntimeExecutions": 1,
+      "receiptSHA256": "1714e725e4eea082d1f4b50f4068152b0969efa3ebbf739566005154c9626228"
+    }
+  },
+  "protectedDraftSHA256": "97db4b01b16d6c5a66cdd0bfdfbeda4aa939389f12481b2e0ba8d10d873e8016",
+  "unchangedBehavioralEvidenceReused": true,
+  "newBuildOrRuntime": false,
+  "elapsedSeconds": 8.119112000102177,
+  "scope": "Independent latest-main composition of this frozen public cell; other mandatory coverage remains open.",
+  "mainDeliveryCommit": "5c1ca440a3a2659f796cd96c5096dfd546585df4",
+  "mainProductionAndFixtureHashesMatch": true
+}

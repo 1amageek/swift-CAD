@@ -1,6 +1,6 @@
 {
   "cell": "CS-POLY-NORMAL-SUBNORMAL-01",
-  "status": "verified-awaiting-main-delivery",
+  "status": "delivered",
   "baseCommit": "c4fe7718",
   "production": {
     "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlanePointPublisher.swift": "d353dcbb423388244b094f08b678e31f127e3ef0b93ed24eb724206438362c60"
@@ -30,5 +30,9 @@
   "driverSHA256": "4f27efd3c08c97190c65cc1b626673719bbcd5b8d8b441269ec72e010ca55590",
   "scope": "Frozen subnormal-normal point cell and unit-normal regression; no continuous/general-normal/full-family/full-seven/full87 completion.",
   "reviewSHA256": "4f16f3cd79e9408460020e058c9e2527130c083e25b71f7dfca8e0cfbae965e2",
-  "verificationSHA256": "04cc54fc59cb3ebc8d8383b8c12b1f2aa027153a4db3af88d05d8fed7a6bba13"
+  "verificationSHA256": "04cc54fc59cb3ebc8d8383b8c12b1f2aa027153a4db3af88d05d8fed7a6bba13",
+  "sourceCommit": "5c1ca440a3a2659f796cd96c5096dfd546585df4",
+  "mainDeliveryCommit": "5c1ca440a3a2659f796cd96c5096dfd546585df4",
+  "integrationReceipt": "integration.json",
+  "integrationReceiptSHA256": "d522d6ad241e0bef2ea040381a8de79b59ce73ebf748060bdfdf22f94e2189b6"
 }
