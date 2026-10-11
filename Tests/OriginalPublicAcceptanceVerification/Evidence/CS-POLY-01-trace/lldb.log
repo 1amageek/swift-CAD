@@ -1,0 +1,49 @@
+(lldb) target create "/private/tmp/cad-m4-m8-completion-20261010/.build/public-cell-red-CS-POLY-01-retained/probe"
+Current executable set to '/private/tmp/cad-m4-m8-completion-20261010/.build/public-cell-red-CS-POLY-01-retained/probe' (arm64).
+(lldb) breakpoint set --file SurfaceParameterBox.swift --line 53
+Breakpoint 1: where = probe`SurfaceParameterBox.validate(_:in:direction:tolerance:) + 360 at SurfaceParameterBox.swift:56:20, address = 0x0000000101e6c6c8
+(lldb) run
+Process 6311 launched: '/private/tmp/cad-m4-m8-completion-20261010/.build/public-cell-red-CS-POLY-01-retained/probe' (arm64)
+Process 6311 stopped
+* thread #1, queue = 'com.apple.main-thread', stop reason = breakpoint 1.1
+       frame #0: 0x0000000101e6c6c8 probe`SurfaceParameterBox.validate(interval=(lower = -4.9406564584124654E-324, upper = 0.49999999999999983), domain=closed, direction="U", tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at SurfaceParameterBox.swift:56:20
+   53  	          phase: .geometry,
+   54  	          code: .invalidInput,
+   55  	          tolerance: tolerance,
+-> 56  	          message: "The surface parameter box extends beyond the \(direction) domain."
+    	                   ^
+   57  	        )
+   58  	      }
+   59  	    }
+Target 0: (probe) stopped.
+(lldb) bt 24
+* thread #1, queue = 'com.apple.main-thread', stop reason = breakpoint 1.1
+   * frame #0: 0x0000000101e6c6c8 probe`SurfaceParameterBox.validate(interval=(lower = -4.9406564584124654E-324, upper = 0.49999999999999983), domain=closed, direction="U", tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at SurfaceParameterBox.swift:56:20
+     frame #1: 0x0000000101e6c34c probe`SurfaceParameterBox.validateAssumingSurfaceValidated(surface=procedural, tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at SurfaceParameterBox.swift:37:9
+     frame #2: 0x0000000101e6c1a8 probe`SurfaceParameterBox.validate(surface=procedural, tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at SurfaceParameterBox.swift:18:9
+     frame #3: 0x0000000100a8de44 probe`DefaultSurfaceDifferentialEncloser.intervalJet(surface=procedural, parameters=CADGeometry.SurfaceParameterBox @ 0x000000016fddf650, tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at DefaultSurfaceDifferentialEncloser.swift:35:20
+     frame #4: 0x0000000100a8dd10 probe`DefaultSurfaceDifferentialEncloser.enclosure(surface=procedural, parameters=CADGeometry.SurfaceParameterBox @ 0x000000016fddf8f0, tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at DefaultSurfaceDifferentialEncloser.swift:22:19
+     frame #5: 0x0000000100a381b0 probe`DefaultCurveSurfaceIntersector.surfaceBounds(surface=procedural, parameters=CADGeometry.DefaultCurveSurfaceIntersector.SurfaceParameterBounds @ 0x000000016fddfd10, tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at DefaultCurveSurfaceIntersector.swift:4545:62
+     frame #6: 0x0000000100a35250 probe`DefaultCurveSurfaceIntersector.surfaceLiftBounds(lift=CADGeometry.SurfaceLiftCurve3D @ 0x000000016fde7868, interval=(lower = 0, upper = 0.41421356237309492), tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at DefaultCurveSurfaceIntersector.swift:4422:16
+     frame #7: 0x0000000100a0e3f4 probe`DefaultCurveSurfaceIntersector.bounds(curve=unimplemented enum kind, interval=(lower = 0, upper = 0.41421356237309492), tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at DefaultCurveSurfaceIntersector.swift:4192:18
+     frame #8: 0x00000001009fe834 probe`DefaultCurveSurfaceIntersector.certifiedSurfaceLiftAnalyticIntersections(lift=some, certifiedCurve=sphereCone, planeTorusCurve=nil, curve=unimplemented enum kind, surface=plane, canonicalSurface=plane, curveRange=(lower = 0, upper = 1), options=CADGeometry.CurveSurfaceIntersectionOptions @ 0x000000016fdfdfa8, tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at DefaultCurveSurfaceIntersector.swift:1898:27
+  ﹍ frame #9: 0x00000001009fb7e0 probe`closure #1 in DefaultCurveSurfaceIntersector.intersections(curve=unimplemented enum kind, surface=plane, options=CADGeometry.CurveSurfaceIntersectionOptions @ 0x000000016fdfdfa8, tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at DefaultCurveSurfaceIntersector.swift:550:22
+  ﹉ frame #11: 0x0000000101a6af80 probe`static GeometryExactScalarFailure.withPublication<[CADGeometry.CurveSurfaceIntersection]>(body=0x00000001009fc0c8 probe`partial apply forwarder for closure #1 () throws -> Swift.Array<CADGeometry.CurveSurfaceIntersection> in CADGeometry.DefaultCurveSurfaceIntersector.intersections(curve: CADGeometry.Curve3D, surface: CADGeometry.Surface3D, options: CADGeometry.CurveSurfaceIntersectionOptions, tolerance: CADCore.ModelingTolerance) throws -> Swift.Array<CADGeometry.CurveSurfaceIntersection> at <compiler-generated>) at GeometryExactScalarFailure.swift:6:25
+     frame #12: 0x00000001009edb24 probe`DefaultCurveSurfaceIntersector.intersections(curve=unimplemented enum kind, surface=plane, options=CADGeometry.CurveSurfaceIntersectionOptions @ 0x000000016fdfdfa8, tolerance=(distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)) at DefaultCurveSurfaceIntersector.swift:265:43
+  ﹍ frame #13: 0x0000000100001a30 probe`static PolylineCoonsCurveSurface.main() at PolylineCoonsCurveSurface.swift:13:62
+  ﹉ frame #15: 0x0000000100017264 probe`main at PolylineCoonsCurveSurface.swift:0
+     frame #16: 0x0000000195edbe80 dyld`start + 6688
+(lldb) frame variable
+(CADGeometry.ScalarInterval) interval = (lower = -4.9406564584124654E-324, upper = 0.49999999999999983)
+(CADGeometry.ParameterDomain) domain = closed {
+  closed = (0 = 0, 1 = 1)
+}
+(String) direction = "U"
+(CADCore.ModelingTolerance) tolerance = (distance = 9.9999999999999995E-7, angle = 1.0000000000000001E-9, relative = 1.0000000000000001E-9)
+(CADGeometry.SurfaceParameterBox) self = {
+  u = (lower = -4.9406564584124654E-324, upper = 0.49999999999999983)
+  v = (lower = -4.9406564584124654E-324, upper = 0.49999999999999983)
+}
+(Double) lower = 0
+(Double) upper = 1
+(lldb) quit

@@ -1,0 +1,56 @@
+{
+  "success": true,
+  "scope": "Native diagnostic trace of the receipt-admitted cached public dispatcher. Confirms selected branch and invalid enclosure only; not cell acceptance, a source repair or a current full-module/four-target build.",
+  "priorReceipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-red/receipt.json",
+  "priorInputCount": 2971,
+  "priorInputsCheckedBeforeRuntime": true,
+  "priorInputsCheckedAfterRuntime": true,
+  "inputs": {
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-red/receipt.json": "051f40235f18afc3e281e3bf79a8a26e64d2e35867c281979a455453371db529",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/public-cell-red-CS-POLY-01-retained/probe": "90fc504c0735a08d2a4213faff1890ec066df239a078d30fcb5b7914db0a13f5",
+    "/usr/bin/lldb": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift": "c1471838a8f4a65fe1c0f01cafb9bb02fc8042c2a910b58e9f20be3cca87b9e9",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/SurfaceParameterBox.swift": "0a6cf0985f93021f211e9863bae602f6aadc524bdfabbe05c2d9285cdd0db917",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/DefaultSurfaceDifferentialEncloser.swift": "afb1488f867c16e9ff3b2481708682a279ce9c548f6878e91bb2113a30bfa140"
+  },
+  "run": {
+    "command": [
+      "/usr/bin/lldb",
+      "--batch",
+      "-o",
+      "breakpoint set --file SurfaceParameterBox.swift --line 53",
+      "-o",
+      "run",
+      "-o",
+      "bt 24",
+      "-o",
+      "frame variable",
+      "-o",
+      "quit",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/public-cell-red-CS-POLY-01-retained/probe"
+    ],
+    "timeoutSeconds": 60,
+    "exitCode": 0
+  },
+  "logs": {
+    "lldb.log": "ed673fe1e5fd3643ea61dc975c04598e69f340a76d49b093e2305df5a2847ff5"
+  },
+  "observation": {
+    "input": "CS-POLY-01",
+    "branch": "certifiedSurfaceLiftAnalyticIntersections -> bounds -> surfaceLiftBounds -> surfaceBounds -> DefaultSurfaceDifferentialEncloser -> SurfaceParameterBox.validate",
+    "originalUAndVDomain": [
+      0,
+      1
+    ],
+    "uAndVBounds": {
+      "lower": "-4.9406564584124654E-324",
+      "upper": "0.49999999999999983"
+    },
+    "queriedOriginalTCandidateInterval": [
+      0,
+      0.4142135623730949
+    ],
+    "causalSourceOperation": "surfaceParameterBounds(polyline) -> parameterBounds(points:) -> outwardInterval -> min.nextDown/max.nextUp",
+    "constraint": "Do not clamp the receiving source domain or infer source equality from a residual. Preserve both authored T roots and all original TUV/auxiliary evidence."
+  }
+}

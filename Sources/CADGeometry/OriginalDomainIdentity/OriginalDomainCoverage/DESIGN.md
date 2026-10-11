@@ -407,12 +407,28 @@ representatives must not invent extra roots or erase the second traversal.
 The Native public diagnostic is retained at
 [CS-POLY-01 red](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-red/receipt.json).
 The generation-bound cached public dispatcher reports the U-domain failure from
-SurfaceParameterBox.validate. This is a red diagnosis, not four-target acceptance
-or proof of the exact intermediate enclosure. The causal bounds producer and
-actual chosen public branch must be traced before selecting the repair; interval
-clamping or tolerant source equality is not an allowed substitute. Existing
+SurfaceParameterBox.validate. The
+[Native trace receipt](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-trace/receipt.json)
+binds the observed call chain: certifiedSurfaceLiftAnalyticIntersections -> bounds
+-> surfaceLiftBounds -> surfaceBounds -> DefaultSurfaceDifferentialEncloser ->
+SurfaceParameterBox.validate. On the candidate T interval
+[0,0.41421356237309492], both UV bounds are
+[-4.9406564584124654E-324,0.49999999999999983] against the original [0,1]^2.
+The selected surfaceParameterBounds(polyline) calls parameterBounds(points:),
+which applies outwardInterval and nextDown to the point minimum zero. This is
+the concrete rejected enclosure, not a hypothesis based on the error string.
+
+The observed branch is the legacy lifted-curve analytic search; it does not
+consume the prepared complete lift/DI graph receipt. Repairing only that hull
+would not establish the cell's complete source equality, original TUV or retained
+identity/auxiliary correspondence. The end-to-end change must connect those
+existing receipts to the public result while retaining the original plane's
+whole UV domain and basis authority. No finite target window, tolerant source
+equality or receiving-domain clamp can substitute for that connection. Existing
 polyline/Coons lift and plane-source/domain receipts are the initial dependencies;
 the distinct-polyline shared-field prerequisite is not needed by this input.
+The trace proves this Native cached branch/stop only. It is not a current full
+module build, a repair, four-target acceptance or completion of the cell.
 
 Cell readiness is local. A cell may enter production implementation when its own
 input, oracle, observed stop, causal change and consumed receipt dependencies are
