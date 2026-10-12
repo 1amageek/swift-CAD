@@ -192,9 +192,25 @@ def audit():
             # Existing immutable evidence is reused in place, never copied or
             # retrospectively represented as a current-cell compilation.
             check(MAIN / resolved.relative_to(ROOT), item['sha256'])
-        authority = item.get('originalPath', original)
-        if authority != original:
-            require(original == authority + '#' + item['sha256'], 'exact historical path/digest manifest key')
+        authority = original
+        descriptor_origin = item.get('originalPath', original)
+        if '#' in original:
+            require(original == descriptor_origin + '#' + item['sha256'],
+                    'exact historical path/digest manifest key')
+            authority = descriptor_origin
+        elif descriptor_origin != original:
+            # A reused CAS descriptor can retain its prior origin. The plain
+            # manifest key names this payload's additional actual usage path.
+            origin_item = manifest['files'].get(descriptor_origin, {})
+            if origin_item.get('sha256') != item['sha256']:
+                origin_item = manifest['files'].get(descriptor_origin + '#' + item['sha256'], {})
+            require(origin_item.get('path') == item['path'] and
+                    origin_item.get('sha256') == item['sha256'] and
+                    any(run['label'].startswith('runtime-') and
+                        run.get('checks', {}).get(original) == item['sha256'] and
+                        original in run['command']
+                        for part in summary['accepted'] for run in part['runs']),
+                    'deduplicated usage alias must bind its retained origin and actual runtime input')
         key = (authority, item['sha256'])
         require(key not in archived or archived[key] == path, 'ambiguous original path/digest archive')
         archived[key] = path
