@@ -99,5 +99,9 @@ INCOMPLETE_IMPLEMENTATION markers remain. Whole-seven completion stays1/7
 
 The stable production snapshot is production-snapshot.json. One comprehensive
 review and finding-only mapping confirmation are recorded in [REVIEW.md](REVIEW.md).
-Latest-main composition and protected-work checks are recorded by the subsequent
-integration receipt; this document alone does not assert main delivery.
+Independent latest-main composition in [integration.json](integration.json) matches
+2090 current source premises,13,127 external files,262 durable files and334
+changed inputs. Main fast-forwarded implementation926097f4 with12 protected
+files unchanged. Four focused COW checks also pass; no accepted runtime or build
+was replayed during integration. The accompanying delivery-record commit changes
+only progress and evidence, preserving the accepted production snapshot.
