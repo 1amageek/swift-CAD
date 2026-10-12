@@ -1,0 +1,3 @@
+minimum-candidate-count 3
+minimum-algebraic-depth 12
+PASS reverse implicit finite acceptance limits

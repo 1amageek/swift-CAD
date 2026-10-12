@@ -1,0 +1,8 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/Proof.swift:717:75: warning: will never be executed
+ 715 |       let half = try f.dividing(f.integer(1,using:&a),f.integer(2,using:&a),using:&a)
+ 716 |       let local = try reduction.graph.polynomials.evaluated(reduction.localParameter,at:[half],using:&a).value
+ 717 |       let expectedLocal = storedCells == 1 ? half : try f.integer(ordinal == 0 ? 1 : 0,using:&a)
+     |                                       |                                   `- warning: will never be executed
+     |                                       `- note: condition always evaluates to true
+ 718 |       try require(f.compare(local,expectedLocal,using:&a) == .equal)
+ 719 |       let lower = storedCells == 1 || ordinal == 0 ? try f.integer(0,using:&a) : half

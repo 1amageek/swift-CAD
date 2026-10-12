@@ -1,0 +1,7 @@
+(node:76204) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+exact-work 486767
+exact-bytes 6058852
+exact-work 467329
+exact-bytes 5559024
+PASS reverse implicit finite acceptance budgets

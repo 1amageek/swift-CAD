@@ -2589,14 +2589,15 @@ the pair owner owns the complete-family/request bridge and numeric publication.
 ## Finite Forward Implicit Cell Coverage
 
 This contract extends the preceding single-cell contract for
-CS-IMPLICIT-SPLIT-DYADIC-PARABOLA-PLANE-01. Its actual ordinary observation
-returns one numerical representative without any original receipt or the two
-closed seam incidents. The source selector currently declines the two-cell
-input. The extension admits only the existing single forward firstV cell or
-exactly two forward firstV cells over the same bounded triangular Native host
-profile. Closed sources, reversed traversal and other host representations
-remain outside this capability. This source contract alone does not establish
-ordinary public completeness.
+CS-IMPLICIT-SPLIT-DYADIC-PARABOLA-PLANE-01. Its baseline ordinary observation
+returned one numerical representative without any original receipt or the two
+closed seam incidents while the source selector declined the two-cell input.
+The accepted capability now includes one or two forward firstV cells over the
+same bounded triangular Native host profile. The subsequent
+[Single Reversed Implicit Cell](#single-reversed-implicit-cell) contract defines
+the limited single-cell reverse extension. Closed sources, reversed multi-cell
+traversal and other host representations remain outside the admitted capability.
+This source contract alone does not establish ordinary public completeness.
 
 ```text
 Immutable original curve + two retained Native host bindings
@@ -2680,3 +2681,70 @@ conditions, span-scoped range witnesses, foreign-field/depth/budget/cancel
 failures and detached/COW lifetime. The existing compiler and relation
 consumers remain unchanged premises; actual ordinary publication is required
 before this finite cell counts as complete.
+
+## Single Reversed Implicit Cell
+
+CS-IMPLICIT-REVERSE-DYADIC-PARABOLA-ON-HOST-01 extends the existing Native
+triangular source capability only to one stored firstV-free cell whose actual
+direction is reversed. Its actual ordinary rich baseline reaches subdivision
+and fails before DTO publication because non-rational candidate uniqueness and
+completeness are unproved. This contract preserves the accepted forward
+one-cell and two-cell capabilities. Reversed multi-cell traversal, true closed
+sources, firstU-free cells, singular sources and other host profiles remain
+outside the admitted capability; unsupported required coverage cannot become
+empty success.
+
+```text
+Actual immutable reversed cell + retained Native host laws
+    -> original global T / local parameter T / closed support [0,1]
+    -> checked free-coordinate law upper - originalWidth*T
+    -> original five-coordinate graph / all 27 conditions
+    -> existing checked reduction and finite cover
+    -> existing public relation consumer / complete original correspondence
+```
+
+The original cell evaluator applies directedFraction = 1-localFraction for
+reversed traversal. The global-to-cell local map remains identity for a single
+cell. Source issuance therefore retains localParameter = T, closed global
+support [0,1] and identity original parameter transport. It imports the actual
+authored lower, upper and stored width exactly, verifies width > 0 and
+lower + width = upper, and derives the free-coordinate equation from
+lower + width*(1-T). The resulting offset is upper and gain is -width.
+It verifies free(0) = upper and free(1) = lower exactly. Changing only the
+forward gain sign or reversing localParameter as well would violate this
+contract. Forward issuance retains its existing law and endpoint checks.
+
+The three original host-position equalities and this direction-correct free
+equation feed the existing triangular elimination and unique auxiliary-map
+proof. The original five-coordinate graph, all 27 conditions and denominators,
+ordered closed cell/host bounds, nonzero dependent Jacobian and elimination
+witnesses remain retained. Existing exact Bernstein ranges prove containment
+and each removable guard over the whole closed support; negative traversal
+gain does not reverse lower/upper domain bounds. The composed homogeneous
+position and total global-T derivative are derived from the exact substituted
+polynomials, applying the original direction once. Original coordinates stay
+in [T,firstU,firstV,secondU,secondV] order.
+
+The existing sealed reduction and finite coverage retain the actual reversed
+cell ordinal, immutable original curve and Native parent owners. Cover
+readmission admits this single reversed direction while preserving identity
+transports, local endpoints 0/1, field ownership, complete support and attained
+depth. Native laws are prepared once; all work, storage, comparisons,
+source/value/coefficient depth and cancellation use the same caller admission.
+Source nesting depth and target storage/Sendable/lifetime contracts do not
+change. No new receipt type, unchecked issuer, lower solver, query allowance
+or direction-specific upper API is introduced.
+
+The source change is limited to the direction-dependent branches in
+OriginalImplicitCurveSnapshotProvider, OriginalFiniteImplicitCurveGraphCoverage
+and DefaultOriginalFiniteImplicitCurveGraphPreparer. Existing graph evidence,
+reduction and public consumer contracts remain premises. Source issuance alone
+does not complete the cell: actual public rich publication must retain the
+whole requested relation, original host UV, XYZ, cover and dimensions. The
+independent fixed oracle is tau = 3/4-T/2 with tuples (T,tau^2,tau), source
+coordinates [T,tau^2,tau,tau,1/2], XYZ (tau^2/32,tau/64,0) and dimensions 1/1/0.
+Verification also requires complete empty restricted target V, bare refusal
+of the non-discrete result, exact reversed endpoints and total tangent,
+forward one/two-cell regression, and unchanged typed unsupported,
+owner/depth/budget/cancellation/lifetime behavior. The pair owner retains
+public verification responsibility; source-only success is insufficient.

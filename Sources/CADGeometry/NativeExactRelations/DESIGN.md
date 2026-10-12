@@ -780,6 +780,12 @@ collection proof history and every original five-coordinate graph remain retaine
 
 The source-owned complete-family theorem and its unique position/host lift
 authority are assumptions from [Source Issuance](../OriginalSourceIssuance/DESIGN.md).
+The finite family consumer also accepts the source owner's checked single-cell
+reversed triangular capability. Authored T remains the graph parameter; the
+source reduction owns the decreasing host-coordinate law and total T derivative.
+The consumer uses the same binding and coordinate-restoration contracts for
+forward and reversed traversal. Reversed multiple-cell, closed and other implicit
+capabilities remain outside this limited admission.
 [Geometric publication](../NativeExactGeometricRelations/DESIGN.md#implicit-curve-publication)
 owns the ordinary selector and certified numerical compatibility. Verification
 must inspect complete reduced raw/lifted cells, retained full source graphs,

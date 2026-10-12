@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "cell": "CS-IMPLICIT-REVERSE-DYADIC-PARABOLA-ON-HOST-01",
+  "status": "native-ordinary-typed-failure-observed",
+  "observationComplete": true,
+  "sourceContractComplete": false,
+  "cellComplete": false,
+  "sourceAtCompile": "002bd2ee11602cec5c30a812244b8816f7a08390",
+  "headAfter": "002bd2ee11602cec5c30a812244b8816f7a08390",
+  "fixture": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-REVERSE-DYADIC-PARABOLA-ON-HOST-01/observation/cas/806ba05c7f31273328d44187027724736fa5e176729289d393c4793b96bc1965.swift",
+    "sha256": "806ba05c7f31273328d44187027724736fa5e176729289d393c4793b96bc1965",
+    "bytes": 7902,
+    "kind": "frozen-native-observation"
+  },
+  "runner": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-REVERSE-DYADIC-PARABOLA-ON-HOST-01/observation/cas/3a8f6228b62f95186b8382110c09a5d4376cdea9c87510e721acec6de5e88afc.py",
+    "sha256": "3a8f6228b62f95186b8382110c09a5d4376cdea9c87510e721acec6de5e88afc",
+    "bytes": 11060,
+    "kind": "frozen-native-observation"
+  },
+  "rawReceipt": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-REVERSE-DYADIC-PARABOLA-ON-HOST-01/observation/cas/5a271c9bf69b1c754b8ae11c5f6e5988bbe91575eabbb9e7a2e3f8c91887ae13.json",
+    "sha256": "5a271c9bf69b1c754b8ae11c5f6e5988bbe91575eabbb9e7a2e3f8c91887ae13",
+    "bytes": 129288,
+    "kind": "frozen-native-observation"
+  },
+  "command": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-REVERSE-DYADIC-PARABOLA-ON-HOST-01/observation/cas/5d778bb7ec8e7f1c4853b0a698f4158bde606ae6a4b1c1b6cc702414e2b86678.json",
+    "sha256": "5d778bb7ec8e7f1c4853b0a698f4158bde606ae6a4b1c1b6cc702414e2b86678",
+    "bytes": 14632,
+    "kind": "frozen-native-observation"
+  },
+  "runtimeLog": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-REVERSE-DYADIC-PARABOLA-ON-HOST-01/observation/cas/0a562e64581a128fd9bdec6332c8ae4d41b1e25eb3a0b183bc094001d94e15e8.log",
+    "sha256": "0a562e64581a128fd9bdec6332c8ae4d41b1e25eb3a0b183bc094001d94e15e8",
+    "bytes": 1600,
+    "kind": "frozen-native-observation"
+  },
+  "compilerLog": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "kind": "command-receipt-log-or-fixture"
+  },
+  "bindings": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-REVERSE-DYADIC-PARABOLA-ON-HOST-01/observation/cas/9cecb127f6552be3f195c795f1643937353173d28e48e567748f46b92fdf5b2f.json",
+    "sha256": "9cecb127f6552be3f195c795f1643937353173d28e48e567748f46b92fdf5b2f",
+    "bytes": 221950,
+    "kind": "frozen-native-observation"
+  },
+  "scope": {
+    "lane": "native",
+    "ordinaryCalls": 1,
+    "constructorCalls": 1,
+    "upperBodies": 56,
+    "selectorBodies": 1,
+    "swiftInputs": 58,
+    "cachedArchives": 13,
+    "totalArchivesIncludingImplicitSourcePhase": 14,
+    "compiledSourceBodies": 0,
+    "compiledLowerBodies": 0,
+    "compileRuntimeReplayForPackaging": 0
+  },
+  "independentOracle": {
+    "firstSupport": "S1(a,b)=(a/32,b/64,0)",
+    "secondSupport": "S2(s,r)=(s^2/32,s/64,(2r-1)/64)",
+    "target": "actual original.firstSurface, H(U,V)=(U/32,V/64,0)",
+    "closedCellLayout": "one stored reversed cell, original global/local T in [0,1], tau=3/4-T/2",
+    "allTUV": [
+      "T",
+      "tau^2",
+      "tau"
+    ],
+    "original5": [
+      "T",
+      "tau^2",
+      "tau",
+      "tau",
+      "1/2"
+    ],
+    "firstHostUV": [
+      "tau^2",
+      "tau"
+    ],
+    "secondHostUV": [
+      "tau",
+      "1/2"
+    ],
+    "xyz": [
+      "tau^2/32",
+      "tau/64",
+      "0"
+    ],
+    "dimensions": [
+      1,
+      1,
+      0
+    ],
+    "completeEquality": "Actual target is the retained first host; its injective affine X/Y map forces U=tau^2,V=tau. Nonzero dY/dT=-1/128 gives image dimension1 and fiber dimension0.",
+    "guards": "For all closed T, tau is in [1/4,3/4] and tau^2 in [1/16,9/16], within all original first/second/target supports. Authored 0.2/0.8 remain exact imported binary64, never rationalized to 1/5 or 4/5.",
+    "storedSecondUBinary64": [
+      "3602879701896397/18014398509481984",
+      "3602879701896397/4503599627370496"
+    ]
+  },
+  "observed": {
+    "kind": "public-typed-failure",
+    "resultDTOProduced": false,
+    "receiptFields": {
+      "originalImplicitCurveRelation": "unavailable_no_result_DTO",
+      "originalNativePoints": "unavailable_no_result_DTO",
+      "originalNativeRelations": "unavailable_no_result_DTO",
+      "originalPolynomialPoints": "unavailable_no_result_DTO",
+      "originalAffinePoints": "unavailable_no_result_DTO",
+      "originalCoonsPoints": "unavailable_no_result_DTO",
+      "originalExactGeometricRelation": "unavailable_no_result_DTO",
+      "originalIssuedGeometricRelation": "unavailable_no_result_DTO",
+      "originalIssuedNumericalPoints": "unavailable_no_result_DTO",
+      "originalContainedLiftPlaneFamily": "unavailable_no_result_DTO",
+      "originalRevolutionAxisRelation": "unavailable_no_result_DTO",
+      "originalAngularPlaneRelation": "unavailable_no_result_DTO",
+      "originalCertifiedApexPlaneExclusion": "unavailable_no_result_DTO"
+    },
+    "error": {
+      "category": "resourceExhaustion",
+      "cellComplete": false,
+      "code": "resourceLimitExceeded",
+      "error": "KernelError(phase: geometry, code: resourceLimitExceeded, residual: 3.469446951953614e-18, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Curve-surface subdivision could not certify uniqueness and completeness for every remaining non-rational candidate.)",
+      "message": "Curve-surface subdivision could not certify uniqueness and completeness for every remaining non-rational candidate.",
+      "phase": "geometry",
+      "residual": 3.469446951953614e-18,
+      "stage": "public-failure"
+    },
+    "cancelInjected": false,
+    "cancellationObserved": false
+  },
+  "staticScope": {
+    "selector": "OriginalImplicitCurveSnapshotProvider.supports",
+    "restriction": "cell.direction == .forward",
+    "producerDisposition": "declines reversed input; selector absence alone is not the observed runtime failure"
+  },
+  "remainingGap": "Direction-aware source-owned complete graph law and retained coverage/restoration must support the actual reversed cell. Current forward-only law must not be enabled by gate relaxation alone: free=upper-width*T for this original reversed cell, while global/local T remain identity. Reuse existing exact upper positive-relation path after source authority is proved; no new solver or larger resource budget inferred.",
+  "integrity": {
+    "prePostHashesMatch": true,
+    "fixedChecks": 437,
+    "finalRecordedChecks": 440,
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-observation-20261013/Observation": "7f4e3b0493c7a5ff07a05607dc6f65c46205fce6bd4b46e26188655a9a1e611f"
+    },
+    "ownedDescendantsRemaining": [
+      [],
+      []
+    ]
+  },
+  "resources": [
+    {
+      "label": "compile-link",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 44.52242741698865,
+      "cumulativeElapsedSeconds": 44.522533499985,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 35.76,
+      "peakOwnedProcessResidentSumKiB": 669472,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "runtime",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 2.840025666053407,
+      "cumulativeElapsedSeconds": 47.899146166979335,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 1.69,
+      "peakOwnedProcessResidentSumKiB": 16624,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "0a562e64581a128fd9bdec6332c8ae4d41b1e25eb3a0b183bc094001d94e15e8"
+    }
+  ],
+  "guardPolicy": "Independent compile120/runtime120 wall, per-processCPU120 and ownedCPU120; default public query caps unchanged."
+}

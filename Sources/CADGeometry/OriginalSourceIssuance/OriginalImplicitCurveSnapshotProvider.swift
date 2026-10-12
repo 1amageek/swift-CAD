@@ -12,7 +12,8 @@ public struct OriginalImplicitCurveSnapshotProvider: OriginalSourceSnapshotting 
             case .bSpline(let second) = curve.secondSurface,
             native(first, uDegree: 1), native(second, uDegree: 2) else { return false }
         for cell in curve.cells {
-            guard cell.freeParameter == .firstV, cell.direction == .forward else { return false }
+            guard cell.freeParameter == .firstV,
+                cell.direction == .forward || (curve.cells.count == 1 && cell.direction == .reversed) else { return false }
         }
         let p = first.controlPoints, q = second.controlPoints
         guard p[0][0].x != p[0][1].x, p[0][0].y != p[1][0].y,
@@ -77,8 +78,8 @@ public struct OriginalImplicitCurveSnapshotProvider: OriginalSourceSnapshotting 
             try input.validate(tolerance: tolerance)
             guard limits.remainingSourceDepth > 0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
             // FIXME(INCOMPLETE_IMPLEMENTATION): The live implicit CS source port currently
-            // supplies only one or two forward triangular Native cells. General cells,
-            // hosts, free coordinates and directions need complete original graph authority.
+            // supplies one or two forward triangular Native cells, or one reversed cell.
+            // Other hosts, free coordinates and traversals need complete original graph authority.
             guard Self.supports(input), case .implicit(let curve) = copy input,
                 case .bSpline(let first) = curve.firstSurface,
                 case .bSpline(let second) = curve.secondSurface else {

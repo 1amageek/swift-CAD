@@ -624,7 +624,10 @@ The narrow ordinary implicit selector accepts only the source-owned supported
 Native target. It selects before preparation; after selection every typed
 source/domain/algebra/resource/cancellation failure propagates atomically. General
 implicit branches remain on their existing dispatch until their source authority
-is supported. The producer follows one caller ledger through source graphs,
+is supported. The source-owned finite admission covers forward one/two-cell and
+reversed single-cell triangular Native constructions. Publication consumes the
+sealed reduction for the actual cell; it does not reverse T or negate the
+source's total derivative again. The producer follows one caller ledger through source graphs,
 [complete-family preparation](../NativeExactRelations/DESIGN.md#complete-original-curve-graph-families),
 existing L5/L6, scalar transfer, numerical representatives and terminal checkpoint.
 

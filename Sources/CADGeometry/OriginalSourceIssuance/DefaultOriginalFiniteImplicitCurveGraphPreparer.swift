@@ -20,8 +20,8 @@ public struct DefaultOriginalFiniteImplicitCurveGraphPreparer: OriginalCompleteC
                 guard limits.remainingSourceDepth > 0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
                 let original = retained.original
                 // FIXME(INCOMPLETE_IMPLEMENTATION): The ordinary implicit CS source path
-                // currently issues only one or two forward triangular Native cells. General graph cells
-                // require complete guarded correspondence before they can count as supplied.
+                // issues one or two forward triangular Native cells, or one reversed cell.
+                // Other traversals require complete guarded correspondence before they count as supplied.
                 guard OriginalImplicitCurveSnapshotProvider.supports(.implicit(original.original)) else {
                     throw OriginalSourceIssuanceFailure.unsupportedRepresentation
                 }
@@ -117,12 +117,21 @@ public struct DefaultOriginalFiniteImplicitCurveGraphPreparer: OriginalCompleteC
                     let freeLower = try f.binary64(exactly:free.lower,using:&a)
                     let freeWidth = try f.binary64(exactly:free.width,using:&a)
                     let freeUpper = try f.binary64(exactly:free.upper,using:&a)
-                    let offset = try f.subtracting(freeLower,f.multiplying(freeWidth,ordinal,using:&a),using:&a)
-                    let gain = try f.multiplying(freeWidth,countValue,using:&a)
+                    let reversed = cell.direction == .reversed
+                    let offset: Field.Value, gain: Field.Value
+                    if reversed {
+                        // The admitted single reversed cell applies 1-T once in its original free law.
+                        offset = freeUpper
+                        gain = try f.negated(freeWidth,using:&a)
+                    } else {
+                        offset = try f.subtracting(freeLower,f.multiplying(freeWidth,ordinal,using:&a),using:&a)
+                        gain = try f.multiplying(freeWidth,countValue,using:&a)
+                    }
+                    let start = reversed ? freeUpper:freeLower, end = reversed ? freeLower:freeUpper
                     guard try f.sign(of:freeWidth,using:&a) == .positive,
                         try f.compare(f.adding(freeLower,freeWidth,using:&a),freeUpper,using:&a) == .equal,
-                        try f.compare(f.adding(offset,f.multiplying(gain,lower,using:&a),using:&a),freeLower,using:&a) == .equal,
-                        try f.compare(f.adding(offset,f.multiplying(gain,upper,using:&a),using:&a),freeUpper,using:&a) == .equal else {
+                        try f.compare(f.adding(offset,f.multiplying(gain,lower,using:&a),using:&a),start,using:&a) == .equal,
+                        try f.compare(f.adding(offset,f.multiplying(gain,upper,using:&a),using:&a),end,using:&a) == .equal else {
                         throw OriginalSourceIssuanceFailure.unresolvedAuthority
                     }
                     equations.append(try ring.subtracting(coordinates[2],ring.adding(ring.constant(offset,using:&a),

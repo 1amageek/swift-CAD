@@ -1,0 +1,1 @@
+PASS detached source/result lifetime, authored value independence and concurrent immutable readers

@@ -43,7 +43,8 @@ public struct OriginalFiniteImplicitCurveGraphCoverage: Sendable {
             guard reduction.cellOrdinal == index, reduction.graph.evidence.cellOrdinal == index,
                 reduction.originalCoordinates.count == 5,
                 source.original.original.cells[index].freeParameter == .firstV,
-                source.original.original.cells[index].direction == .forward else {
+                source.original.original.cells[index].direction == .forward
+                    || (count == 1 && source.original.original.cells[index].direction == .reversed) else {
                 throw OriginalSourceIssuanceFailure.invalidChart
             }
             _ = try field.importing(evidence.field.integer(0,using:&a),using:&a)
