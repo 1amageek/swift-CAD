@@ -1,0 +1,87 @@
+{
+  "status": "PASS",
+  "finding": "F1 closed for current Geometry source; historical independent DI packet unchanged",
+  "reviewSHA256": "495f346d382c6f64e1eb370ec04e6fe5940581862ce917e32e0d187df47484c2",
+  "sourceCount": 2103,
+  "productCount": 8536,
+  "sourcePremisesSHA256": "5fa75122a3abc7b03388ebb2ecf9d4fce80c6a1e00c261892d7972dab388ef8a",
+  "productsSHA256": "685fa8b9c054479220f5a734b17854c1817ab20b19820f11a46fa75caa5c1e31",
+  "lanes": {
+    "native": {
+      "groups": [
+        "complete",
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel"
+      ],
+      "queryBoundary": [
+        15457625,
+        480861821,
+        2647637
+      ],
+      "elapsedSeconds": 65.43124270893168,
+      "premisesSHA256": "b71b89ac9b18b9bfc8d9b773cb69a67d2b7723218fb5e9037741859dba986042",
+      "freshIssuerBody": true
+    },
+    "asan": {
+      "groups": [
+        "complete",
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel"
+      ],
+      "queryBoundary": [
+        15457625,
+        480861821,
+        2647637
+      ],
+      "elapsedSeconds": 168.25341395894065,
+      "premisesSHA256": "917317fbd59153cf8d3293241fd46a3a2f52f9da5b01932549bb69df9b2ffdd9",
+      "freshIssuerBody": true
+    },
+    "wasm": {
+      "groups": [
+        "complete",
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel"
+      ],
+      "queryBoundary": [
+        15357024,
+        243513857,
+        2647637
+      ],
+      "elapsedSeconds": 99.17246208211873,
+      "premisesSHA256": "0431294e4cfc2fdd4ae63519f4a0d93df6749a38146947b3a531d90fb42096e6",
+      "freshIssuerBody": true
+    },
+    "embedded": {
+      "groups": [
+        "complete",
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel"
+      ],
+      "queryBoundary": [
+        15357024,
+        243513857,
+        2647637
+      ],
+      "elapsedSeconds": 47.0077411668608,
+      "premisesSHA256": "c58cf57c5a45ce7ad20ff759fd441691d30993c699e00bdb664bc5f947d68f89",
+      "freshIssuerBody": false
+    }
+  },
+  "protectedFileCount": 12,
+  "wholeSevenCompleted": 1,
+  "wholeSevenTotal": 7,
+  "full87Complete": false
+}

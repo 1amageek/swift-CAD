@@ -1,0 +1,5 @@
+(node:70016) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS exact original fold, once-bound same owner, one chart/pair and checked whole closed directed edge
+PASS actual E/R/S/I/C: middle intersection and full pullback, reverse closed J, depth3/proofCount5
+PASS storageN-1 exact typed storage refusal

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/native-identity-current-20261013-v2/asan/Proof",
+    "controls"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 28.577744667069055,
+  "peakRSSBytes": 821575680,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "80787a1316dca41251611defbf5a1cf324c917706428857539047d59d789f476"
+}
