@@ -1,0 +1,398 @@
+{
+  "cell": "CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01",
+  "success": false,
+  "state": "bounded-embedded-fixture-cpu-stop",
+  "scope": "Source5 and testableUpper56 module/archive passed; original fixture1input plus exact aliases imports the same Upper product; compiler ownedCPU120s stop, no type/link diagnostic or executable success, no runtime.",
+  "receipt": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/93dad18f4f5f3d92662b158142d751fdbadc401684652bc25e2edf99080cfc04.json",
+    "sha256": "93dad18f4f5f3d92662b158142d751fdbadc401684652bc25e2edf99080cfc04",
+    "bytes": 102909
+  },
+  "command": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6227c2b818ca90e797f3dde2c12790884b1958c1c086ef5655c1b9b82e40e25e.json",
+    "sha256": "6227c2b818ca90e797f3dde2c12790884b1958c1c086ef5655c1b9b82e40e25e",
+    "bytes": 7807
+  },
+  "premises": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/a2ca5cf158b09183078ba06a414b38b0ae0917af69ca4542fe73c353f1d2a329.json",
+    "sha256": "a2ca5cf158b09183078ba06a414b38b0ae0917af69ca4542fe73c353f1d2a329",
+    "bytes": 129450
+  },
+  "log": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "retainedUpperModuleReceipt": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/0c0d92a0d755b450ff89f0c463394f5fa51ea762815da711a6edf7694686405a.json",
+    "sha256": "0c0d92a0d755b450ff89f0c463394f5fa51ea762815da711a6edf7694686405a",
+    "bytes": 109764
+  },
+  "retainedUpperModuleCommand": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6d7f254475bb06e5a7e9b05075f16b897781f39befd43d368f1c04a2a1ad9e32.json",
+    "sha256": "6d7f254475bb06e5a7e9b05075f16b897781f39befd43d368f1c04a2a1ad9e32",
+    "bytes": 14440
+  },
+  "files": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v6/upper-command.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6227c2b818ca90e797f3dde2c12790884b1958c1c086ef5655c1b9b82e40e25e.json",
+      "sha256": "6227c2b818ca90e797f3dde2c12790884b1958c1c086ef5655c1b9b82e40e25e",
+      "bytes": 7807
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v6/post-cleanup-observation.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/857485ba655ddc90baa91b104d29e65e604dfd6ec4946443a4f516bb1d7327f4.json",
+      "sha256": "857485ba655ddc90baa91b104d29e65e604dfd6ec4946443a4f516bb1d7327f4",
+      "bytes": 315
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v6/upper-premises.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/a2ca5cf158b09183078ba06a414b38b0ae0917af69ca4542fe73c353f1d2a329.json",
+      "sha256": "a2ca5cf158b09183078ba06a414b38b0ae0917af69ca4542fe73c353f1d2a329",
+      "bytes": 129450
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v6/upper-compile-receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/93dad18f4f5f3d92662b158142d751fdbadc401684652bc25e2edf99080cfc04.json",
+      "sha256": "93dad18f4f5f3d92662b158142d751fdbadc401684652bc25e2edf99080cfc04",
+      "bytes": 102909
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v6/Proof.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/dce794d20301d41a70e6fe6617b56c4555e95e3803a4a89badca046e6fce777d.swift",
+      "sha256": "dce794d20301d41a70e6fe6617b56c4555e95e3803a4a89badca046e6fce777d",
+      "bytes": 54564
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v6/upper-compile.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v6/driver-at-runtime.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/23449da9514849e354831a8f416e8556f0523cd0f1d853440fc272ea593e35ff.py",
+      "sha256": "23449da9514849e354831a8f416e8556f0523cd0f1d853440fc272ea593e35ff",
+      "bytes": 22526
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v6/upper-compile-started.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/fe3f3671e524b51719d08a165c52eb29feb24679cf4c7485747831b6fbe9830c.json",
+      "sha256": "fe3f3671e524b51719d08a165c52eb29feb24679cf4c7485747831b6fbe9830c",
+      "bytes": 57
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalIssuedGeometricRelationPair.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/2f66dffa7c6926cc34db0295888855656f955733f83cbdc325983331fb4290d8.swift",
+      "sha256": "2f66dffa7c6926cc34db0295888855656f955733f83cbdc325983331fb4290d8",
+      "bytes": 32041
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalAngularPlaneGeometricRelations.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/21df36ea2b830f77357bb07305562eab21b8639016110b4f511b984322720fbe.swift",
+      "sha256": "21df36ea2b830f77357bb07305562eab21b8639016110b4f511b984322720fbe",
+      "bytes": 35299
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/NativeExactGeometryPublicationFailure.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/d5a89acee267d2eed3a16f6accef9505b8d7c378d15de9e725f163af1b11a0ef.swift",
+      "sha256": "d5a89acee267d2eed3a16f6accef9505b8d7c378d15de9e725f163af1b11a0ef",
+      "bytes": 40796
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalTraversalSpanSnapshotProvider.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/7c7bfcd192c43d3e5920971db5a8092df717b28fdd508070320c19aa5b72d696.swift",
+      "sha256": "7c7bfcd192c43d3e5920971db5a8092df717b28fdd508070320c19aa5b72d696",
+      "bytes": 33961
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalIssuedGeometricRelationReading.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/f23f9cf68aed8a70b36208de6c4c8a0f65d6cba931ca691e4467c615969047f1.swift",
+      "sha256": "f23f9cf68aed8a70b36208de6c4c8a0f65d6cba931ca691e4467c615969047f1",
+      "bytes": 32123
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalImplicitCurvePointPublisher.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/c128b7eb967d66b7dc13560e986ca9beb3e183639d9dc221119044faabe56ace.swift",
+      "sha256": "c128b7eb967d66b7dc13560e986ca9beb3e183639d9dc221119044faabe56ace",
+      "bytes": 32801
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalImplicitCurveRelationReading.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/1f7532ff6383ce4c0afa48d28cdf6b3b83304d4c53fb8f8843a41518f8623730.swift",
+      "sha256": "1f7532ff6383ce4c0afa48d28cdf6b3b83304d4c53fb8f8843a41518f8623730",
+      "bytes": 32019
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/NativeExactCurveSurfacePointProducer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/35d70c53e0d87bf2ebb0ed1d74167b4f67ecc12f2bf0e8c3a14fe2a2c3781def.swift",
+      "sha256": "35d70c53e0d87bf2ebb0ed1d74167b4f67ecc12f2bf0e8c3a14fe2a2c3781def",
+      "bytes": 22035
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-command.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6d7f254475bb06e5a7e9b05075f16b897781f39befd43d368f1c04a2a1ad9e32.json",
+      "sha256": "6d7f254475bb06e5a7e9b05075f16b897781f39befd43d368f1c04a2a1ad9e32",
+      "bytes": 14440
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalImplicitCurveRelations.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/4b31ed5a036d8adc13da90bd06f81eb63b2b4f10604d63ab67ed3552c79a28ce.swift",
+      "sha256": "4b31ed5a036d8adc13da90bd06f81eb63b2b4f10604d63ab67ed3552c79a28ce",
+      "bytes": 32857
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRevolutionAxisGeometricRelations.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/575da33c7cfc55e30145064ad40d279b468d88cd78300b641a0c25b69faa262a.swift",
+      "sha256": "575da33c7cfc55e30145064ad40d279b468d88cd78300b641a0c25b69faa262a",
+      "bytes": 34173
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalImplicitCurvePointEvaluator.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/76bee76db254aed71317e2f04ea60fd8829179c13c5dad6d0a27e311fef3b4c1.swift",
+      "sha256": "76bee76db254aed71317e2f04ea60fd8829179c13c5dad6d0a27e311fef3b4c1",
+      "bytes": 40923
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalIssuedNumericalCurveSurfacePoints.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/b815c89213d612425eb188d6a65100dadbd7278f5464b5503b870b889cbe04b0.swift",
+      "sha256": "b815c89213d612425eb188d6a65100dadbd7278f5464b5503b870b889cbe04b0",
+      "bytes": 32287
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/CurveSurfaceIntersectionResolving.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/7b74646363e5614c8aab0e0a7419801387f4c7ce3c0e309bde65c9825d4e58a7.swift",
+      "sha256": "7b74646363e5614c8aab0e0a7419801387f4c7ce3c0e309bde65c9825d4e58a7",
+      "bytes": 33280
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRevolutionAxisRelations.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/487057c14c458aeef4cbd6640495fde8f7b3dcab1923256633aac8e53aa4324f.swift",
+      "sha256": "487057c14c458aeef4cbd6640495fde8f7b3dcab1923256633aac8e53aa4324f",
+      "bytes": 38138
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalAngularPlanePublicProducer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/7dacf22311998ec243a6f70067af8f5ac5441f51c38bee5ee004a3e90b4b83d5.swift",
+      "sha256": "7dacf22311998ec243a6f70067af8f5ac5441f51c38bee5ee004a3e90b4b83d5",
+      "bytes": 44010
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalIssuedExactIntersectionPoint.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/172da4dc11e79a92c38d8ff621d7573b3b46b36063ff6385203b8490b4fd4b45.swift",
+      "sha256": "172da4dc11e79a92c38d8ff621d7573b3b46b36063ff6385203b8490b4fd4b45",
+      "bytes": 33065
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-premises.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/8aeecc112a64879be2e705c29c961de920aa61524d9a5a2d02768ee511d89338.json",
+      "sha256": "8aeecc112a64879be2e705c29c961de920aa61524d9a5a2d02768ee511d89338",
+      "bytes": 200067
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/DefaultCurveSurfaceIntersector.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/2f48cd67c2b00f85ad60493bda01dc698fe22e0afc7d60767c17b98a095db13d.swift",
+      "sha256": "2f48cd67c2b00f85ad60493bda01dc698fe22e0afc7d60767c17b98a095db13d",
+      "bytes": 239879
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/NativeExactPublicCurveSurfaceProducer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/853ab1430aab179c8e0e2709aaccc630201ed5c4a06fcb83f8fc390a3bdb44f7.swift",
+      "sha256": "853ab1430aab179c8e0e2709aaccc630201ed5c4a06fcb83f8fc390a3bdb44f7",
+      "bytes": 4700
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-module-compile.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRevolutionAxisLinePublicProducer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/d1d982af8e51022bf549c58370a9816345be2f82fea46030be894e77feef0c08.swift",
+      "sha256": "d1d982af8e51022bf549c58370a9816345be2f82fea46030be894e77feef0c08",
+      "bytes": 44120
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalAngularPlaneRelations.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/7e1fce78f46e38953fb5a68f5b88b2c7e5a4f801b630e1405e2459dd6f55f7f1.swift",
+      "sha256": "7e1fce78f46e38953fb5a68f5b88b2c7e5a4f801b630e1405e2459dd6f55f7f1",
+      "bytes": 35731
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRevolutionSnapshot.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/265f01e9da39fe9ee5ab1f4696153b5f0c07b37b5b28bc281b099a8507010e19.swift",
+      "sha256": "265f01e9da39fe9ee5ab1f4696153b5f0c07b37b5b28bc281b099a8507010e19",
+      "bytes": 32198
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRevolutionAxisSectionReceipt.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/2ac078270bc8ae2192b4c9b60ce77894b8a15372e0b3876e82932e042ab8f31b.swift",
+      "sha256": "2ac078270bc8ae2192b4c9b60ce77894b8a15372e0b3876e82932e042ab8f31b",
+      "bytes": 33903
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRevolutionAxisSectionEvidence.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/fbd7edf40df2dab035fecefef96095c71d7f59fb758c5d44ec39f4d9d71d3950.swift",
+      "sha256": "fbd7edf40df2dab035fecefef96095c71d7f59fb758c5d44ec39f4d9d71d3950",
+      "bytes": 34162
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRevolutionSnapshotProvider.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/8a22bc09e26fada1663e2737969167de7984cc57622ca71a2144ae6007d3de41.swift",
+      "sha256": "8a22bc09e26fada1663e2737969167de7984cc57622ca71a2144ae6007d3de41",
+      "bytes": 33443
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalAngularPlaneExactPoint.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/05c572cff42dd70c9dd812ec2aacf72f597bd781f82735dbbdb95096b24e4b64.swift",
+      "sha256": "05c572cff42dd70c9dd812ec2aacf72f597bd781f82735dbbdb95096b24e4b64",
+      "bytes": 32931
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/NativeCurveSurfacePointProducer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/b7cd6dab77f2741cc93899f18886de46b35cded801471d75b93e7be0770e0195.swift",
+      "sha256": "b7cd6dab77f2741cc93899f18886de46b35cded801471d75b93e7be0770e0195",
+      "bytes": 54576
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/DefaultOriginalIssuedGeometricRelationResolver.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/ebe123c3f7a7f487db3d2e499e6cd0edda0c2345e18d6d5cc29d03bbf0126047.swift",
+      "sha256": "ebe123c3f7a7f487db3d2e499e6cd0edda0c2345e18d6d5cc29d03bbf0126047",
+      "bytes": 33212
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRationalGraphCurvePointEvaluating.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/a18a253bd5a687a2fb4b6e64e3e68c210e61fdd036e8445d0ebde27269db9f93.swift",
+      "sha256": "a18a253bd5a687a2fb4b6e64e3e68c210e61fdd036e8445d0ebde27269db9f93",
+      "bytes": 32883
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRevolutionAxisSectionIssuing.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/ece0c76338d5ceca826c92dc4b9f22a28bb7abaa30e09dd02f8ef84a3bbdb101.swift",
+      "sha256": "ece0c76338d5ceca826c92dc4b9f22a28bb7abaa30e09dd02f8ef84a3bbdb101",
+      "bytes": 32354
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalTraversalSpanSnapshot.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/fa56ee04f075e74da47822b858287c4cdee08c3d2947766a66ce17a98b26e94f.swift",
+      "sha256": "fa56ee04f075e74da47822b858287c4cdee08c3d2947766a66ce17a98b26e94f",
+      "bytes": 32223
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-module-compile-receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/0c0d92a0d755b450ff89f0c463394f5fa51ea762815da711a6edf7694686405a.json",
+      "sha256": "0c0d92a0d755b450ff89f0c463394f5fa51ea762815da711a6edf7694686405a",
+      "bytes": 109764
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalCompleteCurveGraphDomainCover.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6bbe3f9fbaa5ce258ee891912547cc6b8f7fbcecd20fe99a2a217e7f78f49946.swift",
+      "sha256": "6bbe3f9fbaa5ce258ee891912547cc6b8f7fbcecd20fe99a2a217e7f78f49946",
+      "bytes": 32607
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalCertifiedApexPlaneExclusionReading.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/e352fee85d0b3bbf8d58f0ff8b812793e8ee5216235f208a53586eda94d3a0b7.swift",
+      "sha256": "e352fee85d0b3bbf8d58f0ff8b812793e8ee5216235f208a53586eda94d3a0b7",
+      "bytes": 31996
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalIssuedGeometricPublication.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/c3cad41af5aef719a298cc75480e87dac19659f7b9463626e2cc9eab368f6682.swift",
+      "sha256": "c3cad41af5aef719a298cc75480e87dac19659f7b9463626e2cc9eab368f6682",
+      "bytes": 39986
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalCompleteCurveGraphFamilyPreparing.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/7cc30e8dc8d16ea3717bb6a425fa14088506401090b372673b9a3a53d23e605a.swift",
+      "sha256": "7cc30e8dc8d16ea3717bb6a425fa14088506401090b372673b9a3a53d23e605a",
+      "bytes": 32293
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/DefaultCurveSurfaceIntersector+Overlap.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/fca2838661f38f2ac6789ee9ece7e3693bfa636f6ae9a96d3c3cd0b6360a7dc2.swift",
+      "sha256": "fca2838661f38f2ac6789ee9ece7e3693bfa636f6ae9a96d3c3cd0b6360a7dc2",
+      "bytes": 35655
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/DefaultOriginalRevolutionAxisSectionIssuer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/3235521d453f1efacb9b020072770e4fa432777bf0d20241dd8825ea841a6f8d.swift",
+      "sha256": "3235521d453f1efacb9b020072770e4fa432777bf0d20241dd8825ea841a6f8d",
+      "bytes": 43281
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/Proof.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/de2d3d8642b0fe85a88e035e704bce2fd7c1a88fc1a0c0e4278b38af9e8760e9.swift",
+      "sha256": "de2d3d8642b0fe85a88e035e704bce2fd7c1a88fc1a0c0e4278b38af9e8760e9",
+      "bytes": 54043
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRationalGraphPointPublisher.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/056930cb02f1f5a60520130101ca99f28675cdd7f0b5f1c315945fc2c11232f8.swift",
+      "sha256": "056930cb02f1f5a60520130101ca99f28675cdd7f0b5f1c315945fc2c11232f8",
+      "bytes": 47317
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalIssuedGeometricRelationResolving.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/e9f1265b242648dcb96657e67a2099245f683463e1891233dcd5bce058c04ab3.swift",
+      "sha256": "e9f1265b242648dcb96657e67a2099245f683463e1891233dcd5bce058c04ab3",
+      "bytes": 32169
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalIdentityRationalGraphCurvePointEvaluator.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/34a35efb2170b04f983f062dfda6d57b76e6874e589ff4bb1e9efdb793d71174.swift",
+      "sha256": "34a35efb2170b04f983f062dfda6d57b76e6874e589ff4bb1e9efdb793d71174",
+      "bytes": 33270
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalDraftedZeroLinePublicProducer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/dc72d8242cca111301e8a90740e139176354541b24dc4b1587fa02d933dd2bcc.swift",
+      "sha256": "dc72d8242cca111301e8a90740e139176354541b24dc4b1587fa02d933dd2bcc",
+      "bytes": 42180
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalImplicitCurvePublicProducer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/94563be341b5f0b500b817f6a00908728c2c8fbd1eac5b6ecc73626f7aefce36.swift",
+      "sha256": "94563be341b5f0b500b817f6a00908728c2c8fbd1eac5b6ecc73626f7aefce36",
+      "bytes": 45515
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/ActualSelectorDeclineAdapters.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/ca9bb1481918341cd34d9ee954240d6953b3d3e246b191203154abd66f0f6a8d.swift",
+      "sha256": "ca9bb1481918341cd34d9ee954240d6953b3d3e246b191203154abd66f0f6a8d",
+      "bytes": 31504
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalPolynomialCurveSurfacePointProducer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/ceeb81f1187c482a23331565ae1d312bc6e1422ed2c2b98db3538fbb32e14a5e.swift",
+      "sha256": "ceeb81f1187c482a23331565ae1d312bc6e1422ed2c2b98db3538fbb32e14a5e",
+      "bytes": 40662
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/DefaultCurveSurfaceIntersector+CurveSurfaceGeometry.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/1425eb2389d846a945bcc34ab93a2c0019cc976bf4fa53433608716e4e8d9855.swift",
+      "sha256": "1425eb2389d846a945bcc34ab93a2c0019cc976bf4fa53433608716e4e8d9855",
+      "bytes": 1432
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/CurveSurfaceOverlapResolver.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/d8b2102037a5f0da4f81ebe5f4cb89f2822c2c31a12fb86272818454e84748cf.swift",
+      "sha256": "d8b2102037a5f0da4f81ebe5f4cb89f2822c2c31a12fb86272818454e84748cf",
+      "bytes": 63603
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/CurveSurfaceIntersectionResult.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6d7e1c60e8068d68f58b0291ac27b6d8f013b4fb2a5c7f89d91630415393b21b.swift",
+      "sha256": "6d7e1c60e8068d68f58b0291ac27b6d8f013b4fb2a5c7f89d91630415393b21b",
+      "bytes": 37240
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalCertifiedApexPlaneExclusion.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/d6594bfe58a8ab8561978c8bed1926b392cc78dd2d64b8173e1b59744f388a3d.swift",
+      "sha256": "d6594bfe58a8ab8561978c8bed1926b392cc78dd2d64b8173e1b59744f388a3d",
+      "bytes": 38929
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalCertifiedApexPlanePublicProducer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/fdf5f4365dd6d7a8fc06060eedc27c5b2f1a6fc28d3cd7f847cf1dbcee035e38.swift",
+      "sha256": "fdf5f4365dd6d7a8fc06060eedc27c5b2f1a6fc28d3cd7f847cf1dbcee035e38",
+      "bytes": 36150
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalCoonsCurveSurfacePointProducer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/e020b2bb3b7d9ff059870964225ef40d4f5e3303e21f307f109cbc2741546e1b.swift",
+      "sha256": "e020b2bb3b7d9ff059870964225ef40d4f5e3303e21f307f109cbc2741546e1b",
+      "bytes": 40531
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-module-compile-started.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/fe3f3671e524b51719d08a165c52eb29feb24679cf4c7485747831b6fbe9830c.json",
+      "sha256": "fe3f3671e524b51719d08a165c52eb29feb24679cf4c7485747831b6fbe9830c",
+      "bytes": 57
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRevolutionAxisGeometricRelationReading.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/89936f5ddb25f7c632e691d29f6ae77231700086ccfcf215895479b1cdc11e84.swift",
+      "sha256": "89936f5ddb25f7c632e691d29f6ae77231700086ccfcf215895479b1cdc11e84",
+      "bytes": 32276
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/DefaultCurveSurfaceIntersector+ExactRelation.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/3a11e66cd4d98627c90bec46bc83b03547bdef9e24c1dde8626ec118fc9e87e0.swift",
+      "sha256": "3a11e66cd4d98627c90bec46bc83b03547bdef9e24c1dde8626ec118fc9e87e0",
+      "bytes": 2716
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalAffineCurveSurfacePointProducer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6e6664feddb61a709d15ddf604fb3cde35f2cd8bafdaf626d3c9166fa375a18c.swift",
+      "sha256": "6e6664feddb61a709d15ddf604fb3cde35f2cd8bafdaf626d3c9166fa375a18c",
+      "bytes": 41558
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalIssuedGeometricRelations.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/43586612f30ddcbe69f38a19b157930c7562233c0033a75ac743264cb3b3064f.swift",
+      "sha256": "43586612f30ddcbe69f38a19b157930c7562233c0033a75ac743264cb3b3064f",
+      "bytes": 32743
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalRationalGraphPointAccess.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/f23bb34d2bb7b179620b1e0e21a9e1621539f9341624fa9f0585edaaea1e1ae0.swift",
+      "sha256": "f23bb34d2bb7b179620b1e0e21a9e1621539f9341624fa9f0585edaaea1e1ae0",
+      "bytes": 36802
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/DefaultOriginalAngularPlaneRelationCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/704afba5cc1d62032977495af2b318be94f797d4cc0ad3981e4a407d2707c7f8.swift",
+      "sha256": "704afba5cc1d62032977495af2b318be94f797d4cc0ad3981e4a407d2707c7f8",
+      "bytes": 40268
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/DefaultOriginalCompleteCurveGraphFamilyPreparer.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/8bc3b0a699b381177999e3524f8c9e406b360f46a0de47aef162ba8e1f313547.swift",
+      "sha256": "8bc3b0a699b381177999e3524f8c9e406b360f46a0de47aef162ba8e1f313547",
+      "bytes": 35565
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/OriginalAngularPlaneRelationReading.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6c24adc3a770319161f10b8260bd0f2bd3eea76a9f811269e9ad9077f0b9813d.swift",
+      "sha256": "6c24adc3a770319161f10b8260bd0f2bd3eea76a9f811269e9ad9077f0b9813d",
+      "bytes": 32035
+    }
+  },
+  "postCleanup": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/857485ba655ddc90baa91b104d29e65e604dfd6ec4946443a4f516bb1d7327f4.json",
+    "sha256": "857485ba655ddc90baa91b104d29e65e604dfd6ec4946443a4f516bb1d7327f4",
+    "bytes": 315
+  }
+}

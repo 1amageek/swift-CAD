@@ -1,0 +1,2 @@
+before-public-call: empty
+actual-stop: KernelError(phase: geometry, code: resourceLimitExceeded, message: Native point work allowance exhausted.)

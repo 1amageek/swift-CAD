@@ -1415,3 +1415,48 @@ point-array entries refuse a positive-dimensional relation. Unsupported inputs
 retain the existing explicitly incomplete paths, and accepted axis queries do not
 retry through another solver on failure. The finite public acceptance cell owns
 actual entry-point, output, failure, resource, cancel and retained-owner checks.
+
+## Finite original implicit graph dispatch
+
+All four ordinary/callback bare/rich CS entries select the finite original
+implicit-curve producer before legacy numerical traversal when its source-owned
+capability and the Native target capability apply. This selector preserves the
+actual stored graph cell, its original parent surface bindings and authored T
+support; a numerical implicit point or residual cannot establish that capability.
+The supported source contract and its checked forward correspondence are owned by
+[Original Source Issuance](../OriginalSourceIssuance/DESIGN.md). The complete
+issued-family bridge, auxiliary-aware numerical publication and retained host UV
+correspondence are owned by
+[Native Exact Geometric Relations](../NativeExactGeometricRelations/DESIGN.md).
+
+The additive `originalImplicitCurveRelation` reader retains the actual source and
+its existing issued geometric relation. `originalIssuedGeometricRelation` and
+`originalIssuedNumericalPoints` retain the complete exact relation and numerical
+incident mapping as on other migrated ordinary entries. A source-issued checked
+reduction retains the full original five-coordinate graph, every substituted
+guard and its unique forward correspondence. Existing L5/L6 resolve the reduced
+three-parameter CS relation. Source-proved whole-support guard bounds may remove
+tautologies from solver input while the reduction retains every condition and
+its scoped proof; an unproved condition remains in the graph. Exact points expose
+`(T, firstU, firstV, secondU,
+secondV)` through the existing `originalFirstCoordinates` publication contract;
+these coordinates follow the retained source laws, never XYZ inversion. The
+three-coordinate solver partition is not a materialized seven-coordinate
+partition. The retained source bijection proves complete original host coverage
+and preserves parameter, image and fiber dimensions. Complete empty results
+retain the same source, request and coverage authority. One caller admission
+owns preparation, reduction, relation, restoration, publication and final
+cancellation. Once selected, any source, coverage,
+resource, depth or cancellation failure propagates without numerical retry.
+Bare positive-dimensional results still fail atomically. Rich positive-dimensional
+implicit results report `representation == .exactRelation`, even when a retained
+numerical incident receipt has no isolated points. The complete relation, rather
+than the presence of that receipt, determines this classification.
+
+The acceptance owner is
+[CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01](../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/summary.json).
+Its observed numerical point without original receipts fixes the publication gap;
+observation evidence alone does not establish the new implementation. Changed
+ordinary success, full-domain empty, host witnesses, incidence, failure, resource,
+cancellation and retained-owner behavior must be verified through these entries.
+Other implicit cell/branch families remain explicit incomplete capability.

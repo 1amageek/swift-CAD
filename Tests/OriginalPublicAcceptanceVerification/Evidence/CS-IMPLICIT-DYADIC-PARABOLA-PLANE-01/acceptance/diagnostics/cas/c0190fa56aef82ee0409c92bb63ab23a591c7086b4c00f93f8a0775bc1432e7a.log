@@ -1,0 +1,16 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v4/OriginalImplicitCurvePublicProducer.swift:606:88: error: argument type 'any OriginalIssuedGeometricRelationReading' does not conform to expected type 'OriginalIssuedGeometricRelationReading'
+604 |             typealias Receipt = OriginalImplicitCurveRelations<Surface,SurfaceLaw,SurfaceCover>
+605 |             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Receipt.self))
+606 |             let retained = Receipt(issuedGeometry: geometry, geometry: numeric.receipt.geometry)
+    |                                                                                        `- error: argument type 'any OriginalIssuedGeometricRelationReading' does not conform to expected type 'OriginalIssuedGeometricRelationReading'
+607 |             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: CurveSurfaceIntersectionResult.self))
+608 |             let result = CurveSurfaceIntersectionResult(points: numeric.points, overlaps: [],
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v4/OriginalImplicitCurvePublicProducer.swift:609:66: error: argument type 'any OriginalIssuedGeometricRelationReading' does not conform to expected type 'OriginalIssuedGeometricRelationReading'
+607 |             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: CurveSurfaceIntersectionResult.self))
+608 |             let result = CurveSurfaceIntersectionResult(points: numeric.points, overlaps: [],
+609 |                 originalIssuedGeometricRelation: numeric.receipt.geometry, originalIssuedNumericalPoints: numeric.receipt,
+    |                                                                  `- error: argument type 'any OriginalIssuedGeometricRelationReading' does not conform to expected type 'OriginalIssuedGeometricRelationReading'
+610 |                 originalImplicitCurveRelation: retained)
+611 |             try a.checkpoint(); return result

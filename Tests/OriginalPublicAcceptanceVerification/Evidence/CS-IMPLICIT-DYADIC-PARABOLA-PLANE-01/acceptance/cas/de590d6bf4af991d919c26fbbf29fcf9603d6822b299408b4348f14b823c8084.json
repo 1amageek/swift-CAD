@@ -1,0 +1,9 @@
+{
+  "kind": "runner-metadata-preflight",
+  "publicCalls": 0,
+  "compileSuccess": true,
+  "originalPreparedPremisesSHA256": "62512e7140446d1abf16022108e07b977da64e3f5bdda99c98cceaa17ebb67bb",
+  "recoveredExact": true,
+  "derivedPremisesSHA256": "ca0308ed466d0538edb4f939d71d210e82001be484e6d32e9730a73737fd2b48",
+  "cause": "Derived aggregate metadata replaced its bound prepared metadata path before runtime; exact original reconstructed from retained fields and verified against all raw job checks; compiler/source/products unchanged"
+}

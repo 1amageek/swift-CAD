@@ -1,0 +1,2 @@
+before-public-call: complete
+actual-stop: KernelError(phase: geometry, code: resourceLimitExceeded, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Original exact geometric publication exhausted caller value depth.)

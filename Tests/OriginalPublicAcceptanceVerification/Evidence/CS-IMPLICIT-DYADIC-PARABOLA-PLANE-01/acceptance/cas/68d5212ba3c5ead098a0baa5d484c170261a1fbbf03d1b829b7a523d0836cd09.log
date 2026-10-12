@@ -1,0 +1,3 @@
+before-public-call: empty
+public-return: points=0 implicit=true geometric=true numerical=true
+accepted: empty

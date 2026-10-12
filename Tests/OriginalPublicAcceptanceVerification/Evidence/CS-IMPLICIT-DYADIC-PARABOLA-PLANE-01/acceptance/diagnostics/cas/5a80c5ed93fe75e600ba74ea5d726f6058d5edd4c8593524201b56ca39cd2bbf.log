@@ -1,0 +1,24 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v1/source/OriginalImplicitCurveSnapshotProvider.swift:494:35: error: 'input' is borrowed and cannot be consumed
+492 |     public init(tolerance: ModelingTolerance) { self.tolerance = tolerance }
+493 | 
+494 |     public static func supports(_ input: borrowing Curve3D) -> Bool {
+    |                                   `- error: 'input' is borrowed and cannot be consumed
+495 |         guard case .implicit(let curve) = input, !curve.isClosed, curve.cells.count == 1,
+    |                                           `- note: consumed here
+496 |             curve.cells[0].freeParameter == .firstV, curve.cells[0].direction == .forward,
+497 |             case .bSpline(let first) = curve.firstSurface,
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v1/source/OriginalImplicitCurveSnapshotProvider.swift:555:65: error: 'input' is borrowed and cannot be consumed
+553 |     }
+554 | 
+555 |     public func snapshot<A: ExactScalarAdmission & ~Copyable>(_ input: borrowing Curve3D,
+    |                                                                 `- error: 'input' is borrowed and cannot be consumed
+556 |         limits: OriginalSourceIssuanceLimits, using a: inout A)
+557 |         throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalImplicitCurveSnapshot> {
+    :
+563 |             // supplies only this single-cell triangular Native representation. General cells,
+564 |             // hosts, free coordinates and directions need complete original graph authority.
+565 |             guard Self.supports(input), case .implicit(let curve) = input,
+    |                                                                     `- note: consumed here
+566 |                 case .bSpline(let first) = curve.firstSurface,
+567 |                 case .bSpline(let second) = curve.secondSurface else {

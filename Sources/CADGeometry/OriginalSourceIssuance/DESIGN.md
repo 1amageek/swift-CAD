@@ -2459,3 +2459,129 @@ private helper ranges into an extension of the admitted cached concrete type;
 source/range/prefix/compiler/product hashes must preserve the actual bodies and
 nominal owner. It must not redeclare the curve/constructor/enum or hand-copy its
 formula. No broad CADGeometry or L2-L6 rebuild is implied.
+
+## Single-Cell Native Implicit Curve Graph
+
+This section extends the parametric graph source contract for
+CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01. The two retained Native hosts are the
+construction sources of the immutable certified curve, not its later query
+partner. The source supply owns exact original T-to-host-UV-to-position
+correspondence; DI owns request binding and intersection with the query target.
+The end-to-end cell remains incomplete until its public result and failure
+contracts are verified.
+
+```text
+actual immutable certified curve + single stored cell
+  -> validated Native child bindings -> existing complete Native chart issuers
+  -> original position equalities + stored free-coordinate T law
+  -> checked triangular elimination + whole closed-support bounds
+  -> sealed complete curve graphs and retained forward-coordinate evidence
+```
+
+OriginalImplicitCurveSnapshotProvider retains the actual certified curve, cell,
+both Native child owners and source depth max(child depths)+1. It consumes the
+existing immutable certification contract without replaying constructor proofs.
+Its shared capability predicate selects only a finite, nonclosed, forward,
+firstV-free single cell over nonperiodic single Bezier Native hosts of degrees
+(1,1) and (2,1), with constant positive weights and an axis-separated triangular
+control net. The first host has X(firstU), Y(firstV), constant Z; the second has
+X(secondU), linear Y(secondU), linear Z(secondV). Required linear pivots are
+nonzero. The predicate selects representation only; issuance still validates
+all exact coefficients, cell bounds, denominators and proof assumptions.
+Other source representations remain explicit unsupported branches with local
+incomplete implementation markers. Invalid input, unresolved authority,
+cancellation and exhausted resources never become a capability decline.
+
+DefaultOriginalFiniteImplicitCurveGraphPreparer consumes the existing complete
+Native chart laws, retaining their actual binding owners. The guarded graph has
+parameter T at index 0 and original host auxiliaries firstU, firstV, secondU,
+secondV at indices 1 through 4. It retains the three cross-multiplied original
+position equalities, the stored free-coordinate affine equation, every closed
+cell and Native span bound, both original homogeneous denominators and every
+original parameter-transport denominator. Normalized support is the entire
+closed [0,1], including both endpoint roots. No fitted curve or host inverse is
+introduced.
+
+Forward host coordinates are derived from those issued equations by triangular
+elimination: each step isolates one unresolved coordinate with a nonzero
+constant pivot and a remainder depending only on already resolved coordinates
+and T. The issuer verifies all original equalities after substitution and
+retains the elimination order and pivots. This triangular Jacobian witness
+proves a unique auxiliary tuple for every T, independently of numerical anchor
+residuals. Exact univariate Bernstein convex-hull bounds prove the resulting
+tuple lies in every original closed cell and host span throughout [0,1].
+The immutable constructor's unique graph theorem and this checked exact tuple
+therefore select the same original graph, including endpoints. The composed
+original homogeneous position and its total T derivative are retained for
+numeric publication without holding auxiliaries constant. No fixture-specific
+coordinate, polynomial, Jacobian value or oracle coefficient is production
+authority.
+
+The actual ordinary query exhausted its unchanged work allowance during L5/L3
+projection of the seven-coordinate curve/target relation, before publication.
+Source issuance therefore supplies a checked one-parameter reduction of this
+already proved graph. OriginalImplicitCurveGraphReduction retains the full
+original five-coordinate graph, the reduced one-T graph, all five univariate
+original-coordinate laws [T,firstU,firstV,secondU,secondV], and attained depth.
+The source producer substitutes those exact forward coordinates into every
+original homogeneous component and all 27 original conditions, preserving their
+relations, field, source owner, closed support and parameter transport. No guard
+is discarded from the retained source authority. Triangular uniqueness proves the inverse direction is projection
+onto T; whole-support containment proves every reduced point lifts to an
+admissible original tuple. This sealed bijection transfers both positive and
+empty-domain completeness without a new root solver or a new allowance.
+
+OriginalCompleteCurveGraphs now uses OriginalImplicitCurveGraphReduction as its
+coverage and the reduced graph as its sole solver graph. The existing CS
+compiler solves coordinates [T,U,V]. Publication evaluates the retained five
+coordinate laws to expose original T and host UV4. The resulting L6 solver
+witness has three coordinates; it is never represented as an unchanged
+seven-coordinate decomposition. Original five-coordinate source guards and the
+whole-support bijection remain available through the retained source coverage.
+Reduction readmission checks both original and reduced graph coefficients,
+original evidence, source ownership and attained depth under the caller ledger.
+
+The next actual raw root-isolation stop exhausted value depth 32 during L2
+subdivision, before publication. The one-T solver graph still contained guards
+already true over its whole support. The source producer
+therefore retains an exact closed-range witness for every substituted guard and
+removes only guards proved true throughout the entire closed [0,1] support from
+the solver graph. Forced equalities have range [0,0]. Coordinate-bound guards
+and original constant denominators use the existing univariate Bernstein
+convex-hull helper on their exact substituted coefficients. This is the same
+finite rational range algorithm already used for the four host-coordinate
+hulls; zero and constant guards produce singleton ranges. There is
+no second root isolation, sampled sign test or rounded bound.
+
+The reduction retains substitutedConditions and conditionRanges in original
+condition order, plus retainedConditionOrdinals and eliminatedConditionOrdinals
+as a complete disjoint partition. Each range is checked for exact ordering.
+Equality needs both bounds zero, nonzero needs a range strictly excluding zero,
+positive needs a strictly positive lower bound, and nonnegative needs a lower
+bound at least zero. Conditions whose range does not prove their relation remain
+in the solver graph. Scalar, owner, cancellation and resource failures propagate.
+Readmission retains and checks every original/substituted condition coefficient,
+range boundary and ordinal correspondence; a guard is never treated as true
+because its proof is unknown. This removes redundant solver work without
+changing original geometry, support, topology, source correspondence or limits.
+
+OriginalImplicitCurveGraphEvidence is sealed and retains the actual source,
+both complete Native chart families, field, forward host polynomials, composed
+homogeneous position/derivative, exact coordinate ranges, elimination witnesses
+and attained proof depth. Its admitProof rechecks source owners and limits and
+imports every retained coefficient under the same caller admission; it does
+not solve or redecompose the source. All traversal, allocation, exact work,
+source/value/coefficient depth and cancellation use that admission. Stored
+state is immutable and COW-retained; target conditionals do not change storage,
+Sendable, synchronization or lifetime.
+
+Verification must compare the actual public finite cell with the independent
+complete oracle and retained original host UV, then exercise unsupported
+capability, foreign owner, whole-support guard, depth/budget, cancellation and
+detached/COW lifetime failures. The existing graph compiler and L5/L6 consumers
+are unchanged assumptions; this source implementation alone does not establish
+public completeness. Verification must also check all substituted conditions,
+the range/relation proofs and retained/eliminated partition, the reduced/original forward and projection identities, complete original
+coordinate publication and both full and empty requested domains under the
+unchanged allowance. The SourceIssuance component owns these five source files;
+the pair owner owns the complete-family/request bridge and numeric publication.

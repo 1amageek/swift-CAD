@@ -1,0 +1,160 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v2/upper/OriginalImplicitCurvePointPublisher.swift:495:26: error: 'OriginalIssuedGeometricRelations' is ambiguous for type lookup in this context
+493 |     typealias Cover = OriginalCompleteCurveGraphDomainCover<OriginalImplicitCurveSnapshot,
+494 |         OriginalImplicitCurveGraphEvidence,OriginalImplicitCurveGraphEvidence>
+495 |     typealias Geometry = OriginalIssuedGeometricRelations<OriginalImplicitCurveSnapshot,
+    |                          `- error: 'OriginalIssuedGeometricRelations' is ambiguous for type lookup in this context
+496 |         OriginalImplicitCurveGraphEvidence,Cover,T,F,D>
+497 | 
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/OriginalIssuedGeometricRelations.swift:86:15: note: found this candidate
+84 | 
+85 | /// The generic value retains both actual source snapshots, DI covers and all solved chart pairs.
+86 | public struct OriginalIssuedGeometricRelations<S: Sendable, E: Sendable, C: Sendable, T: Sendable, F: Sendable, D: Sendable>: OriginalIssuedGeometricRelationReading {
+   |               `- note: found this candidate
+87 |     public let original: OriginalIssuedGraphRelations<S,E,C,T,F,D>
+88 |     public let pairs: [OriginalIssuedGeometricRelationPair]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelations.swift:460:15: note: found this candidate
+458 | 
+459 | /// The generic value retains both actual source snapshots, DI covers and all solved chart pairs.
+460 | public struct OriginalIssuedGeometricRelations<S: Sendable, E: Sendable, C: Sendable, T: Sendable, F: Sendable, D: Sendable>: OriginalIssuedGeometricRelationReading {
+    |               `- note: found this candidate
+461 |     public let original: OriginalIssuedGraphRelations<S,E,C,T,F,D>
+462 |     public let pairs: [OriginalIssuedGeometricRelationPair]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v2/upper/OriginalImplicitCurvePublicProducer.swift:593:89: error: cannot convert value of type 'OriginalIssuedGraphRelations<OriginalImplicitCurvePublicProducer.Curve, OriginalImplicitCurvePublicProducer.Evidence, OriginalImplicitCurvePublicProducer.CurveCover, OriginalImplicitCurvePublicProducer.Surface, OriginalImplicitCurvePublicProducer.SurfaceLaw, OriginalImplicitCurvePublicProducer.SurfaceCover>' (aka 'OriginalIssuedGraphRelations<OriginalImplicitCurveSnapshot, OriginalImplicitCurveGraphEvidence, OriginalCompleteCurveGraphDomainCover<OriginalImplicitCurveSnapshot, OriginalImplicitCurveGraphEvidence, OriginalImplicitCurveGraphEvidence>, BSplineSurface3D, OriginalRationalChartReceipt<BSplineSurface3D, OriginalBSplineChartSelection, OriginalExactScalarDomain>, OriginalIssuedDomainCover<BSplineSurface3D, OriginalBSplineChartSelection, OriginalExactScalarDomain>>') to expected argument type 'OriginalIssuedGraphRelations<S, E, C, T, F, D>'
+591 |                 selected = cells.partialValue; components = connected.partialValue
+592 |             }
+593 |             let geometry = try DefaultOriginalIssuedGeometricRelationResolver().resolve(raw, limits: limits,
+    |                                                                                         `- error: cannot convert value of type 'OriginalIssuedGraphRelations<OriginalImplicitCurvePublicProducer.Curve, OriginalImplicitCurvePublicProducer.Evidence, OriginalImplicitCurvePublicProducer.CurveCover, OriginalImplicitCurvePublicProducer.Surface, OriginalImplicitCurvePublicProducer.SurfaceLaw, OriginalImplicitCurvePublicProducer.SurfaceCover>' (aka 'OriginalIssuedGraphRelations<OriginalImplicitCurveSnapshot, OriginalImplicitCurveGraphEvidence, OriginalCompleteCurveGraphDomainCover<OriginalImplicitCurveSnapshot, OriginalImplicitCurveGraphEvidence, OriginalImplicitCurveGraphEvidence>, BSplineSurface3D, OriginalRationalChartReceipt<BSplineSurface3D, OriginalBSplineChartSelection, OriginalExactScalarDomain>, OriginalIssuedDomainCover<BSplineSurface3D, OriginalBSplineChartSelection, OriginalExactScalarDomain>>') to expected argument type 'OriginalIssuedGraphRelations<S, E, C, T, F, D>'
+594 |                 geometryLimits: geometryLimits, maximumPoints: options.maximumCandidateCount, using: &a)
+595 |             guard retainingRelations || !geometry.hasPositiveDimensionalSolutions else {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v2/upper/OriginalImplicitCurvePublicProducer.swift:593:81: error: generic parameter 'S' could not be inferred
+591 |                 selected = cells.partialValue; components = connected.partialValue
+592 |             }
+593 |             let geometry = try DefaultOriginalIssuedGeometricRelationResolver().resolve(raw, limits: limits,
+    |                                                                                 `- error: generic parameter 'S' could not be inferred
+594 |                 geometryLimits: geometryLimits, maximumPoints: options.maximumCandidateCount, using: &a)
+595 |             guard retainingRelations || !geometry.hasPositiveDimensionalSolutions else {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v2/upper/OriginalImplicitCurvePublicProducer.swift:593:81: error: generic parameter 'E' could not be inferred
+591 |                 selected = cells.partialValue; components = connected.partialValue
+592 |             }
+593 |             let geometry = try DefaultOriginalIssuedGeometricRelationResolver().resolve(raw, limits: limits,
+    |                                                                                 `- error: generic parameter 'E' could not be inferred
+594 |                 geometryLimits: geometryLimits, maximumPoints: options.maximumCandidateCount, using: &a)
+595 |             guard retainingRelations || !geometry.hasPositiveDimensionalSolutions else {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v2/upper/OriginalImplicitCurvePublicProducer.swift:593:81: error: generic parameter 'C' could not be inferred
+591 |                 selected = cells.partialValue; components = connected.partialValue
+592 |             }
+593 |             let geometry = try DefaultOriginalIssuedGeometricRelationResolver().resolve(raw, limits: limits,
+    |                                                                                 `- error: generic parameter 'C' could not be inferred
+594 |                 geometryLimits: geometryLimits, maximumPoints: options.maximumCandidateCount, using: &a)
+595 |             guard retainingRelations || !geometry.hasPositiveDimensionalSolutions else {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v2/upper/OriginalImplicitCurvePublicProducer.swift:593:81: error: generic parameter 'T' could not be inferred
+591 |                 selected = cells.partialValue; components = connected.partialValue
+592 |             }
+593 |             let geometry = try DefaultOriginalIssuedGeometricRelationResolver().resolve(raw, limits: limits,
+    |                                                                                 `- error: generic parameter 'T' could not be inferred
+594 |                 geometryLimits: geometryLimits, maximumPoints: options.maximumCandidateCount, using: &a)
+595 |             guard retainingRelations || !geometry.hasPositiveDimensionalSolutions else {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v2/upper/OriginalImplicitCurvePublicProducer.swift:593:81: error: generic parameter 'F' could not be inferred
+591 |                 selected = cells.partialValue; components = connected.partialValue
+592 |             }
+593 |             let geometry = try DefaultOriginalIssuedGeometricRelationResolver().resolve(raw, limits: limits,
+    |                                                                                 `- error: generic parameter 'F' could not be inferred
+594 |                 geometryLimits: geometryLimits, maximumPoints: options.maximumCandidateCount, using: &a)
+595 |             guard retainingRelations || !geometry.hasPositiveDimensionalSolutions else {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v2/upper/OriginalImplicitCurvePublicProducer.swift:593:81: error: generic parameter 'D' could not be inferred
+591 |                 selected = cells.partialValue; components = connected.partialValue
+592 |             }
+593 |             let geometry = try DefaultOriginalIssuedGeometricRelationResolver().resolve(raw, limits: limits,
+    |                                                                                 `- error: generic parameter 'D' could not be inferred
+594 |                 geometryLimits: geometryLimits, maximumPoints: options.maximumCandidateCount, using: &a)
+595 |             guard retainingRelations || !geometry.hasPositiveDimensionalSolutions else {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalIssuedGeometricRelationResolver.swift:461:17: note: in call to function 'resolve(_:limits:geometryLimits:maximumPoints:using:)'
+459 | public struct DefaultOriginalIssuedGeometricRelationResolver: OriginalIssuedGeometricRelationResolving {
+460 |     public init() {}
+461 |     public func resolve<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable,A: ExactScalarAdmission & ~Copyable>(
+    |                 `- note: in call to function 'resolve(_:limits:geometryLimits:maximumPoints:using:)'
+462 |         _ relations: borrowing OriginalIssuedGraphRelations<S,E,C,T,F,D>,limits: OriginalDomainIdentityLimits,
+463 |         geometryLimits: ExactGeometricRelationLimits,maximumPoints: Int,using a: inout A)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v2/upper/OriginalImplicitCurveRelations.swift:493:33: error: 'OriginalIssuedGeometricRelations' is ambiguous for type lookup in this context
+491 |     public typealias Cover = OriginalCompleteCurveGraphDomainCover<OriginalImplicitCurveSnapshot,
+492 |         OriginalImplicitCurveGraphEvidence,OriginalImplicitCurveGraphEvidence>
+493 |     public typealias Geometry = OriginalIssuedGeometricRelations<OriginalImplicitCurveSnapshot,
+    |                                 `- error: 'OriginalIssuedGeometricRelations' is ambiguous for type lookup in this context
+494 |         OriginalImplicitCurveGraphEvidence,Cover,T,F,D>
+495 |     public let issuedGeometry: Geometry
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/OriginalIssuedGeometricRelations.swift:86:15: note: found this candidate
+84 | 
+85 | /// The generic value retains both actual source snapshots, DI covers and all solved chart pairs.
+86 | public struct OriginalIssuedGeometricRelations<S: Sendable, E: Sendable, C: Sendable, T: Sendable, F: Sendable, D: Sendable>: OriginalIssuedGeometricRelationReading {
+   |               `- note: found this candidate
+87 |     public let original: OriginalIssuedGraphRelations<S,E,C,T,F,D>
+88 |     public let pairs: [OriginalIssuedGeometricRelationPair]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelations.swift:460:15: note: found this candidate
+458 | 
+459 | /// The generic value retains both actual source snapshots, DI covers and all solved chart pairs.
+460 | public struct OriginalIssuedGeometricRelations<S: Sendable, E: Sendable, C: Sendable, T: Sendable, F: Sendable, D: Sendable>: OriginalIssuedGeometricRelationReading {
+    |               `- note: found this candidate
+461 |     public let original: OriginalIssuedGraphRelations<S,E,C,T,F,D>
+462 |     public let pairs: [OriginalIssuedGeometricRelationPair]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v2/upper/OriginalRationalGraphPointPublisher.swift:496:26: error: 'OriginalIssuedGeometricRelations' is ambiguous for type lookup in this context
+494 |     typealias Base = OriginalExactScalarDomain
+495 |     private typealias Algebraic = ExactAlgebraicScalarDomain<Base>
+496 |     typealias Geometry = OriginalIssuedGeometricRelations<S,E,C,T,F,D>
+    |                          `- error: 'OriginalIssuedGeometricRelations' is ambiguous for type lookup in this context
+497 | 
+498 |     func publish<A: ExactScalarAdmission & ~Copyable>(_ geometry: OriginalIssuedGeometricRelations<S,E,C,T,F,D>,
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/OriginalIssuedGeometricRelations.swift:86:15: note: found this candidate
+84 | 
+85 | /// The generic value retains both actual source snapshots, DI covers and all solved chart pairs.
+86 | public struct OriginalIssuedGeometricRelations<S: Sendable, E: Sendable, C: Sendable, T: Sendable, F: Sendable, D: Sendable>: OriginalIssuedGeometricRelationReading {
+   |               `- note: found this candidate
+87 |     public let original: OriginalIssuedGraphRelations<S,E,C,T,F,D>
+88 |     public let pairs: [OriginalIssuedGeometricRelationPair]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelations.swift:460:15: note: found this candidate
+458 | 
+459 | /// The generic value retains both actual source snapshots, DI covers and all solved chart pairs.
+460 | public struct OriginalIssuedGeometricRelations<S: Sendable, E: Sendable, C: Sendable, T: Sendable, F: Sendable, D: Sendable>: OriginalIssuedGeometricRelationReading {
+    |               `- note: found this candidate
+461 |     public let original: OriginalIssuedGraphRelations<S,E,C,T,F,D>
+462 |     public let pairs: [OriginalIssuedGeometricRelationPair]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v2/upper/OriginalRationalGraphPointPublisher.swift:498:67: error: 'OriginalIssuedGeometricRelations' is ambiguous for type lookup in this context
+496 |     typealias Geometry = OriginalIssuedGeometricRelations<S,E,C,T,F,D>
+497 | 
+498 |     func publish<A: ExactScalarAdmission & ~Copyable>(_ geometry: OriginalIssuedGeometricRelations<S,E,C,T,F,D>,
+    |                                                                   `- error: 'OriginalIssuedGeometricRelations' is ambiguous for type lookup in this context
+499 |         field: OriginalExactScalarDomain, options: CurveSurfaceIntersectionOptions,
+500 |         tolerance: ModelingTolerance, limits: OriginalDomainIdentityLimits,
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/OriginalIssuedGeometricRelations.swift:86:15: note: found this candidate
+84 | 
+85 | /// The generic value retains both actual source snapshots, DI covers and all solved chart pairs.
+86 | public struct OriginalIssuedGeometricRelations<S: Sendable, E: Sendable, C: Sendable, T: Sendable, F: Sendable, D: Sendable>: OriginalIssuedGeometricRelationReading {
+   |               `- note: found this candidate
+87 |     public let original: OriginalIssuedGraphRelations<S,E,C,T,F,D>
+88 |     public let pairs: [OriginalIssuedGeometricRelationPair]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelations.swift:460:15: note: found this candidate
+458 | 
+459 | /// The generic value retains both actual source snapshots, DI covers and all solved chart pairs.
+460 | public struct OriginalIssuedGeometricRelations<S: Sendable, E: Sendable, C: Sendable, T: Sendable, F: Sendable, D: Sendable>: OriginalIssuedGeometricRelationReading {
+    |               `- note: found this candidate
+461 |     public let original: OriginalIssuedGraphRelations<S,E,C,T,F,D>
+462 |     public let pairs: [OriginalIssuedGeometricRelationPair]

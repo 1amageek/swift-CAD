@@ -1,0 +1,7 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-native-20261013-v1/RegressionProof.swift:589:65: error: cannot find 'DerivativeHostShape' in scope
+587 |             let pcurve: SurfaceParameterCurve
+588 |             if regression == 3 {
+589 |                 host = .procedural(.originalPlaneDerivative(try DerivativeHostShape.shape(weighted:true,projected:true,using:&a)))
+    |                                                                 `- error: cannot find 'DerivativeHostShape' in scope
+590 |                 pcurve = .bSpline(.init(degree:1,knots:[0,0,0.5,1,1],controlPoints:[.init(x:0,y:0),.init(x:0.5,y:0.5),.init(x:1,y:1)]))
+591 |             } else {

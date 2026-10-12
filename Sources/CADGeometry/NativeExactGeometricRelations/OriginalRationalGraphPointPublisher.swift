@@ -3,19 +3,29 @@ import CADCore
 /// Certified numerical representatives of retained original rational graph tuples.
 struct OriginalRationalGraphPointPublisher<S: Sendable, E: Sendable, C: Sendable,
     T: Sendable, F: Sendable, D: Sendable> {
-    private typealias Base = OriginalExactScalarDomain
+    typealias Base = OriginalExactScalarDomain
     private typealias Algebraic = ExactAlgebraicScalarDomain<Base>
-    private typealias Geometry = OriginalIssuedGeometricRelations<S,E,C,T,F,D>
+    typealias Geometry = OriginalIssuedGeometricRelations<S,E,C,T,F,D>
 
     func publish<A: ExactScalarAdmission & ~Copyable>(_ geometry: OriginalIssuedGeometricRelations<S,E,C,T,F,D>,
         field: OriginalExactScalarDomain, options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance, limits: OriginalDomainIdentityLimits,
         maximumDepth: Int, using a: inout A
     ) throws -> (points: [CurveSurfaceIntersection], receipt: OriginalIssuedNumericalCurveSurfacePoints) {
+        try publish(geometry, field: field, options: options, tolerance: tolerance, limits: limits,
+            maximumDepth: maximumDepth, curveEvaluator: OriginalIdentityRationalGraphCurvePointEvaluator<S,E>(), using: &a)
+    }
+
+    func publish<Q: OriginalRationalGraphCurvePointEvaluating, A: ExactScalarAdmission & ~Copyable>(
+        _ geometry: Geometry, field: Base, options: CurveSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance, limits: OriginalDomainIdentityLimits, maximumDepth: Int,
+        curveEvaluator: Q, using a: inout A
+    ) throws -> (points: [CurveSurfaceIntersection], receipt: OriginalIssuedNumericalCurveSurfacePoints)
+        where Q.Source == S, Q.Evidence == E {
         try a.checkpoint(); try geometry.original.admitProof(limits: limits, using: &a)
         guard geometry.kind == .curveSurface else { throw ExactGeometricRelationFailure.invalidSourceBinding }
-        for graph in geometry.original.first.graphs { try requireIdentity(graph.original.graph, arity: 1, using: &a) }
-        for graph in geometry.original.second.graphs { try requireIdentity(graph.original.graph, arity: 2, using: &a) }
+        for graph in geometry.original.first.graphs { try curveEvaluator.admit(graph.original.graph, limits: limits, using: &a) }
+        for graph in geometry.original.second.graphs { try OriginalRationalGraphPointAccess.requireIdentity(graph.original.graph, arity: 2, using: &a) }
         let count = geometry.exactPoints.count
         guard count <= options.maximumCandidateCount else { throw ExactScalarFailure.resourceLimit(.work) }
         let total = count.multipliedReportingOverflow(by: 6)
@@ -27,6 +37,9 @@ struct OriginalRationalGraphPointPublisher<S: Sendable, E: Sendable, C: Sendable
             guard point.firstParameters.count == 1, point.secondParameters.count == 2 else {
                 throw ExactGeometricRelationFailure.invalidSourceBinding
             }
+            let pair = geometry.original.pairs[point.pairOrdinal]
+            try curveEvaluator.validate(point, graph: geometry.original.first.graphs[pair.firstGraphIndex].original.graph,
+                limits: limits, using: &a)
             exact.append(point.firstParameters[0]); exact.append(contentsOf: point.secondParameters)
             exact.append(point.position.x); exact.append(point.position.y); exact.append(point.position.z)
         }
@@ -68,9 +81,9 @@ struct OriginalRationalGraphPointPublisher<S: Sendable, E: Sendable, C: Sendable
             var end = start+1
             while end < count, try order(ordinals[start], ordinals[end], &a) == .equal { end += 1 }
             let range = start..<end
-            let kind = try classify(geometry, ordinals: ordinals, range: range, tolerance: tolerance, using: &a)
+            let kind = try classify(geometry, ordinals: ordinals, range: range, tolerance: tolerance, curveEvaluator: curveEvaluator, using: &a)
             points.append(try representative(geometry, transfer: transferred, ordinals: ordinals, range: range,
-                kind: kind, options: options, tolerance: tolerance, limits: limits, maximumDepth: maximumDepth, using: &a))
+                kind: kind, options: options, tolerance: tolerance, limits: limits, maximumDepth: maximumDepth, curveEvaluator: curveEvaluator, using: &a))
             ranges.append(range); start = end
         }
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalIssuedNumericalCurveSurfacePoints.self))
@@ -79,41 +92,18 @@ struct OriginalRationalGraphPointPublisher<S: Sendable, E: Sendable, C: Sendable
         try a.checkpoint(); return (points, receipt)
     }
 
-    private func requireIdentity<Source: Sendable, Evidence: Sendable, A: ExactScalarAdmission & ~Copyable>(
-        _ graph: OriginalParametricGraphReceipt<Source,Base,Evidence>, arity: Int, using a: inout A) throws {
-        try a.admitDepth(value: graph.proofDepth.value, coefficient: graph.proofDepth.coefficient)
-        guard graph.layout.variableCount == arity, graph.layout.parameters.count == arity,
-            graph.polynomials.variableCount == arity, graph.homogeneous.count == 4,
-            graph.parameterTransport.numerators.count == arity,
-            graph.parameterTransport.denominators.count == arity else {
-            throw OriginalSourceIssuanceFailure.unsupportedRepresentation
-        }
-        for axis in 0..<arity {
-            try a.consumeWork(1)
-            guard graph.layout.parameters[axis] == axis else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
-            let ring = graph.polynomials
-            let difference = try ring.subtracting(graph.parameterTransport.numerators[axis],
-                ring.multiplying(ring.variable(axis, using: &a), graph.parameterTransport.denominators[axis], using: &a), using: &a)
-            // FIXME(INCOMPLETE_IMPLEMENTATION): The ordinary rational graph point
-            // publisher currently accepts proved identity parameter transports.
-            // Nonidentity/auxiliary charts need checked local numeric preimages
-            // before their authored tuples may be evaluated for publication.
-            guard try ring.isZero(difference, using: &a) else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
-        }
-    }
-
-    private func classify<A: ExactScalarAdmission & ~Copyable>(_ geometry: Geometry,
-        ordinals: [Int], range: Range<Int>, tolerance: ModelingTolerance, using a: inout A
-    ) throws -> CurveSurfaceIntersectionKind {
+    private func classify<Q: OriginalRationalGraphCurvePointEvaluating, A: ExactScalarAdmission & ~Copyable>(_ geometry: Geometry,
+        ordinals: [Int], range: Range<Int>, tolerance: ModelingTolerance, curveEvaluator: Q, using a: inout A
+    ) throws -> CurveSurfaceIntersectionKind where Q.Source == S, Q.Evidence == E {
         var answer: CurveSurfaceIntersectionKind?
         for ordinal in range {
             let point = geometry.exactPoints[ordinals[ordinal]], f = point.local.witness.field
             let pair = geometry.original.pairs[point.pairOrdinal]
             let first = geometry.original.first.graphs[pair.firstGraphIndex].original.graph
             let second = geometry.original.second.graphs[pair.secondGraphIndex].original.graph
-            let curve = try derivative(first, at: point.firstParameters, axis: 0, field: f, using: &a)
-            let u = try derivative(second, at: point.secondParameters, axis: 0, field: f, using: &a)
-            let v = try derivative(second, at: point.secondParameters, axis: 1, field: f, using: &a)
+            let curve = try curveEvaluator.tangent(first, at: point.firstParameters, field: f, using: &a)
+            let u = try OriginalRationalGraphPointAccess.derivative(second, at: point.secondParameters, axis: 0, field: f, using: &a)
+            let v = try OriginalRationalGraphPointAccess.derivative(second, at: point.secondParameters, axis: 1, field: f, using: &a)
             var tangentSquared = try f.integer(0, using: &a), normalSquared = tangentSquared, dot = tangentSquared
             for axis in 0..<3 {
                 let i = (axis+1)%3, j = (axis+2)%3
@@ -139,29 +129,11 @@ struct OriginalRationalGraphPointPublisher<S: Sendable, E: Sendable, C: Sendable
         return answer
     }
 
-    private func derivative<Source: Sendable, Evidence: Sendable, A: ExactScalarAdmission & ~Copyable>(
-        _ graph: OriginalParametricGraphReceipt<Source,Base,Evidence>, at: [Algebraic.Value], axis: Int,
-        field: Algebraic, using a: inout A) throws -> [Algebraic.Value] {
-        let ring = try ExactPolynomialDomain(field: field, variableCount: at.count, using: &a)
-        let w = try imported(graph.homogeneous[3], into: ring, using: &a)
-        let weight = try ring.evaluated(w, at: at, using: &a).value
-        guard try field.sign(of: weight, using: &a) != .zero else { throw ExactGeometricRelationFailure.invalidCoverage }
-        let dw = try ring.evaluated(ring.differentiated(w, in: axis, using: &a), at: at, using: &a).value
-        try a.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Algebraic.Value.self))
-        var result: [Algebraic.Value] = []; result.reserveCapacity(3)
-        for coordinate in 0..<3 {
-            let p = try imported(graph.homogeneous[coordinate], into: ring, using: &a)
-            let value = try ring.evaluated(p, at: at, using: &a).value
-            let dp = try ring.evaluated(ring.differentiated(p, in: axis, using: &a), at: at, using: &a).value
-            result.append(try field.subtracting(field.multiplying(dp, weight, using: &a), field.multiplying(value, dw, using: &a), using: &a))
-        }
-        return result
-    }
-
-    private func representative<A: ExactScalarAdmission & ~Copyable>(_ geometry: Geometry,
+    private func representative<Q: OriginalRationalGraphCurvePointEvaluating, A: ExactScalarAdmission & ~Copyable>(_ geometry: Geometry,
         transfer: ExactOriginalScalarTransferReceipt, ordinals: [Int], range: Range<Int>, kind: CurveSurfaceIntersectionKind,
         options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance, limits: OriginalDomainIdentityLimits,
-        maximumDepth: Int, using a: inout A) throws -> CurveSurfaceIntersection {
+        maximumDepth: Int, curveEvaluator: Q, using a: inout A) throws -> CurveSurfaceIntersection
+        where Q.Source == S, Q.Evidence == E {
         let f = transfer.field, offset = ordinals[range.lowerBound]*6
         let maximum = try ExactScalarDepth(value: maximumDepth, coefficient: maximumDepth)
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 6, of: OriginalSingularFieldValueIsolation.self))
@@ -217,8 +189,8 @@ struct OriginalRationalGraphPointPublisher<S: Sendable, E: Sendable, C: Sendable
                     let point = geometry.exactPoints[ordinals[index]], pair = geometry.original.pairs[point.pairOrdinal]
                     let first = geometry.original.first.graphs[pair.firstGraphIndex].original.graph
                     let second = geometry.original.second.graphs[pair.secondGraphIndex].original.graph
-                    if let curve = try position(first, numbers: numbers, offset: 0, field: f, limits: limits, using: &a),
-                        let surface = try position(second, numbers: numbers, offset: 1, field: f, limits: limits, using: &a),
+                    if let curve = try curveEvaluator.position(first, numbers: numbers, field: f, limits: limits, using: &a),
+                        let surface = try OriginalRationalGraphPointAccess.position(second, numbers: numbers, offset: 1, field: f, limits: limits, using: &a),
                         parametersValid, try within(original, published, squared: squared, field: f, using: &a),
                         try within(curve, surface, squared: squared, field: f, using: &a),
                         try within(curve, published, squared: squared, field: f, using: &a),
@@ -234,36 +206,6 @@ struct OriginalRationalGraphPointPublisher<S: Sendable, E: Sendable, C: Sendable
         }
         throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
             message: "Original rational graph publication exhausted the caller's refinement iterations.")
-    }
-
-    private func position<Source: Sendable, Evidence: Sendable, A: ExactScalarAdmission & ~Copyable>(
-        _ graph: OriginalParametricGraphReceipt<Source,Base,Evidence>, numbers: [Double], offset: Int,
-        field: Base, limits: OriginalDomainIdentityLimits, using a: inout A) throws -> [OriginalExactScalar]? {
-        let n = graph.layout.variableCount
-        try a.retainStorage(bytes: exactScalarPayloadBytes(count: n, of: OriginalExactScalar.self))
-        var at: [OriginalExactScalar] = []; at.reserveCapacity(n)
-        for axis in 0..<n { at.append(try graph.field.binary64(exactly: numbers[offset+axis], using: &a)) }
-        guard try graph.admits(at, limits: limits.source, using: &a) else { return nil }
-        let weight = try graph.polynomials.evaluated(graph.homogeneous[3], at: at, using: &a).value
-        try a.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: OriginalExactScalar.self))
-        var result: [OriginalExactScalar] = []; result.reserveCapacity(3)
-        for axis in 0..<3 {
-            result.append(try field.importing(graph.field.dividing(graph.polynomials.evaluated(graph.homogeneous[axis], at: at, using: &a).value,
-                weight, using: &a), using: &a))
-        }
-        return result
-    }
-
-    private func imported<A: ExactScalarAdmission & ~Copyable>(_ law: ExactPolynomial<Base>,
-        into ring: ExactPolynomialDomain<Algebraic>, using a: inout A) throws -> ExactPolynomial<Algebraic> {
-        try a.admitDepth(value: law.depth.value, coefficient: law.depth.coefficient)
-        try a.retainStorage(bytes: exactScalarPayloadBytes(count: law.terms.count, of: ExactPolynomialTerm<Algebraic.Value>.self))
-        var terms: [ExactPolynomialTerm<Algebraic.Value>] = []; terms.reserveCapacity(law.terms.count)
-        for term in law.terms {
-            try a.consumeWork(1)
-            terms.append(.init(powers: term.powers, coefficient: try ring.field.importingBase(term.coefficient, using: &a)))
-        }
-        return try ring.polynomial(terms: terms, using: &a)
     }
 
     private func within<A: ExactScalarAdmission & ~Copyable>(_ first: [OriginalExactScalar], _ second: [OriginalExactScalar],

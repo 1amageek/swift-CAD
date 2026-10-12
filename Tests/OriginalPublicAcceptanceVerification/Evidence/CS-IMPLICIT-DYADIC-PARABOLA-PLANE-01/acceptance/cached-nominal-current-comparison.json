@@ -1,0 +1,14 @@
+{
+  "scope": "Current comparison only; original producer receipt remains authoritative",
+  "sources": {
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CertifiedImplicitIntersectionCurve.swift": "717b5cd8285055b06e3dd501fd2696c715a8fc68c4920e48833ba93bb3fcb268",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CertifiedImplicitIntersectionGraphCell.swift": "d69f11952b33296148168f42883126d1dd2fa0b8d2c53a2c9495bef843a301a8",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/DefaultCertifiedImplicitCurveAnalyticSurfaceIntersector.swift": "2d116b8c683de423933c8609b38db5aa1a1c7b579383596e46b916c7063448f5",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/ImplicitCurveIntervalJetEncloser.swift": "31b66ab218e497bfe0517df56d5a5c0bc5e5e3e14cc12fe1f25ed93871d69836",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CertifiedImplicitCurveAnalyticSurfaceIntersecting.swift": "f7e0cc60a20b9f76952a320d7ab068321e50848dc96f9fe312e8a68be82a39db",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/SurfaceIntersectionParameterBox.swift": "7a0413fe2a4a9d232d2ccd17048874c0405c6b70c5e6fa71874153ccc54634d8",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/SurfaceIntersectionParameterPair.swift": "ace426b6e50c8cb947db7931f452dd598c336491e86059e44d7c5de423456a12",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/Curve3D.swift": "d9848456efe8cc7f90d259d6c7e9f8d70d4218bb804831b4bf202d21bd38537b",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/ExactAffineBSplineSurfacePatch.swift": "dc93d24d0230f167d4b81c48fff5e7acdb4990676c363a36a906fa4ad84539b9"
+  }
+}

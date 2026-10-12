@@ -1,0 +1,9 @@
+[
+  "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend",
+  "-modulewrap",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/persistent-job-plan/ImplicitSplitAcceptance.swiftmodule",
+  "-target",
+  "wasm32-unknown-wasip1",
+  "-o",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/persistent-job-plan/ImplicitSplitAcceptance.modulewrap.o"
+]

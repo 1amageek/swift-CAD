@@ -1,0 +1,11 @@
+{
+  "schema": "source-body-count-erratum-v1",
+  "actualSourceBodyCount": 5,
+  "sourcePremisesMetadataCount": 4,
+  "commandSwiftInputCount": 5,
+  "originalBindingCount": 5,
+  "authority": "Actual compiler command and source original bindings",
+  "rawPremisesUnmodified": true,
+  "noRecompileRequired": true,
+  "errataReference": "source-body-count-erratum.json"
+}

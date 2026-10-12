@@ -1,0 +1,15 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v2/Proof.swift:494:8: error: cannot use mutating member on immutable value: 'value' is a 'let' constant
+492 | func print(_ label: StaticString, _ value: String) {
+493 |  Swift.print(label,terminator:" ")
+494 |  value.withUTF8 { bytes in for byte in bytes { putchar(Int32(byte)) } }
+    |        `- error: cannot use mutating member on immutable value: 'value' is a 'let' constant
+495 |  putchar(10)
+496 | }
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v2/Proof.swift:494:8: error: cannot use mutating member on immutable value: 'value' is a 'let' constant
+492 | func print(_ label: StaticString, _ value: String) {
+493 |  Swift.print(label,terminator:" ")
+494 |  value.withUTF8 { bytes in for byte in bytes { putchar(Int32(byte)) } }
+    |        `- error: cannot use mutating member on immutable value: 'value' is a 'let' constant
+495 |  putchar(10)
+496 | }

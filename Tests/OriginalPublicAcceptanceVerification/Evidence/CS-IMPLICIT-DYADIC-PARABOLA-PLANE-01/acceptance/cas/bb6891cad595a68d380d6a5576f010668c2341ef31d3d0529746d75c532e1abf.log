@@ -1,0 +1,128 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v3/OriginalIssuedGeometricRelationResolving.swift:505:32: error: 'OriginalIssuedGraphRelations' is ambiguous for type lookup in this context
+503 | public protocol OriginalIssuedGeometricRelationResolving: Sendable {
+504 |     func resolve<S: Sendable, E: Sendable, C: Sendable, T: Sendable, F: Sendable, D: Sendable, A: ExactScalarAdmission & ~Copyable>(
+505 |         _ relations: borrowing OriginalIssuedGraphRelations<S,E,C,T,F,D>, limits: OriginalDomainIdentityLimits,
+    |                                `- error: 'OriginalIssuedGraphRelations' is ambiguous for type lookup in this context
+506 |         geometryLimits: ExactGeometricRelationLimits, maximumPoints: Int, using admission: inout A
+507 |     ) throws(NativeExactGeometricRelationFailure) -> OriginalIssuedGeometricRelations<S,E,C,T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/OriginalIssuedGraphRelations.swift:83:15: note: found this candidate
+ 81 | #endif
+ 82 | 
+ 83 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+ 84 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+ 85 |     public let second:OriginalIssuedGraphFamily<T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelations.swift:457:15: note: found this candidate
+455 | #endif
+456 | 
+457 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+458 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+459 |     public let second:OriginalIssuedGraphFamily<T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v6/OriginalIssuedGraphRelations.swift:471:15: note: found this candidate
+469 | #endif
+470 | 
+471 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+472 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+473 |     public let second:OriginalIssuedGraphFamily<T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v3/DefaultOriginalIssuedGeometricRelationResolver.swift:506:32: error: 'OriginalIssuedGraphRelations' is ambiguous for type lookup in this context
+504 |     public init() {}
+505 |     public func resolve<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable,A: ExactScalarAdmission & ~Copyable>(
+506 |         _ relations: borrowing OriginalIssuedGraphRelations<S,E,C,T,F,D>,limits: OriginalDomainIdentityLimits,
+    |                                `- error: 'OriginalIssuedGraphRelations' is ambiguous for type lookup in this context
+507 |         geometryLimits: ExactGeometricRelationLimits,maximumPoints: Int,using a: inout A)
+508 |         throws(NativeExactGeometricRelationFailure) -> OriginalIssuedGeometricRelations<S,E,C,T,F,D> {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/OriginalIssuedGraphRelations.swift:83:15: note: found this candidate
+ 81 | #endif
+ 82 | 
+ 83 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+ 84 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+ 85 |     public let second:OriginalIssuedGraphFamily<T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelations.swift:457:15: note: found this candidate
+455 | #endif
+456 | 
+457 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+458 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+459 |     public let second:OriginalIssuedGraphFamily<T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v6/OriginalIssuedGraphRelations.swift:471:15: note: found this candidate
+469 | #endif
+470 | 
+471 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+472 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+473 |     public let second:OriginalIssuedGraphFamily<T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v3/OriginalIssuedGeometricRelations.swift:505:26: error: 'OriginalIssuedGraphRelations' is ambiguous for type lookup in this context
+503 | /// The generic value retains both actual source snapshots, DI covers and all solved chart pairs.
+504 | public struct OriginalIssuedGeometricRelations<S: Sendable, E: Sendable, C: Sendable, T: Sendable, F: Sendable, D: Sendable>: OriginalIssuedGeometricRelationReading {
+505 |     public let original: OriginalIssuedGraphRelations<S,E,C,T,F,D>
+    |                          `- error: 'OriginalIssuedGraphRelations' is ambiguous for type lookup in this context
+506 |     public let pairs: [OriginalIssuedGeometricRelationPair]
+507 |     public let exactPoints: [OriginalIssuedExactIntersectionPoint]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/OriginalIssuedGraphRelations.swift:83:15: note: found this candidate
+ 81 | #endif
+ 82 | 
+ 83 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+ 84 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+ 85 |     public let second:OriginalIssuedGraphFamily<T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelations.swift:457:15: note: found this candidate
+455 | #endif
+456 | 
+457 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+458 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+459 |     public let second:OriginalIssuedGraphFamily<T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v6/OriginalIssuedGraphRelations.swift:471:15: note: found this candidate
+469 | #endif
+470 | 
+471 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+472 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+473 |     public let second:OriginalIssuedGraphFamily<T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-native-20261013-v3/OriginalIssuedGeometricRelations.swift:512:20: error: 'OriginalIssuedGraphRelations' is ambiguous for type lookup in this context
+510 |     public var hasPositiveDimensionalImage: Bool { pairs.contains { $0.geometry.hasPositiveDimensionalImage } }
+511 |     public var isEmpty: Bool { pairs.allSatisfy { $0.geometry.isEmpty } }
+512 |     init(original: OriginalIssuedGraphRelations<S,E,C,T,F,D>, pairs: [OriginalIssuedGeometricRelationPair], exactPoints: [OriginalIssuedExactIntersectionPoint]) {
+    |                    `- error: 'OriginalIssuedGraphRelations' is ambiguous for type lookup in this context
+513 |         self.original = original; self.pairs = pairs; self.exactPoints = exactPoints
+514 |     }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/OriginalIssuedGraphRelations.swift:83:15: note: found this candidate
+ 81 | #endif
+ 82 | 
+ 83 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+ 84 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+ 85 |     public let second:OriginalIssuedGraphFamily<T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelations.swift:457:15: note: found this candidate
+455 | #endif
+456 | 
+457 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+458 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+459 |     public let second:OriginalIssuedGraphFamily<T,F,D>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v6/OriginalIssuedGraphRelations.swift:471:15: note: found this candidate
+469 | #endif
+470 | 
+471 | public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
+    |               `- note: found this candidate
+472 |     public let first:OriginalIssuedGraphFamily<S,E,C>
+473 |     public let second:OriginalIssuedGraphFamily<T,F,D>

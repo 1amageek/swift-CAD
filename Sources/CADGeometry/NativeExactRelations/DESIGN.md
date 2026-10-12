@@ -729,3 +729,48 @@ exact source/plane/request ownership, closed support intersection and every
 retained bound, including foreign binding, empty/singleton/support-external
 requests, attained depths and exact/one-less resources. Detached sources and
 independent admission readers must retain the same proof without reconstruction.
+
+## Complete original curve graph families
+
+A sealed `OriginalCompleteCurveGraphs` value owns complete original authored T
+coverage and every guarded auxiliary position graph. The additive complete-curve
+family bridge retains that entire value together with the same-owner DI request.
+It reads the source proof, checks authored scalar arity and owner correspondence,
+binds each actual graph with `DefaultOriginalParametricGraphDomainBinder`, and
+uses the existing issued graph compiler. It never fabricates a rational-chart
+cover, promotes auxiliary coordinates to authored parameters, or reissues source
+equations. The result retains both complete family and request even when empty.
+
+```text
+sealed complete original curve graphs + same-owner authored T request
+    -> checked retained cover -> existing graph binding/compiler
+    -> issued graph family -> existing L5 CS relation
+```
+
+CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01 retains its original five-variable
+`[T,firstU,firstV,secondU,secondV]` graph and consumes the source-issued checked
+one-T reduction. The source reduction substitutes every original equation,
+denominator and guard and retains a bijective forward map to all four original
+host coordinates. Its complete-family coverage is the sealed reduction receipt,
+including the unreduced graph and proof history. The consumer never regenerates
+or eliminates source equations.
+
+The initial seven-variable materialized CS attempt exhausted the unchanged work
+allowance in L3 decomposition. Materializing that layout was an implementation
+choice, not the all-original-UV requirement. The selected solver now combines
+reduced T with Native U/V using existing L5's three-variable graph route. The
+complete original host fiber is represented by the retained exact source
+bijection, not fabricated seven-variable CAD cells. L5/L6 preserve all selected
+TUV cells and original image/fiber semantics; auxiliary dimension never becomes
+authored dimension. Geometric publication restores exact `(T,hostUV4)` through
+the existing forward-coordinate publication hook. One admission owns all proof
+readmission, binding, compilation, solving and publication work/storage/depth/
+cancellation. Unsupported coverage fails explicitly. Later proof reads receive
+their own explicit admission and readmit retained history.
+
+The source-owned complete-family theorem and its unique position/host lift
+authority are assumptions from [Source Issuance](../OriginalSourceIssuance/DESIGN.md).
+[Geometric publication](../NativeExactGeometricRelations/DESIGN.md#implicit-curve-publication)
+owns the ordinary selector and certified numerical compatibility. Verification
+must inspect complete reduced raw/lifted cells, retained full source graphs,
+checked forward bijections and complete empty exclusion, not only witness samples, and must exercise owner/depth/resource/cancel/lifetime boundaries.

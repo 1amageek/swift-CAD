@@ -225,6 +225,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         maximumAlgebraicDepth: maximumAlgebraicDepth)
       if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:context) { return excluded.points }
+      if let implicit = try OriginalImplicitCurvePublicProducer().resolve(curve:curve,surface:surface,
+        options:options,tolerance:tolerance,invocation:context) { return implicit.points }
       if let angular = try OriginalAngularPlanePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:context) { return angular.points }
       if let axis = try OriginalRevolutionAxisLinePublicProducer().resolve(curve:curve,surface:surface,
@@ -275,6 +277,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     return try GeometryExactScalarFailure.withPublication {
       if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:invocation) { return excluded.points }
+      if let implicit = try OriginalImplicitCurvePublicProducer().resolve(curve:curve,surface:surface,
+        options:options,tolerance:tolerance,invocation:invocation) { return implicit.points }
       if let angular = try OriginalAngularPlanePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:invocation) { return angular.points }
       if let axis = try OriginalRevolutionAxisLinePublicProducer().resolve(curve:curve,surface:surface,

@@ -1,0 +1,29 @@
+# CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01 verification
+
+This packet covers one finite authored implicit-curve cell and its ordinary curve/surface callers. Delivery is pending the comprehensive review and independent committed-main audit. It does not establish completion of the complete certified family or M7.
+
+| Authority | Retained behavior |
+|---|---|
+| Original constructor | Existing dyadic native host pair, one forward stored cell, `split: false` |
+| Closed source parameter | `T ∈ [0,1]`, `τ = 1/4 + T/2` |
+| Original source coordinates | `[T, τ², τ, τ, 1/2]` |
+| Target | `H(U,V) = (U/32, 1/128, (2V−1)/64)`, closed `UV ∈ [0,1]²` |
+| Complete point oracle | `TUV=(1/2,1/4,1/2)`, first host UV `(1/4,1/2)`, second host UV `(1/2,1/2)`, XYZ `(1/128,1/128,0)` |
+| Complete empty oracle | For closed `T ∈ [0,1/4]`, `τ≤3/8`, hence source `Y≤3/512<1/128` |
+| Exact relation | One selected CS3 zero-dimensional cell, one complete lift and incident, restored original first coordinates5; image/fiber dimensions0 |
+| Source guards | Original graph5 and all27 original/substituted guards retained; whole-domain exact ranges justify removing27 solver tautologies, retaining0 |
+| Continuous control | Actual original first host, parameter/image/fiber dimensions1/1/0, exact representation; bare point API refuses positive-dimensional geometry |
+
+The source-owned checked reduction retains original graph5 and the unique forward law. The public relation contains the actual reduced CS3 partition and restores original5 through the existing publication transport. The packet does not synthesize a seven-dimensional materialized partition.
+
+The eleven groups cover four ordinary entry points for point/empty; selector, frame and unknown-guard refusal/conservatism; singleton/support-out selections; continuous representation and bare refusal; finite source/chart/degree/candidate/algebraic limits; measured work/storage N and N−1; entry/mid/final cancellation including empty publication; and detached/COW/concurrent independent-reader lifetime. The algebraic-depth control uses the same frozen binary and establishes the attained boundary13/12. A zero chart limit is rejected as invalid input by the actual options contract.
+
+Current Draft zero-line `ordinary` and `grouping` regression compiles the actual current producer and shared publisher. The original regression fixture changes only its two module qualifications. Actual existing derivative and polyline constructor helpers remain compiler inputs. This checks the shared publisher change without replaying the complete historical Draft acceptance suite.
+
+Each lane uses Swift6.4.0 and the matching SDK. Source5 compiles incrementally against the sealed testable cached owners; current upper56 compiles in the same consumer component. No lower/foundation or broad package rebuild occurs. Actual command, original/generated source suffix, explicit import prefix, source module/archive, executable, runtime input product, raw log and pre/post hash bindings are retained. Source compiler and runtime commands retain wall/per-process CPU/owned CPU limits120s and descendant cleanup checks. Observed Embedded upper CPU stops justify the compiler-only Upper-module policy wall240s/per-process CPU360s/owned CPU360s. The combined imported-Upper fixture then stopped at wall240s with owned CPU202.66s. Its exact driver jobs are therefore serialized with persistent outputs: fixture object wall/CPU360s, fixture module wall/CPU180s, modulewrap and actual clang link120s. The output and corresponding input paths are the only differences from the printed driver jobs; successful objects are retained and never recompiled for a later-stage failure. Public query work/storage/depth/cancel limits and all runtime120s bounds remain unchanged. The original stopped receipts, operational reasons, actual limits and subsequent cleanup observations remain immutable. Buffered driver stdout delayed some progress messages; the immediate per-stage receipt and product hash are authoritative for actual completion. RSS figures are sampled owned-process sums, not continuous memory measurements.
+
+Native acceptance composes the ten unchanged v11 groups with the v12 `limits` branch. Exact fixture bytes outside that branch are identical. Embedded compiles the actual upper56 and the unchanged selector once as a testable static module. The implicit and Draft assembly profiles link the exact same admitted module/archive and source5 archive. Four explicit aliases retain the fresh Upper nominal identities; the Draft prefix additionally aliases the actual fresh OriginalDraftedZeroLinePublicProducer to disambiguate its unchanged refusal branch from the cached same-name producer. Embedded uses concrete logging overloads in its generated prefix; original fixture/assertion bytes remain identical. The initial Embedded logging compile failures remain diagnostics. No unchanged Native/ASAN/WASM runtime is replayed for that logging-only correction.
+
+Historical v1–v8 compile/resource/depth diagnostics and the v10 pre-fix positive representation mismatch remain unsuccessful observations. The earlier numerical-only ordinary observation is separately retained with twelve missing receipts and incomplete source contract; numerical rounding is not conflated with root loss or merging.
+
+ASAN instruments the fresh source5, upper56 and fixture. As recorded by the retained periodic archive authority, the cached CADGeometry children are the existing uninstrumented Native products; this packet does not claim a sanitizer rebuild of those children. Cached9 authority is the exact M6 source hash map to actual module/object products, the periodic successful ar input/output receipt, actual lane import/link hash admission, and a separately labeled current source comparison. No historical source-at-compile measurement is invented.

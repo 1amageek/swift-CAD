@@ -616,3 +616,57 @@ Changed nonselected routes receive only causally affected regression checks.
 Fixed Native/ASAN/normal-WASM/Embedded selected-body evidence, one comprehensive
 review, coherent commit and independent latest-main comparison close only this
 cell; all other mandatory certified branches and M4-M8 remain open.
+
+## Implicit curve publication
+
+The narrow ordinary implicit selector accepts only the source-owned supported
+`CertifiedImplicitIntersectionCurve` cell capability and an admitted finite
+Native target. It selects before preparation; after selection every typed
+source/domain/algebra/resource/cancellation failure propagates atomically. General
+implicit branches remain on their existing dispatch until their source authority
+is supported. The producer follows one caller ledger through source graphs,
+[complete-family preparation](../NativeExactRelations/DESIGN.md#complete-original-curve-graph-families),
+existing L5/L6, scalar transfer, numerical representatives and terminal checkpoint.
+
+`OriginalImplicitCurveRelationReading` exposes the actual immutable source
+snapshot, checked source evidence and existing issued geometric reading receipt.
+Its sealed immutable implementation retains the typed full original family,
+Native target and geometry; it does not duplicate lift arrays or create proof
+from numerical points. Existing exact points expose original T, target UV and
+XYZ. The solver witness is `[T,U,V]`; `originalFirstCoordinates` restores the
+source tuple `[T,firstU,firstV,secondU,secondV]` through the existing checked
+forward-coordinate publication hook. The source-specific reading receipt also
+exposes the sealed reduction retaining the full original five-variable graph,
+every original guard and its whole-support bijective forward correspondence.
+No seven-variable CAD cells are fabricated or claimed. The retained reduced raw
+projection/partition contains every selected TUV incident, and the source
+bijection establishes the complete original host fiber. A single witness is not
+that completeness proof. Empty publication retains those same owners and complete
+exclusion. L6 owns image/fiber dimensions.
+
+The ordinary rational graph publisher shares its exact TUV grouping, scalar
+transfer, isolation and displacement validation through an internal statically
+specialized curve evaluator contract. Its existing identity evaluator preserves
+all current arity/transport checks and failure behavior. The implicit evaluator
+consumes the source-issued reduction, univariate forward homogeneous position,
+total derivative and forward host-coordinate laws. It validates restored exact
+source tuples and represented numerical source tuples against the retained full
+five-variable graph, and uses the reduced graph's guards as well. It never
+differentiates that auxiliary-held graph at a T-only tuple. All arithmetic and retained history
+use the caller admission. Source equations are not reconstructed in publication,
+and equal XYZ never merges different TUV. Nonidentity target transports or
+unproved incident classification remain explicit unsupported failures.
+
+```text
+source-issued full graph5 + checked graph1 and bijective forward host laws
+    -> existing L5 CS3 -> existing L6 + exact original-coordinate restoration
+    -> shared scalar transfer/grouping/isolation + checked curve evaluator
+    -> ordinary numerical points + retained implicit/source/geometric receipts
+```
+
+Verification owns the actual ordinary bare/rich and callback routes, full TUV and
+host UV oracle over every retained terminal cell, complete empty/singleton
+selections, image/fiber meaning, candidate/source/depth/resource/cancel boundaries
+and detached/COW independent reads. Changed identity evaluator behavior requires
+the smallest existing rational numeric regression; no unchanged lower solver
+reproof or broad unrelated public replay is implied.

@@ -1,0 +1,32 @@
+  private func dyadicPlaneParabolaCurve(
+    direction: CertifiedImplicitIntersectionDirection = .forward, split: Bool = false
+  ) throws -> CertifiedImplicitIntersectionCurve {
+    // Exact original controls: S1(u,v)=(u/32,v/64,0),
+    // S2(s,r)=(s^2/32,s/64,(2r-1)/64). No fitted chart or sampled certificate.
+    let first = BSplineSurface3D(uDegree:1,vDegree:1,
+      uKnots:[-0.5,-0.5,1.5,1.5],vKnots:[0,0,1,1],
+      controlPoints:[0.0,1.0/64].map { y in
+        [Point3D(x:-1.0/64,y:y,z:0),Point3D(x:3.0/64,y:y,z:0)]
+      })
+    let second = BSplineSurface3D(uDegree:2,vDegree:1,
+      uKnots:[0,0,0,1,1,1],vKnots:[0,0,1,1],
+      controlPoints:[-1.0/64,1.0/64].map { z in
+        [Point3D(x:0,y:0,z:z),Point3D(x:0,y:1.0/128,z:z),Point3D(x:1.0/32,y:1.0/64,z:z)]
+      })
+    func anchor(_ t: Double) throws -> SurfaceIntersectionParameterPair {
+      try SurfaceIntersectionParameterPair(first:SurfaceParameter(u:t*t,v:t),
+        second:SurfaceParameter(u:t,v:0.5))
+    }
+    let ranges: [(Double,Double)] = split ? [(0.25,0.5),(0.5,0.75)] : [(0.25,0.75)]
+    let ordered = direction == .forward ? ranges : Array(ranges.reversed())
+    let cells = try ordered.map { lower,upper in
+      try CertifiedImplicitIntersectionGraphCell(parameterBox:SurfaceIntersectionParameterBox(
+        firstU:ScalarInterval(lower:-0.25,upper:0.875),firstV:ScalarInterval(lower:lower,upper:upper),
+        secondU:ScalarInterval(lower:0.2,upper:0.8),secondV:ScalarInterval(lower:0,upper:1)),
+        freeParameter:.firstV,direction:direction,
+        lowerAnchor:anchor(lower),midpointAnchor:anchor((lower+upper)/2),upperAnchor:anchor(upper),
+        firstSurface:first,secondSurface:second,tolerance:tolerance)
+    }
+    return try CertifiedImplicitIntersectionCurve(firstSurface:first,secondSurface:second,
+      cells:cells,isClosed:false,tolerance:tolerance)
+  }

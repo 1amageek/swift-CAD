@@ -1,0 +1,16 @@
+{
+  "observedUTC": "2026-10-12T02:35:23.215886+00:00",
+  "command": [
+    "ps",
+    "-p",
+    "31007",
+    "-o",
+    "pid=,ppid=,stat=,rss=,etime=,command="
+  ],
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "",
+  "ownedPIDAbsent": true,
+  "originalImmediateCleanupReceiptPreserved": true,
+  "productAbsent": true
+}

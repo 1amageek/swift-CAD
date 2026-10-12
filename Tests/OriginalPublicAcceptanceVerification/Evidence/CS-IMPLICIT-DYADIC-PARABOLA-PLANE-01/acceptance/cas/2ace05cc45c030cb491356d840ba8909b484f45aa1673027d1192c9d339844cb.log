@@ -1,0 +1,71 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v1/Proof.swift:810:12: error: extra arguments at positions #3, #4, #5, #6 in call
+808 |       } }
+809 |       try require(sawCurve)
+810 |       print("continuous-exact-representation",result.representation == .exactRelation,
+    |            `- error: extra arguments at positions #3, #4, #5, #6 in call
+811 |         "numeric-empty",result.points.isEmpty,"dimensions-1-1-0",sawCurve);fflush(nil)
+812 |       try require(result.points.isEmpty && result.representation == .exactRelation)
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v1/Proof.swift:810:69: error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+808 |       } }
+809 |       try require(sawCurve)
+810 |       print("continuous-exact-representation",result.representation == .exactRelation,
+    |                                                                     `- error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+811 |         "numeric-empty",result.points.isEmpty,"dimensions-1-1-0",sawCurve);fflush(nil)
+812 |       try require(result.points.isEmpty && result.representation == .exactRelation)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v1/Proof.swift:851:10: error: missing argument label 'terminator:' in call
+849 |       }
+850 |     } else { throw Failure(line:#line) }
+851 |     print("PASS implicit finite acceptance",selected);fflush(nil)
+    |          `- error: missing argument label 'terminator:' in call
+852 |   }
+853 |   static func log(_ label: String, _ value: Int) {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v1/Proof.swift:851:45: error: cannot convert value of type 'String' to expected argument type 'StaticString'
+849 |       }
+850 |     } else { throw Failure(line:#line) }
+851 |     print("PASS implicit finite acceptance",selected);fflush(nil)
+    |                                             `- error: cannot convert value of type 'String' to expected argument type 'StaticString'
+852 |   }
+853 |   static func log(_ label: String, _ value: Int) {
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v1/Proof.swift:810:12: error: extra arguments at positions #3, #4, #5, #6 in call
+808 |       } }
+809 |       try require(sawCurve)
+810 |       print("continuous-exact-representation",result.representation == .exactRelation,
+    |            `- error: extra arguments at positions #3, #4, #5, #6 in call
+811 |         "numeric-empty",result.points.isEmpty,"dimensions-1-1-0",sawCurve);fflush(nil)
+812 |       try require(result.points.isEmpty && result.representation == .exactRelation)
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v1/Proof.swift:810:69: error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+808 |       } }
+809 |       try require(sawCurve)
+810 |       print("continuous-exact-representation",result.representation == .exactRelation,
+    |                                                                     `- error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+811 |         "numeric-empty",result.points.isEmpty,"dimensions-1-1-0",sawCurve);fflush(nil)
+812 |       try require(result.points.isEmpty && result.representation == .exactRelation)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v1/Proof.swift:851:10: error: missing argument label 'terminator:' in call
+849 |       }
+850 |     } else { throw Failure(line:#line) }
+851 |     print("PASS implicit finite acceptance",selected);fflush(nil)
+    |          `- error: missing argument label 'terminator:' in call
+852 |   }
+853 |   static func log(_ label: String, _ value: Int) {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v1/Proof.swift:851:45: error: cannot convert value of type 'String' to expected argument type 'StaticString'
+849 |       }
+850 |     } else { throw Failure(line:#line) }
+851 |     print("PASS implicit finite acceptance",selected);fflush(nil)
+    |                                             `- error: cannot convert value of type 'String' to expected argument type 'StaticString'
+852 |   }
+853 |   static func log(_ label: String, _ value: Int) {

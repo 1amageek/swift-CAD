@@ -1,0 +1,22 @@
+{
+  "status": "NOT_EXECUTED",
+  "originalCommand": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-command.json",
+  "driverPrintJobs": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/driver-print-jobs.json",
+  "outputMapping": {
+    "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0iDDjF/Proof-1.o": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/persistent-job-plan/Proof.o",
+    "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0iDDjF/ImplicitSplitAcceptance-1.swiftmodule": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/persistent-job-plan/ImplicitSplitAcceptance.swiftmodule",
+    "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0iDDjF/ImplicitSplitAcceptance-1.swiftdoc": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/persistent-job-plan/ImplicitSplitAcceptance.swiftdoc",
+    "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0iDDjF/ImplicitSplitAcceptance-1.swiftsourceinfo": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/persistent-job-plan/ImplicitSplitAcceptance.swiftsourceinfo",
+    "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0iDDjF/ImplicitSplitAcceptance-1.o": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/persistent-job-plan/ImplicitSplitAcceptance.modulewrap.o",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/Acceptance.wasm": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/persistent-job-plan/Acceptance.wasm"
+  },
+  "steps": [
+    "fixture-object",
+    "fixture-module",
+    "fixture-modulewrap",
+    "fixture-link"
+  ],
+  "sameCompilerArgumentsExceptPersistentOutputs": true,
+  "actualV7PIDKindsRecorded": false,
+  "pidKindLimitation": "Runner recorded pid,ppid,rss,time only; print-jobs is planned jobs, not proof which v7 job reached."
+}

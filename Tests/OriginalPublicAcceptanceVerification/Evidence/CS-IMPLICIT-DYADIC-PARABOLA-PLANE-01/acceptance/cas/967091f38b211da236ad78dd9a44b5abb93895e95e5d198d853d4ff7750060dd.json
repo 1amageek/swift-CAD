@@ -1,0 +1,73 @@
+{
+  "cell": "CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01",
+  "success": false,
+  "state": "bounded-embedded-fixture-wall-stop",
+  "scope": "Source5 and testableUpper56 module/archive reused; original fixture1input plus exact aliases; compiler wall240s stop under CPU360s guard, no executable success or runtime.",
+  "receipt": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/e603bdc046b70a4f452d645333a0fb92b9a11c037619c9f790400a4d53f988a0.json",
+    "sha256": "e603bdc046b70a4f452d645333a0fb92b9a11c037619c9f790400a4d53f988a0",
+    "bytes": 103827
+  },
+  "command": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6940cca06ede95aa1cb69b8d02b3f34d3fd79ca6d84ba79264ff1861a2e6dec3.json",
+    "sha256": "6940cca06ede95aa1cb69b8d02b3f34d3fd79ca6d84ba79264ff1861a2e6dec3",
+    "bytes": 7807
+  },
+  "premises": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/2c2ec4348e26c0461a7fd563493c35254b1bae6ba1a345473434307bab2318b1.json",
+    "sha256": "2c2ec4348e26c0461a7fd563493c35254b1bae6ba1a345473434307bab2318b1",
+    "bytes": 129656
+  },
+  "log": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "files": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-command.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6940cca06ede95aa1cb69b8d02b3f34d3fd79ca6d84ba79264ff1861a2e6dec3.json",
+      "sha256": "6940cca06ede95aa1cb69b8d02b3f34d3fd79ca6d84ba79264ff1861a2e6dec3",
+      "bytes": 7807
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/post-cleanup-observation.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/ad4b618eb644e830cf4cedd192656907a0f9289fedf75b74c6f8a805d14e2e96.json",
+      "sha256": "ad4b618eb644e830cf4cedd192656907a0f9289fedf75b74c6f8a805d14e2e96",
+      "bytes": 315
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-premises.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/2c2ec4348e26c0461a7fd563493c35254b1bae6ba1a345473434307bab2318b1.json",
+      "sha256": "2c2ec4348e26c0461a7fd563493c35254b1bae6ba1a345473434307bab2318b1",
+      "bytes": 129656
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-compile-receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/e603bdc046b70a4f452d645333a0fb92b9a11c037619c9f790400a4d53f988a0.json",
+      "sha256": "e603bdc046b70a4f452d645333a0fb92b9a11c037619c9f790400a4d53f988a0",
+      "bytes": 103827
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/Proof.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/dce794d20301d41a70e6fe6617b56c4555e95e3803a4a89badca046e6fce777d.swift",
+      "sha256": "dce794d20301d41a70e6fe6617b56c4555e95e3803a4a89badca046e6fce777d",
+      "bytes": 54564
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-compile.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/driver-at-runtime.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/0040381a35d8c31a940035794a2f8b4db7e61657a79a9558c1cb5b1a77dfa5c9.py",
+      "sha256": "0040381a35d8c31a940035794a2f8b4db7e61657a79a9558c1cb5b1a77dfa5c9",
+      "bytes": 22703
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-compile-started.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/fe3f3671e524b51719d08a165c52eb29feb24679cf4c7485747831b6fbe9830c.json",
+      "sha256": "fe3f3671e524b51719d08a165c52eb29feb24679cf4c7485747831b6fbe9830c",
+      "bytes": 57
+    }
+  },
+  "postCleanup": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/ad4b618eb644e830cf4cedd192656907a0f9289fedf75b74c6f8a805d14e2e96.json",
+    "sha256": "ad4b618eb644e830cf4cedd192656907a0f9289fedf75b74c6f8a805d14e2e96",
+    "bytes": 315
+  }
+}
