@@ -1,0 +1,19 @@
+{
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIWASI.mjs",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/periodic-offset-cs-20261013/wasm/Acceptance.wasm"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.5273903750348836,
+  "peakRSSBytes": 983040,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "a4adfff23884bee99fbf3a31d4c7af131ce9dd8af7470a50bba7b937691c5b59",
+  "rawReceiptSHA256": "5f93ddaba50cca491f519378c014b8a4296be8e5b27d33b2eb44aecf99d11b96",
+  "sourcePremisesSHA256": "5fa75122a3abc7b03388ebb2ecf9d4fce80c6a1e00c261892d7972dab388ef8a",
+  "environment": {
+    "CAD_PROOF_GROUP": "cycles"
+  }
+}

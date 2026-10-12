@@ -223,6 +223,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,
         consumeWork: consumeWork, consumeStorage: consumeStorage,
         maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(curve:curve,surface:surface,
+        options:options,tolerance:tolerance,invocation:context) { return periodic.points }
       if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:context) { return excluded.points }
       if let implicit = try OriginalImplicitCurvePublicProducer().resolve(curve:curve,surface:surface,
@@ -275,6 +277,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     tolerance: ModelingTolerance
   ) throws -> [CurveSurfaceIntersection] {
     return try GeometryExactScalarFailure.withPublication {
+      if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(curve:curve,surface:surface,
+        options:options,tolerance:tolerance,invocation:invocation) { return periodic.points }
       if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:invocation) { return excluded.points }
       if let implicit = try OriginalImplicitCurvePublicProducer().resolve(curve:curve,surface:surface,

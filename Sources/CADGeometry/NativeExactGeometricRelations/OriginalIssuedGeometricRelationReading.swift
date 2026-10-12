@@ -22,8 +22,11 @@ public protocol OriginalIssuedGeometricRelationReading: Sendable {
     var isEmpty: Bool { get }
     /// Parameterized sections complement the cell-backed pairs without replacing original UV.
     var surfacePlaneSections: [OriginalSurfacePlaneSection] { get }
+    /// Complete independent integer-cycle geometric contacts retain all original UV.
+    var periodicOffsetContacts: [OriginalPeriodicOffsetContactTemplate] { get }
 }
 
 public extension OriginalIssuedGeometricRelationReading {
     var surfacePlaneSections: [OriginalSurfacePlaneSection] { [] }
+    var periodicOffsetContacts: [OriginalPeriodicOffsetContactTemplate] { [] }
 }

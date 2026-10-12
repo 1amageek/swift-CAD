@@ -1,0 +1,30 @@
+{
+  "command": [
+    "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+    "-parse-as-library",
+    "-package-name",
+    "NativeExactRelationVerification",
+    "-swift-version",
+    "6",
+    "-I",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/rolling-ssi-20261013/native",
+    "-I",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug",
+    "-sdk",
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+    "-target",
+    "arm64-apple-macosx15.0",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/PeriodicOffsetCSStop.swift",
+    "@/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/rolling-ssi-20261013/native/link-objects.rsp",
+    "-o",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/rolling-ssi-20261013/native/PeriodicOffsetStop"
+  ],
+  "exitCode": 2,
+  "elapsedSeconds": 0.5966923750238493,
+  "wallLimitSeconds": 30,
+  "fixtureSHA256": "ddf651e276af469a9e2b6e7bbd47b9c3931457927a038bdf0437a594c417e610",
+  "executableSHA256": "0e58f4a2b227f0c9cbe485bc3292334951f9a81881d4cd404b7319e0df567408",
+  "logSHA256": "d164604d189a542f5972c215d4490e5f6ad4b7cb485d277aabadf55002e0827f",
+  "productionSourcePremisesSHA256": "018b61dbd90b1f745c9df0831b9ed9f448d2d1dbbd36c8a80552c608d9177c23",
+  "admittedProductPremisesSHA256": "ec409471eef55b62a15186b034753406d8f73e1688cb8780e23453649c02c3fa"
+}

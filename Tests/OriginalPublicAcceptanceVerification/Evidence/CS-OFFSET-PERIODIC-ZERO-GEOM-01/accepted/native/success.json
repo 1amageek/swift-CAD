@@ -1,0 +1,11 @@
+{
+  "exitCode": 0,
+  "elapsedSeconds": 0.6810987089993432,
+  "logSHA256": "fd48d34174764ed5da5a353aca00990703e4d38277561386e2be5e9c3403d5c4",
+  "premisesSHA256": "1e637caf8b8aaf11c9c103954957f1148b326daae953e54a12b39e6420bc6f58",
+  "rawReceiptSHA256": "64b786e0429397a5cbf5bd7601a32fddac15571b0cd4df8990926f9292789535",
+  "sourcePremisesSHA256": "5fa75122a3abc7b03388ebb2ecf9d4fce80c6a1e00c261892d7972dab388ef8a",
+  "environment": {
+    "CAD_PROOF_GROUP": "success"
+  }
+}

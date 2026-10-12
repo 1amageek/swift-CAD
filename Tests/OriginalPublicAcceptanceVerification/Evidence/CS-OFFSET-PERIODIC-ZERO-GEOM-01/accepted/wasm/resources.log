@@ -1,0 +1,4 @@
+(node:67849) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+BOUNDARY 92868 235672
+PASS resources

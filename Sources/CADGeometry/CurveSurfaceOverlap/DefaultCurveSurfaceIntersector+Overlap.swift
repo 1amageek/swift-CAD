@@ -8,6 +8,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
         tolerance: ModelingTolerance
     ) throws -> CurveSurfaceIntersectionResult {
         return try GeometryExactScalarFailure.withPublication {
+          if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(curve:curve,surface:surface,
+              options:options,tolerance:tolerance,retainingRelations:true) { return periodic }
           if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,
               options:options,tolerance:tolerance) { return excluded }
           if let implicit = try OriginalImplicitCurvePublicProducer().resolve(curve:curve,surface:surface,
@@ -37,6 +39,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
               maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,
               consumeWork: consumeWork, consumeStorage: consumeStorage,
               maximumAlgebraicDepth: maximumAlgebraicDepth)
+          if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(curve:curve,surface:surface,
+              options:options,tolerance:tolerance,invocation:invocation,retainingRelations:true) { return periodic }
           if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,
               options:options,tolerance:tolerance,invocation:invocation) { return excluded }
           if let implicit = try OriginalImplicitCurvePublicProducer().resolve(curve:curve,surface:surface,

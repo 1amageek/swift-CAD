@@ -1,0 +1,75 @@
+{
+  "status": "PASS",
+  "lanes": {
+    "native": {
+      "groups": [
+        "success",
+        "cycles",
+        "requests",
+        "empty",
+        "bare",
+        "resources",
+        "limits",
+        "cancel",
+        "lifetime"
+      ],
+      "elapsedSeconds": 1.4756720419973135,
+      "premisesSHA256": "1e637caf8b8aaf11c9c103954957f1148b326daae953e54a12b39e6420bc6f58"
+    },
+    "asan": {
+      "groups": [
+        "success",
+        "cycles",
+        "requests",
+        "empty",
+        "bare",
+        "resources",
+        "limits",
+        "cancel",
+        "lifetime"
+      ],
+      "elapsedSeconds": 5.832382125896402,
+      "premisesSHA256": "c448880cd1120d9473efc3fd53e6ec4bde7b97fe79a840b92d1b5cff4a4eaaa9"
+    },
+    "wasm": {
+      "groups": [
+        "success",
+        "cycles",
+        "requests",
+        "empty",
+        "bare",
+        "resources",
+        "limits",
+        "cancel",
+        "lifetime"
+      ],
+      "elapsedSeconds": 4.760137539822608,
+      "premisesSHA256": "7dc55edd245e7bf85f5915be0d3de7cd4ca31df059b5fbca5f66505477929479"
+    },
+    "embedded": {
+      "groups": [
+        "success",
+        "cycles",
+        "requests",
+        "empty",
+        "bare",
+        "resources",
+        "limits",
+        "cancel",
+        "lifetime"
+      ],
+      "elapsedSeconds": 4.770860210061073,
+      "premisesSHA256": "5c8126cf84518c7ac4e52103727fb633024461c9ed78179ad60d76d297faba55"
+    }
+  },
+  "sourceCount": 2103,
+  "sourcePremisesSHA256": "5fa75122a3abc7b03388ebb2ecf9d4fce80c6a1e00c261892d7972dab388ef8a",
+  "productsSHA256": "a68c4295d35f546d55078f1a8dbd2d70a7e3c1e2a27adea4d901c0ce5bf82d31",
+  "compatibilityReceiptSHA256": "f0140f8ef692663cf0015e24bd0d0e4d82be8ba565da0040d6fa507f55e1626b",
+  "inheritedExternalProducts": 13127,
+  "protectedFileCount": 12,
+  "toolchain": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0\n",
+  "wholeSevenCompleted": 1,
+  "wholeSevenTotal": 7,
+  "full87Complete": false
+}

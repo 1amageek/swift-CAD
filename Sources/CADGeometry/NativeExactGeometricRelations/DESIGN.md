@@ -802,3 +802,36 @@ coefficientwise polynomial and endpoint/closure equality; each original chart
 still receives its own predicate selection, forward laws, ordinal and owner.
 Constant atoms are decided exactly before partitioning. This shares decomposition
 without identifying or merging original UV or chart incidents.
+
+
+## Periodic zero-offset stationary curve publication
+
+The ordinary CS producer consumes existing periodic Native offset source/DI and
+finite Native curve chart receipts. Its scope is a stationary rational curve
+with constant nonzero denominator and zero-distance offset charts whose guarded
+position quotient is affine in original UV and independent of the positive root.
+The original normal/denominator/root guards remain mandatory. A constant zero
+normal-square excludes the chart; otherwise two independent affine rows fix the
+only possible UV, and every remaining position equation, original support and
+guard must accept it. A required rank-deficient/nonaffine/irrational surviving
+root case fails explicitly. All fundamental charts are checked before publication.
+
+The retained symbolic contact templates own exact curve selections, fundamental
+UV/root/XYZ, original chart ordinals, independent integer-cycle selections and
+complete source/DI/graph owners. Integer endpoints are derived by exact floor/
+ceiling of request pullbacks; unbounded axes remain unbounded. Integer cycles
+are never enumerated or narrowed to fixed-width integers. Members consume the retained DI/source period theorem to lift UV and exact
+integer selection; the constructor checks every original guard before issuing
+the sealed template. Native-specific owners remain private, while the public
+template uses only scalar/domain types shared with independent IssuedGeometry. Image0 and
+fiber equal to the retained T interval dimension follow the proved constant map.
+An appended protocol requirement exposes these templates through the existing
+issued geometric result. Existing readers have an empty default requirement.
+Bare positive-dimensional calls refuse rather than returning a finite sample.
+
+All source preparation and scratch share the caller admission, depth, chart and
+candidate limits; final checkpoints guard empty/nonempty publication. No new
+shared mutable state or platform-specific ownership is introduced. Tests belong
+to Tests/OriginalPublicAcceptanceVerification/PeriodicOffsetCSAcceptance.swift;
+CS-OFFSET-PERIODIC-ZERO-GEOM-01 closes this fixed input and requests only. Other
+periodic/nonzero/general offset capabilities remain incomplete.

@@ -1,0 +1,1 @@
+../../../../Sources/CADGeometry/NativeExactGeometricRelations/OriginalPeriodicOffsetContactMember.swift

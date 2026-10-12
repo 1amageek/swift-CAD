@@ -1,0 +1,17 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/periodic-offset-cs-20261013/asan/Acceptance"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.5313514579320326,
+  "peakRSSBytes": 327680,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "59e598769e1c154ed3205eff8cd475c5b6847de8e1267ea00aa224f8eb44217b",
+  "rawReceiptSHA256": "21cab4c5636363327a2c682e538e8cd2dc634ecff9c09b6a3bd5ed565222b877",
+  "sourcePremisesSHA256": "5fa75122a3abc7b03388ebb2ecf9d4fce80c6a1e00c261892d7972dab388ef8a",
+  "environment": {
+    "CAD_PROOF_GROUP": "limits"
+  }
+}

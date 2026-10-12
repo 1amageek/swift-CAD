@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "scope": "Single comprehensive review with one finding-only confirmation",
+  "findings": {
+    "F1": "Retained source/proof admission and sourceDepth0 member rejection",
+    "F2": "Source-independent sealed public types; actual isolated declaration closure and current default witnesses"
+  },
+  "summarySHA256": "fc108b6b5e9bb509c6fddeec39afb0244731c3b8faee588fe527c606009eba5d",
+  "reviewSHA256": "a3f406c705e8884075665255842c8f87c7a45f1813987f6cc1016c4dd0faecd9",
+  "compatibilityReceiptSHA256": "f0140f8ef692663cf0015e24bd0d0e4d82be8ba565da0040d6fa507f55e1626b",
+  "wholeSevenCompleted": 1,
+  "wholeSevenTotal": 7,
+  "full87Complete": false
+}
