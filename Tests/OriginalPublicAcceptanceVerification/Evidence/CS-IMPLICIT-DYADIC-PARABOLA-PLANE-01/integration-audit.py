@@ -206,7 +206,7 @@ def audit():
     review_path = EVIDENCE / 'REVIEW.md'
     check(review_path, args.review_sha256)
     review = review_path.read_text()
-    require(CELL in review and 'Verdict: **PASS' in review and
+    require(CELL in review and 'Verdict: PASS' in review.splitlines() and
             args.summary_sha256 in review and args.manifest_sha256 in review,
             'comprehensive PASS must bind this exact frozen packet')
     for path in [summary_path, manifest_path, review_path, EVIDENCE / 'acceptance/VERIFICATION.md', Path(__file__).resolve()]:
