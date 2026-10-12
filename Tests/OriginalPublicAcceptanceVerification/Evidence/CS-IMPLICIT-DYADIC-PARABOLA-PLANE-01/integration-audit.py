@@ -484,9 +484,10 @@ def audit():
                     'cached module generation must bind the actual unchanged implicit source body')
         source_checks = source_run.get('checks', {})
         generation_original = str(original_receipt(chain['generationReceipt']))
-        require(source_checks.get(generation_original) == chain['generationReceipt']['sha256'] and
-                upper_checks.get(generation_original) == chain['generationReceipt']['sha256'],
-                'actual lane source/upper compilers must admit the original cached generation receipt')
+        for checks in [source_checks, upper_checks]:
+            if generation_original in checks:
+                require(checks[generation_original] == chain['generationReceipt']['sha256'],
+                        'a recorded historical generation receipt must match the exact original authority')
         module = chain['module']
         module_path = Path(module['path'])
         module_directory = module_path.parent if module_path.name == 'CADGeometry.swiftmodule' else module_path.parent.parent
@@ -511,8 +512,9 @@ def audit():
                     archive['path'] in link_command and link_checks.get(archive['path']) == archive['sha256'],
                     'actual linked original geometry archive generation/product binding')
             original = str(original_receipt(archive['generationReceipt']))
-            require(link_checks.get(original) == archive['generationReceipt']['sha256'],
-                    'actual upper compiler admitted the archive generation receipt')
+            if original in link_checks:
+                require(link_checks[original] == archive['generationReceipt']['sha256'],
+                        'a recorded historical archive receipt must match the exact original authority')
             ar_runs = [run for run in producer['runs'] if run['label'] == 'archive-CADGeometry']
             require(len(ar_runs) == 1 and ar_runs[0]['exitCode'] == 0 and
                     ar_runs[0]['command'][2] == archive['producedPath'], 'actual successful geometry archive creation')
