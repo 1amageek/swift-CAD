@@ -274,6 +274,18 @@ def audit():
 
     def original_receipt(item):
         matches = {name for name, digest in archived if digest == item['sha256'] and name.endswith('.json')}
+        declared = locate(item.get('originalPath', item['path']))
+        if str(declared) in matches:
+            saved(str(declared), item['sha256'])
+            return declared
+        if not matches and declared.parent.name != 'cas' and declared.is_relative_to(ROOT / 'Tests'):
+            relative = declared.relative_to(ROOT)
+            require('Evidence' in relative.parts and declared.suffix == '.json' and
+                    git(ROOT, 'ls-files', '--', str(relative)).decode().splitlines() == [str(relative)],
+                    'direct packet-declared original receipt must already be Git-tracked evidence')
+            check(declared, item['sha256'])
+            durable[str(relative)] = item['sha256']
+            return declared
         require(len(matches) == 1, f'unique original receipt path: {item["path"]}')
         return Path(next(iter(matches)))
 
