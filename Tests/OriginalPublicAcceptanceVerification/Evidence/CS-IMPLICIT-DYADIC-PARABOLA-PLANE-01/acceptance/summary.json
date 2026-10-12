@@ -94,7 +94,7 @@
   },
   "runner": {
     "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py",
-    "sha256": "ca3bacf5d3537a3d7c622971dcb8f760e0d07d271847e367025b6febb01df196"
+    "sha256": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d"
   },
   "accepted": [
     {
@@ -29016,6 +29016,36 @@
       },
       "rawSuccess": false,
       "scope": "Missing actual derivative fixture helper in initial regression assembly; no runtime"
+    },
+    {
+      "receipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/aeafe21b2bbfdecd07cca72446baafb1113ead6444f71848b65aaef23fc08f2b.json",
+        "sha256": "aeafe21b2bbfdecd07cca72446baafb1113ead6444f71848b65aaef23fc08f2b",
+        "bytes": 99125,
+        "kind": "actual-command-source-receipt-log"
+      },
+      "rawSuccess": false,
+      "scope": "F1: actual prior Draft runtime succeeded but two frontend helper object hashes were not admitted; prior assembly excluded from final acceptance",
+      "priorFrozenPacket": {
+        "summary.json": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/5f503879646ebdf6255c19a0b8b4e1c721a1daecf118193462bde321deaa82a0.json",
+          "sha256": "5f503879646ebdf6255c19a0b8b4e1c721a1daecf118193462bde321deaa82a0",
+          "bytes": 7890577,
+          "kind": "pre-F1-frozen-packet"
+        },
+        "manifest.json": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/bceaa84927e4c1f16079098992537b4a7380374ba6d6d50a158f232175617ab5.json",
+          "sha256": "bceaa84927e4c1f16079098992537b4a7380374ba6d6d50a158f232175617ab5",
+          "bytes": 1547486,
+          "kind": "pre-F1-frozen-packet"
+        },
+        "VERIFICATION.md": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/caa11cd875b1be6e613d74294395b4888d1cddb559b827f16e10bbb846a6bb99.md",
+          "sha256": "caa11cd875b1be6e613d74294395b4888d1cddb559b827f16e10bbb846a6bb99",
+          "bytes": 5876,
+          "kind": "pre-F1-frozen-packet"
+        }
+      }
     }
   ],
   "calibrations": {
@@ -35961,9 +35991,9 @@
           "grouping"
         ],
         "receipt": {
-          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/080b5f789ec1258b7bc62c67534eab3e8758929a79972c665ba249a8aabbdf50.json",
-          "sha256": "080b5f789ec1258b7bc62c67534eab3e8758929a79972c665ba249a8aabbdf50",
-          "bytes": 732367,
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/9bb63fe705b642f8f4e107d3b027c5c96b5bffca99fcb7bbd00a760030cf4c96.json",
+          "sha256": "9bb63fe705b642f8f4e107d3b027c5c96b5bffca99fcb7bbd00a760030cf4c96",
+          "bytes": 732247,
           "kind": "actual-command-source-receipt-log"
         },
         "rawSuccess": true,
@@ -35979,13 +36009,13 @@
           "kind": "actual-command-source-receipt-log"
         },
         "assemblyCommand": {
-          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/e093fa686b6af6062e2c72e1df7984644298a30ee2e17f327013f20d90723657.json",
-          "sha256": "e093fa686b6af6062e2c72e1df7984644298a30ee2e17f327013f20d90723657",
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/ac3207e0f873ae49f8be59207f859cad9fe76a83e5c326d4b718ab4222d735ad.json",
+          "sha256": "ac3207e0f873ae49f8be59207f859cad9fe76a83e5c326d4b718ab4222d735ad",
           "bytes": 8073,
           "kind": "actual-command-source-receipt-log"
         },
         "products": {
-          "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/Regression.wasm": "ecc82c67dfa412a5df77044b52c04c519ea61457cf55448053390d56f0fab848"
+          "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Regression.wasm": "b2a641913c499d2199b46455dc03c1343d0e882f88d187fb9a82b4fc7feccc16"
         },
         "preAndPostAdmissionPassed": true,
         "runs": [
@@ -35995,11 +36025,11 @@
               "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend",
               "-frontend",
               "-c",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionProof.swift",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionShape.swift",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionProof.swift",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionShape.swift",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeLiftHostVerification/Shape.swift",
               "-supplementary-output-file-map",
-              "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.ZgLOuq/supplementaryOutputs-1",
+              "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.f7l59a/supplementaryOutputs-1",
               "-target",
               "wasm32-unknown-wasip1",
               "-disable-objc-interop",
@@ -36044,7 +36074,7 @@
               "-I",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-module",
               "-module-cache-path",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/module-cache",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/module-cache",
               "-no-color-diagnostics",
               "-Xcc",
               "-fno-color-diagnostics",
@@ -36097,17 +36127,17 @@
               "-num-threads",
               "2",
               "-o",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/RegressionProof-1.o",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionProof-1.o",
               "-o",
-              "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.ZgLOuq/RegressionShape-1.o",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionShape-1.o",
               "-o",
-              "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.ZgLOuq/Shape-1.o"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Shape-1.o"
             ],
             "exitCode": 0,
             "boundedStop": null,
-            "elapsedSeconds": 82.7613835829543,
-            "sampledOwnedCPUSeconds": 88.56,
-            "peakOwnedProcessResidentSumKiB": 10623296,
+            "elapsedSeconds": 53.28818595898338,
+            "sampledOwnedCPUSeconds": 73.23,
+            "peakOwnedProcessResidentSumKiB": 9100720,
             "ownedDescendantsRemaining": [],
             "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
             "checks": {
@@ -36543,22 +36573,22 @@
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-module-compile-receipt.json": "0c0d92a0d755b450ff89f0c463394f5fa51ea762815da711a6edf7694686405a",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/driver-at-runtime.py": "23449da9514849e354831a8f416e8556f0523cd0f1d853440fc272ea593e35ff",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/DraftZeroRuledAcceptance.swift": "ad853cde5f32c3ce1e4f41292accbc5e0ad758d998c90ffb36a472e2311a9729",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineAtlasLiftVerification/Proof.swift": "250a66a0bb579b4fada6812c6e8405317a5307f3b61987d21da64b831cacdd18",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineSurfaceLiftVerification/Proof.swift": "05ef39e09eac9152aa61fa843bc72d7437d2c649ffe4f73689affb7a930b5a4e",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeLiftHostVerification/Shape.swift": "5505d0235544e80a00036580d7aadc3236e24446f38fb7cf350222523523b4c4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-command.json": "e093fa686b6af6062e2c72e1df7984644298a30ee2e17f327013f20d90723657",
-              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "957d017180d0eb5e5d94ff640631c03dd577704015450e3ffdd241543744b12c",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-premises.json": "62512e7140446d1abf16022108e07b977da64e3f5bdda99c98cceaa17ebb67bb",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent-plan.json": "b8743b1d09fb82e3709b999791f5029d7841b4dfffc966ba46180ce921d77f2f",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-driver-jobs.txt": "2cf2195b277415e383687d4240617e4bc95b418ec685bc6c3702599591c883e4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/driver-at-runtime.py": "957d017180d0eb5e5d94ff640631c03dd577704015450e3ffdd241543744b12c",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-command.json": "ac3207e0f873ae49f8be59207f859cad9fe76a83e5c326d4b718ab4222d735ad",
+              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-premises.json": "0b1185182616a0a10ef48d7a33562ba012cdf0eea7dc3edcbf01662766af1083",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent-plan.json": "d979a76ace0f5defb718df5a4517dc2ac98465ce9b64e4e0fa319f315678c904",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-driver-jobs.txt": "9fd6b3740cab8dcd70894e32a0b2b1e2e67323583ee6085090cdd8e78b2d752a",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/driver-at-runtime.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-compile-receipt.json": "e603bdc046b70a4f452d645333a0fb92b9a11c037619c9f790400a4d53f988a0"
             },
             "inputProducts": {},
-            "headBefore": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
-            "headAfter": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
+            "headBefore": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
+            "headAfter": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
             "wallSeconds": 360,
             "perProcessCPUSeconds": 360,
             "ownedCPUSeconds": 360,
@@ -36577,20 +36607,22 @@
                 "ownedCPU": 360
               },
               "sampledCPUByPID": {
-                "4057": 88.56
+                "44275": 73.23
               }
             },
             "postHashesMatch": true,
             "products": {
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/RegressionProof-1.o": "b89c4a9ba560dadfb5646743c0ffa26ffecee679a72bce33e22245ebb1605908"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionProof-1.o": "c6a2b186940110e275c1fb91896315cf432d07bc8f657df24ae997d6f5586569",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionShape-1.o": "69c61445afd443b90d32862e621551fda8ffd5c8bc8478e8c92324bdc6287e92",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Shape-1.o": "43b4bc4efe35e475809c3a0ba6cd4aea45b69ce2fc1839fd755043c45052583c"
             },
             "rawReceipt": {
-              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/80702272b41a5c9c37c5a1a78269b0e1c7582ed0eaac803930dec2a14578ac09.json",
-              "sha256": "80702272b41a5c9c37c5a1a78269b0e1c7582ed0eaac803930dec2a14578ac09",
-              "bytes": 103492,
+              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/4a66260f258e17faa47e0bc61c26753138072f8fac91be9473cbf1426b5aab92.json",
+              "sha256": "4a66260f258e17faa47e0bc61c26753138072f8fac91be9473cbf1426b5aab92",
+              "bytes": 104063,
               "kind": "actual-command-source-receipt-log"
             },
-            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-fixture-object.log"
+            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-fixture-object.log"
           },
           {
             "label": "regression-fixture-module",
@@ -36599,8 +36631,8 @@
               "-frontend",
               "-emit-module",
               "-experimental-skip-non-inlinable-function-bodies-without-types",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionProof.swift",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionShape.swift",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionProof.swift",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionShape.swift",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeLiftHostVerification/Shape.swift",
               "-target",
               "wasm32-unknown-wasip1",
@@ -36646,7 +36678,7 @@
               "-I",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-module",
               "-module-cache-path",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/module-cache",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/module-cache",
               "-no-color-diagnostics",
               "-Xcc",
               "-fno-color-diagnostics",
@@ -36696,18 +36728,18 @@
               "-plugin-path",
               "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/local/lib/swift/host/plugins",
               "-emit-module-doc-path",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftdoc",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftdoc",
               "-emit-module-source-info-path",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftsourceinfo",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftsourceinfo",
               "-parse-as-library",
               "-o",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftmodule"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftmodule"
             ],
             "exitCode": 0,
             "boundedStop": null,
-            "elapsedSeconds": 12.919327375013381,
-            "sampledOwnedCPUSeconds": 12.62,
-            "peakOwnedProcessResidentSumKiB": 1534464,
+            "elapsedSeconds": 12.561401374987327,
+            "sampledOwnedCPUSeconds": 12.34,
+            "peakOwnedProcessResidentSumKiB": 1544032,
             "ownedDescendantsRemaining": [],
             "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
             "checks": {
@@ -37143,24 +37175,26 @@
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-module-compile-receipt.json": "0c0d92a0d755b450ff89f0c463394f5fa51ea762815da711a6edf7694686405a",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/driver-at-runtime.py": "23449da9514849e354831a8f416e8556f0523cd0f1d853440fc272ea593e35ff",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/DraftZeroRuledAcceptance.swift": "ad853cde5f32c3ce1e4f41292accbc5e0ad758d998c90ffb36a472e2311a9729",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineAtlasLiftVerification/Proof.swift": "250a66a0bb579b4fada6812c6e8405317a5307f3b61987d21da64b831cacdd18",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineSurfaceLiftVerification/Proof.swift": "05ef39e09eac9152aa61fa843bc72d7437d2c649ffe4f73689affb7a930b5a4e",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeLiftHostVerification/Shape.swift": "5505d0235544e80a00036580d7aadc3236e24446f38fb7cf350222523523b4c4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-command.json": "e093fa686b6af6062e2c72e1df7984644298a30ee2e17f327013f20d90723657",
-              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "957d017180d0eb5e5d94ff640631c03dd577704015450e3ffdd241543744b12c",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-premises.json": "62512e7140446d1abf16022108e07b977da64e3f5bdda99c98cceaa17ebb67bb",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent-plan.json": "b8743b1d09fb82e3709b999791f5029d7841b4dfffc966ba46180ce921d77f2f",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-driver-jobs.txt": "2cf2195b277415e383687d4240617e4bc95b418ec685bc6c3702599591c883e4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/driver-at-runtime.py": "957d017180d0eb5e5d94ff640631c03dd577704015450e3ffdd241543744b12c",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-command.json": "ac3207e0f873ae49f8be59207f859cad9fe76a83e5c326d4b718ab4222d735ad",
+              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-premises.json": "0b1185182616a0a10ef48d7a33562ba012cdf0eea7dc3edcbf01662766af1083",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent-plan.json": "d979a76ace0f5defb718df5a4517dc2ac98465ce9b64e4e0fa319f315678c904",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-driver-jobs.txt": "9fd6b3740cab8dcd70894e32a0b2b1e2e67323583ee6085090cdd8e78b2d752a",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/driver-at-runtime.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-compile-receipt.json": "e603bdc046b70a4f452d645333a0fb92b9a11c037619c9f790400a4d53f988a0"
             },
             "inputProducts": {
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/RegressionProof-1.o": "b89c4a9ba560dadfb5646743c0ffa26ffecee679a72bce33e22245ebb1605908"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionProof-1.o": "c6a2b186940110e275c1fb91896315cf432d07bc8f657df24ae997d6f5586569",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionShape-1.o": "69c61445afd443b90d32862e621551fda8ffd5c8bc8478e8c92324bdc6287e92",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Shape-1.o": "43b4bc4efe35e475809c3a0ba6cd4aea45b69ce2fc1839fd755043c45052583c"
             },
-            "headBefore": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
-            "headAfter": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
+            "headBefore": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
+            "headAfter": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
             "wallSeconds": 180,
             "perProcessCPUSeconds": 180,
             "ownedCPUSeconds": 180,
@@ -37179,39 +37213,39 @@
                 "ownedCPU": 180
               },
               "sampledCPUByPID": {
-                "4583": 12.62
+                "44506": 12.34
               }
             },
             "postHashesMatch": true,
             "products": {
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftmodule": "60a057d31f0920f99d3cc18946b119e39644605cb98611f256826ea62d829fea",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftdoc": "1698cc41a441bf245f46543f05efed619b3b846011d192a27346369bf117bc1a",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftsourceinfo": "9d8ba46ac963fd253c09b8fc1a340e03a920f47b1c74c4f098d54ed19da62d99"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftdoc": "1698cc41a441bf245f46543f05efed619b3b846011d192a27346369bf117bc1a",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftsourceinfo": "003a8fe90c0ff5d19179145a54e710b4e5edd6094c4b8ae2fb93a4d9a9fb5826",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftmodule": "fb727597693892dbf757eb6c963d1ba2a09b571c77fbad91d48a573d61ae6d1f"
             },
             "rawReceipt": {
-              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/99cc17054881c10f6a4b22b05f17faa9c1f5a738e0de0c974057c26b648008c7.json",
-              "sha256": "99cc17054881c10f6a4b22b05f17faa9c1f5a738e0de0c974057c26b648008c7",
-              "bytes": 104391,
+              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/63922864e2fe25be6e1316108380e63a4a374883dc48a5471481c4cdb7bd4fff.json",
+              "sha256": "63922864e2fe25be6e1316108380e63a4a374883dc48a5471481c4cdb7bd4fff",
+              "bytes": 104842,
               "kind": "actual-command-source-receipt-log"
             },
-            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-fixture-module.log"
+            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-fixture-module.log"
           },
           {
             "label": "regression-fixture-modulewrap",
             "command": [
               "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend",
               "-modulewrap",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftmodule",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftmodule",
               "-target",
               "wasm32-unknown-wasip1",
               "-o",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.o"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.o"
             ],
             "exitCode": 0,
             "boundedStop": null,
-            "elapsedSeconds": 0.08790062507614493,
+            "elapsedSeconds": 0.07893979107029736,
             "sampledOwnedCPUSeconds": 0.01,
-            "peakOwnedProcessResidentSumKiB": 1184,
+            "peakOwnedProcessResidentSumKiB": 1136,
             "ownedDescendantsRemaining": [],
             "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
             "checks": {
@@ -37647,41 +37681,43 @@
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-module-compile-receipt.json": "0c0d92a0d755b450ff89f0c463394f5fa51ea762815da711a6edf7694686405a",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/driver-at-runtime.py": "23449da9514849e354831a8f416e8556f0523cd0f1d853440fc272ea593e35ff",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/DraftZeroRuledAcceptance.swift": "ad853cde5f32c3ce1e4f41292accbc5e0ad758d998c90ffb36a472e2311a9729",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineAtlasLiftVerification/Proof.swift": "250a66a0bb579b4fada6812c6e8405317a5307f3b61987d21da64b831cacdd18",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineSurfaceLiftVerification/Proof.swift": "05ef39e09eac9152aa61fa843bc72d7437d2c649ffe4f73689affb7a930b5a4e",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeLiftHostVerification/Shape.swift": "5505d0235544e80a00036580d7aadc3236e24446f38fb7cf350222523523b4c4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-command.json": "e093fa686b6af6062e2c72e1df7984644298a30ee2e17f327013f20d90723657",
-              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "957d017180d0eb5e5d94ff640631c03dd577704015450e3ffdd241543744b12c",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-premises.json": "62512e7140446d1abf16022108e07b977da64e3f5bdda99c98cceaa17ebb67bb",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent-plan.json": "b8743b1d09fb82e3709b999791f5029d7841b4dfffc966ba46180ce921d77f2f",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-driver-jobs.txt": "2cf2195b277415e383687d4240617e4bc95b418ec685bc6c3702599591c883e4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/driver-at-runtime.py": "957d017180d0eb5e5d94ff640631c03dd577704015450e3ffdd241543744b12c",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-command.json": "ac3207e0f873ae49f8be59207f859cad9fe76a83e5c326d4b718ab4222d735ad",
+              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-premises.json": "0b1185182616a0a10ef48d7a33562ba012cdf0eea7dc3edcbf01662766af1083",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent-plan.json": "d979a76ace0f5defb718df5a4517dc2ac98465ce9b64e4e0fa319f315678c904",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-driver-jobs.txt": "9fd6b3740cab8dcd70894e32a0b2b1e2e67323583ee6085090cdd8e78b2d752a",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/driver-at-runtime.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-compile-receipt.json": "e603bdc046b70a4f452d645333a0fb92b9a11c037619c9f790400a4d53f988a0"
             },
             "inputProducts": {
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/RegressionProof-1.o": "b89c4a9ba560dadfb5646743c0ffa26ffecee679a72bce33e22245ebb1605908",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftmodule": "60a057d31f0920f99d3cc18946b119e39644605cb98611f256826ea62d829fea",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftdoc": "1698cc41a441bf245f46543f05efed619b3b846011d192a27346369bf117bc1a",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftsourceinfo": "9d8ba46ac963fd253c09b8fc1a340e03a920f47b1c74c4f098d54ed19da62d99"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionProof-1.o": "c6a2b186940110e275c1fb91896315cf432d07bc8f657df24ae997d6f5586569",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionShape-1.o": "69c61445afd443b90d32862e621551fda8ffd5c8bc8478e8c92324bdc6287e92",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Shape-1.o": "43b4bc4efe35e475809c3a0ba6cd4aea45b69ce2fc1839fd755043c45052583c",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftdoc": "1698cc41a441bf245f46543f05efed619b3b846011d192a27346369bf117bc1a",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftsourceinfo": "003a8fe90c0ff5d19179145a54e710b4e5edd6094c4b8ae2fb93a4d9a9fb5826",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftmodule": "fb727597693892dbf757eb6c963d1ba2a09b571c77fbad91d48a573d61ae6d1f"
             },
-            "headBefore": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
-            "headAfter": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
+            "headBefore": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
+            "headAfter": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
             "wallSeconds": 120,
             "perProcessCPUSeconds": 120,
             "ownedCPUSeconds": 120,
             "postHashesMatch": true,
             "products": {
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.o": "6962d4f5d8d78d5b248c511c0954cd37263b439aa023ce8db199bc5a4f24b82a"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.o": "a4253d2c48a8234722d2f31dae05eae9860253274c4288b643a8712d4f58b445"
             },
             "rawReceipt": {
-              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/47eb01a0c50004e7485b6daf60660aea6cc64a62a672f57b15e4576d7d83179c.json",
-              "sha256": "47eb01a0c50004e7485b6daf60660aea6cc64a62a672f57b15e4576d7d83179c",
-              "bytes": 98579,
+              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/ef1adac43e3b14f501116e130f6dee8a5b91cc087a844a9c49dba4b6dddd76ef.json",
+              "sha256": "ef1adac43e3b14f501116e130f6dee8a5b91cc087a844a9c49dba4b6dddd76ef",
+              "bytes": 99029,
               "kind": "actual-command-source-receipt-log"
             },
-            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-fixture-modulewrap.log"
+            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-fixture-modulewrap.log"
           },
           {
             "label": "regression-fixture-link",
@@ -37691,10 +37727,10 @@
               "wasm32-unknown-wasip1",
               "-B",
               "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/bin",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/RegressionProof-1.o",
-              "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.ZgLOuq/RegressionShape-1.o",
-              "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.ZgLOuq/Shape-1.o",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.o",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionProof-1.o",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionShape-1.o",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Shape-1.o",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.o",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/libGuideSeamPort.a",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries/libPublicLiftPlane.a",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedCADCore.a",
@@ -37760,13 +37796,13 @@
               "-resource-dir",
               "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/clang",
               "-o",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/Regression.wasm"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Regression.wasm"
             ],
             "exitCode": 0,
             "boundedStop": null,
-            "elapsedSeconds": 1.3805762080010027,
-            "sampledOwnedCPUSeconds": 0.8200000000000001,
-            "peakOwnedProcessResidentSumKiB": 1361472,
+            "elapsedSeconds": 0.9233930830378085,
+            "sampledOwnedCPUSeconds": 0.44,
+            "peakOwnedProcessResidentSumKiB": 1049360,
             "ownedDescendantsRemaining": [],
             "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
             "checks": {
@@ -38202,58 +38238,60 @@
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-module-compile-receipt.json": "0c0d92a0d755b450ff89f0c463394f5fa51ea762815da711a6edf7694686405a",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/driver-at-runtime.py": "23449da9514849e354831a8f416e8556f0523cd0f1d853440fc272ea593e35ff",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/DraftZeroRuledAcceptance.swift": "ad853cde5f32c3ce1e4f41292accbc5e0ad758d998c90ffb36a472e2311a9729",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineAtlasLiftVerification/Proof.swift": "250a66a0bb579b4fada6812c6e8405317a5307f3b61987d21da64b831cacdd18",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineSurfaceLiftVerification/Proof.swift": "05ef39e09eac9152aa61fa843bc72d7437d2c649ffe4f73689affb7a930b5a4e",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeLiftHostVerification/Shape.swift": "5505d0235544e80a00036580d7aadc3236e24446f38fb7cf350222523523b4c4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-command.json": "e093fa686b6af6062e2c72e1df7984644298a30ee2e17f327013f20d90723657",
-              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "957d017180d0eb5e5d94ff640631c03dd577704015450e3ffdd241543744b12c",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-premises.json": "62512e7140446d1abf16022108e07b977da64e3f5bdda99c98cceaa17ebb67bb",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent-plan.json": "b8743b1d09fb82e3709b999791f5029d7841b4dfffc966ba46180ce921d77f2f",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-driver-jobs.txt": "2cf2195b277415e383687d4240617e4bc95b418ec685bc6c3702599591c883e4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/driver-at-runtime.py": "957d017180d0eb5e5d94ff640631c03dd577704015450e3ffdd241543744b12c",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-command.json": "ac3207e0f873ae49f8be59207f859cad9fe76a83e5c326d4b718ab4222d735ad",
+              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-premises.json": "0b1185182616a0a10ef48d7a33562ba012cdf0eea7dc3edcbf01662766af1083",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent-plan.json": "d979a76ace0f5defb718df5a4517dc2ac98465ce9b64e4e0fa319f315678c904",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-driver-jobs.txt": "9fd6b3740cab8dcd70894e32a0b2b1e2e67323583ee6085090cdd8e78b2d752a",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/driver-at-runtime.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-compile-receipt.json": "e603bdc046b70a4f452d645333a0fb92b9a11c037619c9f790400a4d53f988a0"
             },
             "inputProducts": {
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/RegressionProof-1.o": "b89c4a9ba560dadfb5646743c0ffa26ffecee679a72bce33e22245ebb1605908",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftmodule": "60a057d31f0920f99d3cc18946b119e39644605cb98611f256826ea62d829fea",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftdoc": "1698cc41a441bf245f46543f05efed619b3b846011d192a27346369bf117bc1a",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.swiftsourceinfo": "9d8ba46ac963fd253c09b8fc1a340e03a920f47b1c74c4f098d54ed19da62d99",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/ImplicitSplitCurrentDraft-1.o": "6962d4f5d8d78d5b248c511c0954cd37263b439aa023ce8db199bc5a4f24b82a"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionProof-1.o": "c6a2b186940110e275c1fb91896315cf432d07bc8f657df24ae997d6f5586569",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/RegressionShape-1.o": "69c61445afd443b90d32862e621551fda8ffd5c8bc8478e8c92324bdc6287e92",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Shape-1.o": "43b4bc4efe35e475809c3a0ba6cd4aea45b69ce2fc1839fd755043c45052583c",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftdoc": "1698cc41a441bf245f46543f05efed619b3b846011d192a27346369bf117bc1a",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftsourceinfo": "003a8fe90c0ff5d19179145a54e710b4e5edd6094c4b8ae2fb93a4d9a9fb5826",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.swiftmodule": "fb727597693892dbf757eb6c963d1ba2a09b571c77fbad91d48a573d61ae6d1f",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/ImplicitSplitCurrentDraft-1.o": "a4253d2c48a8234722d2f31dae05eae9860253274c4288b643a8712d4f58b445"
             },
-            "headBefore": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
-            "headAfter": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
+            "headBefore": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
+            "headAfter": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
             "wallSeconds": 120,
             "perProcessCPUSeconds": 120,
             "ownedCPUSeconds": 120,
             "postHashesMatch": true,
             "products": {
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/Regression.wasm": "ecc82c67dfa412a5df77044b52c04c519ea61457cf55448053390d56f0fab848"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Regression.wasm": "b2a641913c499d2199b46455dc03c1343d0e882f88d187fb9a82b4fc7feccc16"
             },
             "rawReceipt": {
-              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/2b466e0cac71cc86dbb9e847f5103453f246d648a29f0cb84ace1a53c58a6f63.json",
-              "sha256": "2b466e0cac71cc86dbb9e847f5103453f246d648a29f0cb84ace1a53c58a6f63",
-              "bytes": 103266,
+              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/456171e7c55ac92ada531c0f882ad55a65fe2ae0d9e1d991347badd1bafd4270.json",
+              "sha256": "456171e7c55ac92ada531c0f882ad55a65fe2ae0d9e1d991347badd1bafd4270",
+              "bytes": 103822,
               "kind": "actual-command-source-receipt-log"
             },
-            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-fixture-link.log"
+            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-fixture-link.log"
           },
           {
             "label": "regression-ordinary",
             "command": [
               "/usr/local/bin/node",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/run.mjs",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/Regression.wasm",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/run.mjs",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Regression.wasm",
               "ordinary"
             ],
             "exitCode": 0,
             "boundedStop": null,
-            "elapsedSeconds": 1.141502624959685,
-            "sampledOwnedCPUSeconds": 1.04,
-            "peakOwnedProcessResidentSumKiB": 332176,
+            "elapsedSeconds": 1.1164700830122456,
+            "sampledOwnedCPUSeconds": 1.03,
+            "peakOwnedProcessResidentSumKiB": 335536,
             "ownedDescendantsRemaining": [],
-            "logSHA256": "f6c7bb065a90ae6188d2c3503eb508e7a75d104f558dee048b9dcb86307b1dfb",
+            "logSHA256": "9c35f06f98af0e508246179fb5cc9dda6b20f804c7de6e3083901831af1fe2c7",
             "checks": {
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/summary.json": "bec8cfd5451bfd3ffc4b79b8eecf5ffdd098d792fc34590028a110fe29999fca",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/47c7a8f0bd8708cbf3a32f65b47f19274b8cae1eb1d42c6276cc2f0cb6d084a2.json": "47c7a8f0bd8708cbf3a32f65b47f19274b8cae1eb1d42c6276cc2f0cb6d084a2",
@@ -38687,57 +38725,52 @@
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-module-compile-receipt.json": "0c0d92a0d755b450ff89f0c463394f5fa51ea762815da711a6edf7694686405a",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/driver-at-runtime.py": "23449da9514849e354831a8f416e8556f0523cd0f1d853440fc272ea593e35ff",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/DraftZeroRuledAcceptance.swift": "ad853cde5f32c3ce1e4f41292accbc5e0ad758d998c90ffb36a472e2311a9729",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineAtlasLiftVerification/Proof.swift": "250a66a0bb579b4fada6812c6e8405317a5307f3b61987d21da64b831cacdd18",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineSurfaceLiftVerification/Proof.swift": "05ef39e09eac9152aa61fa843bc72d7437d2c649ffe4f73689affb7a930b5a4e",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeLiftHostVerification/Shape.swift": "5505d0235544e80a00036580d7aadc3236e24446f38fb7cf350222523523b4c4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-command.json": "e093fa686b6af6062e2c72e1df7984644298a30ee2e17f327013f20d90723657",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-premises.json": "62512e7140446d1abf16022108e07b977da64e3f5bdda99c98cceaa17ebb67bb",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent-plan.json": "b8743b1d09fb82e3709b999791f5029d7841b4dfffc966ba46180ce921d77f2f",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-driver-jobs.txt": "2cf2195b277415e383687d4240617e4bc95b418ec685bc6c3702599591c883e4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/driver-at-runtime.py": "957d017180d0eb5e5d94ff640631c03dd577704015450e3ffdd241543744b12c",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-command.json": "ac3207e0f873ae49f8be59207f859cad9fe76a83e5c326d4b718ab4222d735ad",
+              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-premises.json": "0b1185182616a0a10ef48d7a33562ba012cdf0eea7dc3edcbf01662766af1083",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent-plan.json": "d979a76ace0f5defb718df5a4517dc2ac98465ce9b64e4e0fa319f315678c904",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-driver-jobs.txt": "9fd6b3740cab8dcd70894e32a0b2b1e2e67323583ee6085090cdd8e78b2d752a",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/driver-at-runtime.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-compile-receipt.json": "e603bdc046b70a4f452d645333a0fb92b9a11c037619c9f790400a4d53f988a0",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/runtime-driver.py": "ca3bacf5d3537a3d7c622971dcb8f760e0d07d271847e367025b6febb01df196",
-              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "ca3bacf5d3537a3d7c622971dcb8f760e0d07d271847e367025b6febb01df196",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-derived-premises.json": "ca0308ed466d0538edb4f939d71d210e82001be484e6d32e9730a73737fd2b48",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/metadata-stop.json": "de590d6bf4af991d919c26fbbf29fcf9603d6822b299408b4348f14b823c8084",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-compile-receipt.json": "aeafe21b2bbfdecd07cca72446baafb1113ead6444f71848b65aaef23fc08f2b",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/runtime-resume-premises.json": "dadf81d8d0f85c21a40efa10ecc14bd5cf167d6f81926d596bdd23bbe79bf34e",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/run.mjs": "9275bfaffc77529e8237384d38d05e3dbae184e061fe199abdf83e340548eade"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/run.mjs": "9275bfaffc77529e8237384d38d05e3dbae184e061fe199abdf83e340548eade"
             },
             "inputProducts": {
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/Regression.wasm": "ecc82c67dfa412a5df77044b52c04c519ea61457cf55448053390d56f0fab848"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Regression.wasm": "b2a641913c499d2199b46455dc03c1343d0e882f88d187fb9a82b4fc7feccc16"
             },
-            "headBefore": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
-            "headAfter": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
+            "headBefore": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
+            "headAfter": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
             "wallSeconds": 120,
             "perProcessCPUSeconds": 120,
             "ownedCPUSeconds": 120,
             "postHashesMatch": true,
             "rawReceipt": {
-              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/61310521252831c1bb92ad602766c52ff64edee748c9dc557d3590d12cb937b0.json",
-              "sha256": "61310521252831c1bb92ad602766c52ff64edee748c9dc557d3590d12cb937b0",
-              "bytes": 98616,
+              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/1377be0fe61eec3a804730270b0a6bc0dea6869074033727dcc16f82fa09dccf.json",
+              "sha256": "1377be0fe61eec3a804730270b0a6bc0dea6869074033727dcc16f82fa09dccf",
+              "bytes": 97546,
               "kind": "actual-command-source-receipt-log"
             },
-            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-ordinary.log"
+            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-ordinary.log"
           },
           {
             "label": "regression-grouping",
             "command": [
               "/usr/local/bin/node",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/run.mjs",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/Regression.wasm",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/run.mjs",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Regression.wasm",
               "grouping"
             ],
             "exitCode": 0,
             "boundedStop": null,
-            "elapsedSeconds": 1.955367667018436,
+            "elapsedSeconds": 1.9640552090713754,
             "sampledOwnedCPUSeconds": 1.92,
-            "peakOwnedProcessResidentSumKiB": 323632,
+            "peakOwnedProcessResidentSumKiB": 323504,
             "ownedDescendantsRemaining": [],
-            "logSHA256": "60ac97ad8f377096df33000f5113c1f2aca535836b04ea0d0d362863cf301483",
+            "logSHA256": "94ce754fbbeb4a39c69f6a7c2271af51ab0a8a37c300a7cc5ad6e19b07a0611d",
             "checks": {
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/summary.json": "bec8cfd5451bfd3ffc4b79b8eecf5ffdd098d792fc34590028a110fe29999fca",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/47c7a8f0bd8708cbf3a32f65b47f19274b8cae1eb1d42c6276cc2f0cb6d084a2.json": "47c7a8f0bd8708cbf3a32f65b47f19274b8cae1eb1d42c6276cc2f0cb6d084a2",
@@ -39171,84 +39204,79 @@
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/upper-module-compile-receipt.json": "0c0d92a0d755b450ff89f0c463394f5fa51ea762815da711a6edf7694686405a",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v5/driver-at-runtime.py": "23449da9514849e354831a8f416e8556f0523cd0f1d853440fc272ea593e35ff",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/DraftZeroRuledAcceptance.swift": "ad853cde5f32c3ce1e4f41292accbc5e0ad758d998c90ffb36a472e2311a9729",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionProof.swift": "9d2f2caa5372bb6c372c76a7aebd998f33d344de392cc6ee5809247c4e33942b",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineAtlasLiftVerification/Proof.swift": "250a66a0bb579b4fada6812c6e8405317a5307f3b61987d21da64b831cacdd18",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPolylineSurfaceLiftVerification/Proof.swift": "05ef39e09eac9152aa61fa843bc72d7437d2c649ffe4f73689affb7a930b5a4e",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/RegressionShape.swift": "8336a75bbd1bf09f952af1d95402aa940ed6102729bd143a03fcccfc7e59d4f2",
               "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeLiftHostVerification/Shape.swift": "5505d0235544e80a00036580d7aadc3236e24446f38fb7cf350222523523b4c4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-command.json": "e093fa686b6af6062e2c72e1df7984644298a30ee2e17f327013f20d90723657",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-premises.json": "62512e7140446d1abf16022108e07b977da64e3f5bdda99c98cceaa17ebb67bb",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent-plan.json": "b8743b1d09fb82e3709b999791f5029d7841b4dfffc966ba46180ce921d77f2f",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-driver-jobs.txt": "2cf2195b277415e383687d4240617e4bc95b418ec685bc6c3702599591c883e4",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/driver-at-runtime.py": "957d017180d0eb5e5d94ff640631c03dd577704015450e3ffdd241543744b12c",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-command.json": "ac3207e0f873ae49f8be59207f859cad9fe76a83e5c326d4b718ab4222d735ad",
+              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-premises.json": "0b1185182616a0a10ef48d7a33562ba012cdf0eea7dc3edcbf01662766af1083",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent-plan.json": "d979a76ace0f5defb718df5a4517dc2ac98465ce9b64e4e0fa319f315678c904",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-driver-jobs.txt": "9fd6b3740cab8dcd70894e32a0b2b1e2e67323583ee6085090cdd8e78b2d752a",
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/driver-at-runtime.py": "a6143e271ad969ce6f08af82c59f255bfcb4d5b5068aa770565f181128862e7d",
               "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-acceptance-embedded-20261013-v7/upper-compile-receipt.json": "e603bdc046b70a4f452d645333a0fb92b9a11c037619c9f790400a4d53f988a0",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/runtime-driver.py": "ca3bacf5d3537a3d7c622971dcb8f760e0d07d271847e367025b6febb01df196",
-              "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaAcceptance.py": "ca3bacf5d3537a3d7c622971dcb8f760e0d07d271847e367025b6febb01df196",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-derived-premises.json": "ca0308ed466d0538edb4f939d71d210e82001be484e6d32e9730a73737fd2b48",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/metadata-stop.json": "de590d6bf4af991d919c26fbbf29fcf9603d6822b299408b4348f14b823c8084",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-compile-receipt.json": "aeafe21b2bbfdecd07cca72446baafb1113ead6444f71848b65aaef23fc08f2b",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/runtime-resume-premises.json": "dadf81d8d0f85c21a40efa10ecc14bd5cf167d6f81926d596bdd23bbe79bf34e",
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/run.mjs": "9275bfaffc77529e8237384d38d05e3dbae184e061fe199abdf83e340548eade"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/run.mjs": "9275bfaffc77529e8237384d38d05e3dbae184e061fe199abdf83e340548eade"
             },
             "inputProducts": {
-              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-persistent/Regression.wasm": "ecc82c67dfa412a5df77044b52c04c519ea61457cf55448053390d56f0fab848"
+              "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-persistent/Regression.wasm": "b2a641913c499d2199b46455dc03c1343d0e882f88d187fb9a82b4fc7feccc16"
             },
-            "headBefore": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
-            "headAfter": "2026c994f0b66cdc1e7ffc1491f24c304e7ab0aa",
+            "headBefore": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
+            "headAfter": "6682150490b50e6cda7f167a1bc892c6d05ba34e",
             "wallSeconds": 120,
             "perProcessCPUSeconds": 120,
             "ownedCPUSeconds": 120,
             "postHashesMatch": true,
             "rawReceipt": {
-              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/3490a8ba8ed3b2b64504084dcd21ce642ad6c250a0172a7665e1fe29cccd519c.json",
-              "sha256": "3490a8ba8ed3b2b64504084dcd21ce642ad6c250a0172a7665e1fe29cccd519c",
-              "bytes": 98616,
+              "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6efb43fc8895564d10585b706a204369d3641fda29fe2e3dc4d91837237f0e4e.json",
+              "sha256": "6efb43fc8895564d10585b706a204369d3641fda29fe2e3dc4d91837237f0e4e",
+              "bytes": 97546,
               "kind": "actual-command-source-receipt-log"
             },
-            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v1/regression-grouping.log"
+            "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-dyadic-parabola-current-draft-embedded-20261013-v2/regression-grouping.log"
           }
         ],
         "persistentAssemblyReceipt": {
-          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/aeafe21b2bbfdecd07cca72446baafb1113ead6444f71848b65aaef23fc08f2b.json",
-          "sha256": "aeafe21b2bbfdecd07cca72446baafb1113ead6444f71848b65aaef23fc08f2b",
-          "bytes": 99125,
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/c84f60de594b96e3b02efceb4f5a5c2ef70fc55c07f1194b6871d14826280e99.json",
+          "sha256": "c84f60de594b96e3b02efceb4f5a5c2ef70fc55c07f1194b6871d14826280e99",
+          "bytes": 99575,
           "kind": "actual-command-source-receipt-log"
         },
         "persistentJobPlan": {
-          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/b8743b1d09fb82e3709b999791f5029d7841b4dfffc966ba46180ce921d77f2f.json",
-          "sha256": "b8743b1d09fb82e3709b999791f5029d7841b4dfffc966ba46180ce921d77f2f",
-          "bytes": 45375,
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/d979a76ace0f5defb718df5a4517dc2ac98465ce9b64e4e0fa319f315678c904.json",
+          "sha256": "d979a76ace0f5defb718df5a4517dc2ac98465ce9b64e4e0fa319f315678c904",
+          "bytes": 46115,
           "kind": "actual-command-source-receipt-log"
         },
         "persistentPrintedJobs": {
-          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/2cf2195b277415e383687d4240617e4bc95b418ec685bc6c3702599591c883e4.txt",
-          "sha256": "2cf2195b277415e383687d4240617e4bc95b418ec685bc6c3702599591c883e4",
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/9fd6b3740cab8dcd70894e32a0b2b1e2e67323583ee6085090cdd8e78b2d752a.txt",
+          "sha256": "9fd6b3740cab8dcd70894e32a0b2b1e2e67323583ee6085090cdd8e78b2d752a",
           "bytes": 14567,
           "kind": "actual-command-source-receipt-log"
         },
         "persistentJobReceipts": [
           {
-            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/80702272b41a5c9c37c5a1a78269b0e1c7582ed0eaac803930dec2a14578ac09.json",
-            "sha256": "80702272b41a5c9c37c5a1a78269b0e1c7582ed0eaac803930dec2a14578ac09",
-            "bytes": 103492,
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/4a66260f258e17faa47e0bc61c26753138072f8fac91be9473cbf1426b5aab92.json",
+            "sha256": "4a66260f258e17faa47e0bc61c26753138072f8fac91be9473cbf1426b5aab92",
+            "bytes": 104063,
             "kind": "actual-command-source-receipt-log"
           },
           {
-            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/99cc17054881c10f6a4b22b05f17faa9c1f5a738e0de0c974057c26b648008c7.json",
-            "sha256": "99cc17054881c10f6a4b22b05f17faa9c1f5a738e0de0c974057c26b648008c7",
-            "bytes": 104391,
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/63922864e2fe25be6e1316108380e63a4a374883dc48a5471481c4cdb7bd4fff.json",
+            "sha256": "63922864e2fe25be6e1316108380e63a4a374883dc48a5471481c4cdb7bd4fff",
+            "bytes": 104842,
             "kind": "actual-command-source-receipt-log"
           },
           {
-            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/47eb01a0c50004e7485b6daf60660aea6cc64a62a672f57b15e4576d7d83179c.json",
-            "sha256": "47eb01a0c50004e7485b6daf60660aea6cc64a62a672f57b15e4576d7d83179c",
-            "bytes": 98579,
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/ef1adac43e3b14f501116e130f6dee8a5b91cc087a844a9c49dba4b6dddd76ef.json",
+            "sha256": "ef1adac43e3b14f501116e130f6dee8a5b91cc087a844a9c49dba4b6dddd76ef",
+            "bytes": 99029,
             "kind": "actual-command-source-receipt-log"
           },
           {
-            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/2b466e0cac71cc86dbb9e847f5103453f246d648a29f0cb84ace1a53c58a6f63.json",
-            "sha256": "2b466e0cac71cc86dbb9e847f5103453f246d648a29f0cb84ace1a53c58a6f63",
-            "bytes": 103266,
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/456171e7c55ac92ada531c0f882ad55a65fe2ae0d9e1d991347badd1bafd4270.json",
+            "sha256": "456171e7c55ac92ada531c0f882ad55a65fe2ae0d9e1d991347badd1bafd4270",
+            "bytes": 103822,
             "kind": "actual-command-source-receipt-log"
           }
         ],
@@ -39262,30 +39290,6 @@
           "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/6d7f254475bb06e5a7e9b05075f16b897781f39befd43d368f1c04a2a1ad9e32.json",
           "sha256": "6d7f254475bb06e5a7e9b05075f16b897781f39befd43d368f1c04a2a1ad9e32",
           "bytes": 14440,
-          "kind": "actual-command-source-receipt-log"
-        },
-        "runtimeResumePremises": {
-          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/dadf81d8d0f85c21a40efa10ecc14bd5cf167d6f81926d596bdd23bbe79bf34e.json",
-          "sha256": "dadf81d8d0f85c21a40efa10ecc14bd5cf167d6f81926d596bdd23bbe79bf34e",
-          "bytes": 97467,
-          "kind": "actual-command-source-receipt-log"
-        },
-        "preparedPremises": {
-          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/62512e7140446d1abf16022108e07b977da64e3f5bdda99c98cceaa17ebb67bb.json",
-          "sha256": "62512e7140446d1abf16022108e07b977da64e3f5bdda99c98cceaa17ebb67bb",
-          "bytes": 130447,
-          "kind": "actual-command-source-receipt-log"
-        },
-        "derivedPremises": {
-          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/ca0308ed466d0538edb4f939d71d210e82001be484e6d32e9730a73737fd2b48.json",
-          "sha256": "ca0308ed466d0538edb4f939d71d210e82001be484e6d32e9730a73737fd2b48",
-          "bytes": 132782,
-          "kind": "actual-command-source-receipt-log"
-        },
-        "metadataStop": {
-          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/de590d6bf4af991d919c26fbbf29fcf9603d6822b299408b4348f14b823c8084.json",
-          "sha256": "de590d6bf4af991d919c26fbbf29fcf9603d6822b299408b4348f14b823c8084",
-          "bytes": 538,
           "kind": "actual-command-source-receipt-log"
         }
       }
@@ -39309,8 +39313,28 @@
     "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/summary.json",
     "sha256": "b665dfe6c85e3b32deb4564bacf3e1cc96cd1e2ed9cc17ebd5791b5f27564051"
   },
+  "f1PriorPacket": {
+    "summary.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/5f503879646ebdf6255c19a0b8b4e1c721a1daecf118193462bde321deaa82a0.json",
+      "sha256": "5f503879646ebdf6255c19a0b8b4e1c721a1daecf118193462bde321deaa82a0",
+      "bytes": 7890577,
+      "kind": "pre-F1-frozen-packet"
+    },
+    "manifest.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/bceaa84927e4c1f16079098992537b4a7380374ba6d6d50a158f232175617ab5.json",
+      "sha256": "bceaa84927e4c1f16079098992537b4a7380374ba6d6d50a158f232175617ab5",
+      "bytes": 1547486,
+      "kind": "pre-F1-frozen-packet"
+    },
+    "VERIFICATION.md": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/cas/caa11cd875b1be6e613d74294395b4888d1cddb559b827f16e10bbb846a6bb99.md",
+      "sha256": "caa11cd875b1be6e613d74294395b4888d1cddb559b827f16e10bbb846a6bb99",
+      "bytes": 5876,
+      "kind": "pre-F1-frozen-packet"
+    }
+  },
   "manifest": {
     "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/acceptance/manifest.json",
-    "sha256": "bceaa84927e4c1f16079098992537b4a7380374ba6d6d50a158f232175617ab5"
+    "sha256": "0cd6e8a195127644ccae6b8ae4b35ecbfa5056171461d506b27ec1e7f3b49d63"
   }
 }

@@ -250,10 +250,11 @@ def persistent_jobs(base, regression=False):
  assert len(jobs)==4 and '-c' in jobs[0] and '-emit-module' in jobs[1] and '-modulewrap' in jobs[2] and Path(jobs[3][0]).name=='clang'
  directory=OUT/(label+'-persistent');directory.mkdir(exist_ok=True)
  mapping={}
+ output_flags={'-o','-emit-module-doc-path','-emit-module-source-info-path'}
  for job in jobs:
-  for flag in ['-o','-emit-module-doc-path','-emit-module-source-info-path']:
-   if flag in job:
-    oldpath=job[job.index(flag)+1];mapping[oldpath]=str(directory/Path(oldpath).name)
+  for index,arg in enumerate(job[:-1]):
+   if arg in output_flags:
+    oldpath=job[index+1];mapping[oldpath]=str(directory/Path(oldpath).name)
  executed=[[mapping.get(arg,arg) for arg in job] for job in jobs]
  plan=dict(originalCommand=command,printedJobs=jobs,executedCommands=executed,outputMapping=mapping,onlyOutputAndCorrespondingInputPathsChanged=True)
  save(OUT/(label+'-persistent-plan.json'),plan);accept(checks,OUT/(label+'-persistent-plan.json'))
@@ -268,7 +269,7 @@ def persistent_jobs(base, regression=False):
   override=dict(scope='Embedded persistent fixture compiler stage only; public query and runtime unchanged',reason='v7 combined-driver wall240 stop at ownedCPU202.66; serialize exact frontend/module/link jobs and retain outputs',priorStops=[prior_ref]) if limit else None
   result=bounded(name,job,checks,products,limits=limit,guard_override=override)
   if result['exitCode']==0:
-   outputs=[job[job.index(flag)+1] for flag in ['-o','-emit-module-doc-path','-emit-module-source-info-path'] if flag in job]
+   outputs=[job[index+1] for index,arg in enumerate(job[:-1]) if arg in output_flags]
    result['products']={path:sha(path) for path in outputs};save(OUT/(name+'-receipt.json'),result)
   assert result['exitCode']==0,'Actual persistent job stop: '+name
   products.update(result['products']);receipts.append(dict(path=str(OUT/(name+'-receipt.json')),sha256=sha(OUT/(name+'-receipt.json'))))

@@ -752,6 +752,36 @@ def audit():
     for diagnostic in summary['diagnostics']:
         require(diagnostic['rawSuccess'] is False and diagnostic['scope'], 'diagnostic must remain unsuccessful')
         record = read(entry(diagnostic['receipt']))
+        if 'priorFrozenPacket' in diagnostic:
+            require(diagnostic['scope'].startswith('F1:') and
+                    diagnostic['priorFrozenPacket'] == summary['f1PriorPacket'] and
+                    record['label'] == 'regression-persistent-assembly' and
+                    record['assemblyKind'] == 'four-exact-driver-jobs' and record['exitCode'] == 0,
+                    'F1 prior derived assembly is inadmissible evidence, not a relabeled runtime failure')
+            prior_packet = diagnostic['priorFrozenPacket']
+            old_summary = read(entry(prior_packet['summary.json']))
+            old_manifest = read(entry(prior_packet['manifest.json']))
+            entry(prior_packet['VERIFICATION.md'])
+            require(old_summary['cell'] == old_manifest['cell'] == CELL and
+                    old_summary['manifest']['sha256'] == prior_packet['manifest.json']['sha256'],
+                    'exact prior frozen summary/manifest authority')
+            old_parts = [part for part in old_summary['draftPublisherRegression']['accepted']
+                         if part['lane'] == 'embedded']
+            require(len(old_parts) == 1 and old_parts[0]['persistentAssemblyReceipt']['sha256'] ==
+                    diagnostic['receipt']['sha256'], 'F1 diagnostic must identify the actual prior Embedded Draft assembly')
+            old_part = old_parts[0]
+            old_plan = read(entry(old_part['persistentJobPlan']))
+            old_object = read(entry(old_part['persistentJobReceipts'][0]))
+            object_command = old_plan['executedCommands'][0]
+            outputs = {object_command[index + 1] for index in range(len(object_command) - 1)
+                       if object_command[index] == '-o'}
+            require(old_object['label'] == 'regression-fixture-object' and old_object['exitCode'] == 0 and
+                    old_object['command'] == object_command and len(outputs) == 3 and
+                    len(old_object['products']) == 1 and set(old_object['products']) < outputs and
+                    any(item['sha256'] == diagnostic['receipt']['sha256']
+                        for item in old_manifest['files'].values()),
+                    'F1 diagnostic must preserve the concrete three-output/one-recorded-product counterexample')
+            continue
         require(record.get('success', False) is False, 'historical failure relabeled as success')
         runs = record.get('runs', [record] if 'label' in record else [])
         require(runs, 'historical diagnostic actual runs missing')
