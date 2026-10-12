@@ -1,0 +1,19 @@
+{
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIWASI.mjs",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/rolling-ssi-20261013/embedded/Acceptance.wasm"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 9.23745058302302,
+  "peakRSSBytes": 292978688,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "e84fc4b8f9c2a0c8e77eb45e2b5d45dc1645dc622a0595a73eaf9afcefd8c086",
+  "rawReceiptSHA256": "68b219adb7226cad10be9467df8945d8ac181e97eebf6b640798efdba9bed958",
+  "sourcePremisesSHA256": "018b61dbd90b1f745c9df0831b9ed9f448d2d1dbbd36c8a80552c608d9177c23",
+  "environment": {
+    "CAD_PROOF_GROUP": "requests"
+  }
+}

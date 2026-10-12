@@ -1,0 +1,4 @@
+SOURCE 128 1982516 12225560
+REDUCED 0 1997449 EXCLUDED false
+L5_COMPILE 0 2006508
+STOP 0 8388608 topology(CADGeometry.ExactRealTopologyFailure.cell(CADGeometry.ExactRealCellFailure.polynomial(CADGeometry.ExactPolynomialFailure.scalar(CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.work)))))

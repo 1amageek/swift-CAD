@@ -85,6 +85,20 @@ public struct OriginalExactScalarDomain: ExactScalarArithmetic, ExactScalarOrder
             try .constant(source, in: context, maximumDepth: maximumValueDepth, usage: &usage)
         }
     }
+    /// Returns only an exact rational square root in this original scalar domain.
+    package func exactRationalSquareRoot<A: ExactScalarAdmission & ~Copyable>(
+        of value: borrowing Value, using admission: inout A
+    ) throws(ExactScalarFailure) -> Value? {
+        let root = try decision(depth: mergedDepth(value.depth), using: &admission) { usage in
+            try requireDomain(value)
+            guard let rational = try value.original.rationalValue(usage: &usage) else {
+                return nil as ExactRationalCoefficient?
+            }
+            return try rational.exactSquareRoot(usage: &usage)
+        }
+        guard let root else { return nil }
+        return try rational(exactly: root, using: &admission)
+    }
     public func generator<A: ExactScalarAdmission & ~Copyable>(using admission: inout A) throws(ExactScalarFailure) -> Value {
         try operation(using: &admission) { usage in
             guard case .extended(let root) = context.source else { throw ExactScalarFailure.unsupportedRepresentation }

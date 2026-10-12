@@ -1,0 +1,73 @@
+{
+  "status": "PASS",
+  "lanes": {
+    "native": {
+      "groups": [
+        "success",
+        "requests",
+        "empty",
+        "bare",
+        "resources",
+        "limits",
+        "scalar",
+        "cancel",
+        "lifetime"
+      ],
+      "elapsedSeconds": 43.22709475108422,
+      "premisesSHA256": "ec409471eef55b62a15186b034753406d8f73e1688cb8780e23453649c02c3fa"
+    },
+    "asan": {
+      "groups": [
+        "success",
+        "requests",
+        "empty",
+        "bare",
+        "resources",
+        "limits",
+        "scalar",
+        "cancel",
+        "lifetime"
+      ],
+      "elapsedSeconds": 125.39275266684126,
+      "premisesSHA256": "78db41f9cc71272f94aa046bd9736599b5ce7ef19f33791ef18fd1f55166c4ad"
+    },
+    "wasm": {
+      "groups": [
+        "success",
+        "requests",
+        "empty",
+        "bare",
+        "resources",
+        "limits",
+        "scalar",
+        "cancel",
+        "lifetime"
+      ],
+      "elapsedSeconds": 54.71978237607982,
+      "premisesSHA256": "8b3ebeaf1ee94384bfc13f31197483c0f905c5a073017fcf7288435be186671b"
+    },
+    "embedded": {
+      "groups": [
+        "success",
+        "requests",
+        "empty",
+        "bare",
+        "resources",
+        "limits",
+        "scalar",
+        "cancel",
+        "lifetime"
+      ],
+      "elapsedSeconds": 37.99695562524721,
+      "premisesSHA256": "f1e19c5935db06d32247f51b61a008c6f89990df47f39fb9c4bedfb4369376f8"
+    }
+  },
+  "sourcePremisesSHA256": "018b61dbd90b1f745c9df0831b9ed9f448d2d1dbbd36c8a80552c608d9177c23",
+  "productsSHA256": "c864ca1943e399e98a007747de2293dd00ce59991989370baa27b25f0af434b2",
+  "coonsDependencyAuditSHA256": "e32a97ed425f6584de44896d1af1942487b79effea039f79214c12d4397d3ffa",
+  "inheritedExternalProducts": 13127,
+  "toolchain": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0\n",
+  "wholeSevenCompleted": 1,
+  "wholeSevenTotal": 7,
+  "full87Complete": false
+}

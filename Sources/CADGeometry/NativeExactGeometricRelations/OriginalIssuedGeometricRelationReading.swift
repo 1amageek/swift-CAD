@@ -20,4 +20,10 @@ public protocol OriginalIssuedGeometricRelationReading: Sendable {
     var hasPositiveDimensionalSolutions: Bool { get }
     var hasPositiveDimensionalImage: Bool { get }
     var isEmpty: Bool { get }
+    /// Parameterized sections complement the cell-backed pairs without replacing original UV.
+    var surfacePlaneSections: [OriginalSurfacePlaneSection] { get }
+}
+
+public extension OriginalIssuedGeometricRelationReading {
+    var surfacePlaneSections: [OriginalSurfacePlaneSection] { [] }
 }

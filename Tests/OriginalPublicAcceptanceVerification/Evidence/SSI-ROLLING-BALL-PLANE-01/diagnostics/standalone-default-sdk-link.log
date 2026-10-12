@@ -1,0 +1,3 @@
+error: link command failed with exit code 1 (use -v to see invocation)
+ld: library 'System' not found
+clang: error: linker command failed with exit code 1 (use -v to see invocation)

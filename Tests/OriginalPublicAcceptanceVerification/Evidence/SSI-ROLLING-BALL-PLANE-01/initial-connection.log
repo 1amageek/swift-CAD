@@ -1,0 +1,2 @@
+INPUT SSI-ROLLING-BALL-PLANE-01 actual original all-lift radius5; fullUV; whole planeZ=.5
+FAILURE resourceLimitExceeded Native point work allowance exhausted.

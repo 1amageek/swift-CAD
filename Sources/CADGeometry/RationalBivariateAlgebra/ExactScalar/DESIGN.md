@@ -454,3 +454,14 @@ value/coefficient axis and inherited depths use the same admission. The rational
 coefficient constructor preserves exact input without passing through Double.
 The L2 coordinate bridge uses these two operations; it owns L2 source provenance
 and refinement, while L0 owns destination-root validation and original values.
+
+## Rational square-root consumption
+
+`ExactRationalCoefficient+SquareRoot.swift` belongs to this coefficient owner. Its
+existing producer is relocated here byte-for-byte so standalone L0 and full
+Geometry use the same implementation. The package-only
+`OriginalExactScalarDomain.exactRationalSquareRoot` admits field/value depths and
+owner identity before consuming it, returning nil for a non-rational square root
+and propagating cancellation/resources. Source adapters inspect no scalar storage.
+The rolling fixture checks25,9/25,zero,negative/non-square,foreign field and budgets.
+No isolation, polynomial, cell or topology algorithm is changed.

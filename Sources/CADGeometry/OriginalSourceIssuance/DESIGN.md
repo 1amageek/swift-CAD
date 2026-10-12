@@ -2856,3 +2856,21 @@ it must also preserve nonseparation/unsupported, cell allowance, foreign owner,
 depth, budget, cancellation and COW lifetime failures. The pair owner binds actual
 T and plane UV requests using existing parameter transport and plane-domain
 issuance; source-only construction does not complete the public cell.
+
+## Checked rolling graph auxiliary reduction
+
+The finite rolling SSI consumer may eliminate only auxiliaries uniquely determined
+by retained graph equalities: a nonzero constant linear coefficient, or a constant
+quadratic with an exact rational positive square root and the original strict
+positive coordinate guard. Every remaining original condition is substituted,
+including support, branch, normalization, radius and denominator conditions.
+The sealed reduction evidence retains the full original graph and a polynomial
+forward lift for every original coordinate. It does not replace the minor-arc
+position producer or infer equality from evaluation. Unsupported reductions fail
+explicitly; no general rolling-family completion is asserted. The fixed
+SSI-ROLLING-BALL-PLANE-01 fixture owns positive/wrong-root/full-incident behavior.
+
+The reducer consumes the scalar owner's package-only rational square-root
+capability. It neither reads scalar storage nor owns another numeric allowance.
+The existing producer is unchanged and available in standalone L0 as well as
+full Geometry. Conditional imports retain the independent SourceIssuer contract.

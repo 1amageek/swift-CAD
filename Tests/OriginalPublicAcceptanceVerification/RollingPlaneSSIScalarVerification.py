@@ -1,0 +1,11 @@
+from pathlib import Path
+import json,hashlib,subprocess
+r=Path.cwd();out=r/'.build/rolling-ssi-20261013/standalone-l0';out.mkdir(exist_ok=True);swift='/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc';sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();sources=sorted((r/'Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar').glob('*.swift'));flags=['-parse-as-library','-swift-version','6','-package-name','RollingScalarVerification','-enable-testing','-Onone','-sdk',subprocess.check_output(['xcrun','--sdk','macosx','--show-sdk-path'],text=True).strip(),'-target','arm64-apple-macosx15.0'];rsp=out/'sources.rsp';rsp.write_text('\n'.join(json.dumps(str(p))for p in sources)+'\n')
+def run(c,n):
+ with (out/(n+'.log')).open('w')as log:p=subprocess.run(c,stdout=log,stderr=subprocess.STDOUT,timeout=120)
+ print(n,p.returncode,flush=True)
+ if p.returncode:print((out/(n+'.log')).read_text()[-5000:]);raise SystemExit(p.returncode)
+ return dict(command=c,exitCode=p.returncode,logSHA256=sha(out/(n+'.log')))
+build=run([swift,*flags,'-module-name','L0','-wmo','-emit-module','-emit-module-path',str(out/'L0.swiftmodule'),'-emit-object','@'+str(rsp),'-o',str(out/'L0.o')],'module')
+text=(r/'Tests/OriginalPublicAcceptanceVerification/RollingPlaneSSIAcceptance.swift').read_text();a=text[text.index('    struct Admission:'):text.index('    struct Counts:')];body=text[text.index('        case "scalar":')+len('        case "scalar":'):text.index('        case "cancel":')];fixture=out/'ScalarProof.swift';fixture.write_text('import L0\n@main enum ScalarProof {\n typealias Base=OriginalExactScalarDomain\n'+a+' enum Assertion: Error { case failed }\n static func require(_ b: Bool)throws { if !b { throw Assertion.failed } }\n static func main() throws {\n'+body+' print("PASS standalone L0 square root")\n }\n}\n')
+compile=run([swift,*flags,'-I',str(out),str(fixture),str(out/'L0.o'),'-o',str(out/'Proof')],'fixture');runtime=run([str(out/'Proof')],'runtime');checks={str(p):sha(p)for p in sources+[fixture,out/'L0.swiftmodule',out/'L0.o',out/'Proof']};(out/'receipt.json').write_text(json.dumps(dict(build=build,compile=compile,runtime=runtime,checks=checks),indent=2));print((out/'runtime.log').read_text())

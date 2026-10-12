@@ -1,0 +1,18 @@
+{
+  "finding": "F1, F2",
+  "oldProducerPath": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRationalCoefficient+SquareRoot.swift",
+  "newProducerPath": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactRationalCoefficient+SquareRoot.swift",
+  "producerSHA256": "4ee8c4a39758b32b913965011dd0f97f1744dfc3a8b74ad70cf168869389679e",
+  "producerPreservedByteForByte": true,
+  "standaloneL0ReceiptSHA256": "121b1cb5e81d83ee1778e63bd4d8ca7d77d0fc1cd45ab6ebcfc5faa6305ecc56",
+  "independentSourceManifestsUnchanged": [
+    "Tests/OriginalSourceIssuanceVerification/Package.swift",
+    "Tests/OriginalGraphRelationVerification/Package.swift",
+    "Tests/OriginalDomainIdentityVerification/Package.swift",
+    "Tests/OriginalDomainConsumerVerification/Package.swift"
+  ],
+  "adapterNotExcluded": true,
+  "F1": "PASS standalone L0 source/product/log admission and corrected producer ownership",
+  "F2": "Final collector rejects a group unless its own PASS marker and exact source/product premises match; runtime forwards CAD_PROOF_GROUP through env",
+  "nearRadiusInvestigation": "Not a finding: actual nextDown(5) source evaluation and public nonempty relation succeed; final limits oracle verifies the original radius coefficientwise"
+}

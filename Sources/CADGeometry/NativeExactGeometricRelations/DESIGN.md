@@ -764,3 +764,41 @@ requested/effective domains, capability decline, selected typed failures,
 cell/source/depth/resource limits, entry/processing/final-empty cancellation and
 detached/COW lifetime. The unchanged positive source/graph path needs only the
 causally affected dispatch regression.
+
+## Finite rolling/plane ordinary SSI
+
+SSI-ROLLING-BALL-PLANE-01 selects the actual rollingBall source with an axis-normal
+original plane. The ordinary six SSI entries prepare the existing child/source/DI
+receipts, consume the checked auxiliary reduction, and retain the checked section
+owner using existing real-cell selection and geometric map evidence. Both source orders and requested boxes use the same
+caller admission, limits, terminal cancellation and immutable ownership.
+Unreducible required graphs fail explicitly; the live legacy path remains for
+unselected shape pairs. Positive-dimensional bare output refuses nonDiscreteIntersection.
+Success means the complete rational arc, original UV and all child incidents,
+not rolling-family or whole-M7/M8 completion. Verification belongs to
+Tests/OriginalPublicAcceptanceVerification/RollingPlaneSSIAcceptance.swift.
+
+The observed general four-parameter topology projection exceeds the unchanged
+caller work budget even for one reduced rolling chart. For this cell, the public
+owner therefore consumes a checked plane-section theorem: exact division of the
+original plane equation by guarded W must yield a nonconstant affine law in U
+alone. Its unique root fixes U; the existing exact real-cell domain selects V
+under every retained guard and the exact plane-UV request preimage. The original
+plane basis uniquely determines both plane coordinates. No inverse is fitted.
+`OriginalIssuedGeometricRelationReading.surfacePlaneSections` is a protocol
+requirement, defaulting to no sections for existing cell-backed owners. `pairs`
+enumerates cell-backed relations; section-backed contacts enumerate this new
+requirement. `isEmpty` and dimension flags cover the owner's complete represented
+set. Every section retains original source/DI/reduction/plane owners, full forward
+witness lifts, rational XYZ/UV and derivative-numerator finite-fiber evidence.
+It owns no shared mutable state; storage/Sendable/isolation are identical on all
+targets. Cell, topology and relation solvers remain unchanged. ExactScalar adds
+an admitted package-only rational-square-root capability; its producer is
+relocated unchanged into the standalone L0 source set.
+
+Within one section query, normalized nonconstant guard laws and the remaining
+parameter interval identify a reusable exact partition. Reuse requires exact
+coefficientwise polynomial and endpoint/closure equality; each original chart
+still receives its own predicate selection, forward laws, ordinal and owner.
+Constant atoms are decided exactly before partitioning. This shares decomposition
+without identifying or merging original UV or chart incidents.

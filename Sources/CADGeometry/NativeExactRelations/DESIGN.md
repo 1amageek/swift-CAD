@@ -846,3 +846,19 @@ mutable counters and depth maxima are invocation-local on all targets.
 consumes this authority. Verification must use the actual closed implicit source,
 whole/requested domains, source/host/plane ownership, complete exclusion theorem,
 cell/depth/resource boundaries, cancellation and detached independent readmission.
+
+## Rolling graph intake for finite plane SSI
+
+The rolling family preparer consumes the existing complete rolling DI cover.
+Each retained original chart is reduced by the source-owned checked auxiliary
+reducer, bound to the same effective request, and compiled with the existing
+issued graph compiler and caller ledger. Coverage retains all original charts
+and the reduction evidence retains every auxiliary lift; no chart or source
+position is reconstructed by this consumer. The checked section owner in NativeExactGeometricRelations consumes this
+family and retains its complete coverage receipts.
+
+Charts with an exactly false constant substituted original guard are excluded
+before L5, with their full reduced/original receipts retained in family coverage.
+Surviving graph ordinals map explicitly to original template ordinals. This
+avoids decomposing already-proved empty charts; it never treats a failed guard
+evaluation or unresolved reduction as exclusion.

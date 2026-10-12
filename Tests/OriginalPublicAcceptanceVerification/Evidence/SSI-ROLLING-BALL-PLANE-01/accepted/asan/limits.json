@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/rolling-ssi-20261013/asan/Acceptance"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 12.920742082991637,
+  "logSHA256": "59e598769e1c154ed3205eff8cd475c5b6847de8e1267ea00aa224f8eb44217b",
+  "rawReceiptSHA256": "e8a9efe2bce311b5301e28ac57b70f071a9c31120ee43dc08e4a2a11b8217a19",
+  "sourcePremisesSHA256": "018b61dbd90b1f745c9df0831b9ed9f448d2d1dbbd36c8a80552c608d9177c23",
+  "environment": {
+    "CAD_PROOF_GROUP": "limits"
+  }
+}
