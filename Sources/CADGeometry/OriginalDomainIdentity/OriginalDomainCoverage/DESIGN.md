@@ -874,8 +874,13 @@ as diagnostics; Embedded compiler staging and operational timeouts do not alter
 public query ceilings. ASAN covers the fresh changed sources and fixture while
 retaining the explicitly uninstrumented cached children. The
 [comprehensive review](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/REVIEW.md)
-and independent committed-main audit remain delivery gates. This completes no
-other implicit construction or aggregate M4-M8 obligation.
+records its one comprehensive review and F1-only confirmation. The
+[main delivery record](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/DELIVERY.md)
+binds the independent committed snapshot and normal fast-forward to main. The
+Embedded Draft helper-object receipt gap is repaired by recording every frontend
+output and readmitting all products through the actual link and two runtime
+controls; other accepted paths are reused. This completes no other implicit
+construction or aggregate M4-M8 obligation.
 
 ##### Remaining implicit construction cells
 
