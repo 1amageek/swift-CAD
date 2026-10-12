@@ -182,7 +182,7 @@ def audit():
     require(summary['manifest']['sha256'] == args.manifest_sha256, 'frozen manifest binding')
     manifest = read(manifest_path)
     require(manifest['cell'] == CELL, 'manifest cell')
-    archived, durable = {}, {}
+    archived, durable, inherited_manifest = {}, {}, None
     for original, item in manifest['files'].items():
         path = entry(item)
         resolved = path.resolve()
@@ -194,11 +194,10 @@ def audit():
             check(MAIN / resolved.relative_to(ROOT), item['sha256'])
         authority = original
         descriptor_origin = item.get('originalPath', original)
-        if '#' in original:
-            require(original == descriptor_origin + '#' + item['sha256'],
-                    'exact historical path/digest manifest key')
+        if original == descriptor_origin + '#' + item['sha256']:
             authority = descriptor_origin
         elif descriptor_origin != original:
+            require('#' not in original, 'exact historical path/digest manifest key')
             # A reused CAS descriptor can retain its prior origin. The plain
             # manifest key names this payload's additional actual usage path.
             origin_item = manifest['files'].get(descriptor_origin, {})
@@ -211,6 +210,16 @@ def audit():
                         original in run['command']
                         for part in summary['accepted'] for run in part['runs']),
                     'deduplicated usage alias must bind its retained origin and actual runtime input')
+        elif '#' in original:
+            # An inherited named payload is not a path/digest qualifier. It
+            # retains its exact preceding delivered manifest key and descriptor.
+            require('originalPath' not in item, 'named inherited payload cannot redefine its origin')
+            if inherited_manifest is None:
+                inherited_path = PRIOR.parent / 'acceptance/manifest.json'
+                check(ROOT / inherited_path, prior['durableEvidence'][str(inherited_path)])
+                inherited_manifest = read(ROOT / inherited_path)
+            require(inherited_manifest['files'].get(original) == item,
+                    'named payload must match the exact preceding delivered manifest entry')
         key = (authority, item['sha256'])
         require(key not in archived or archived[key] == path, 'ambiguous original path/digest archive')
         archived[key] = path
