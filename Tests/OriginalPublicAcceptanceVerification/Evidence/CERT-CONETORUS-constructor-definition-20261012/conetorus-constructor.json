@@ -1,0 +1,20 @@
+{
+  "compileCommand": [
+    "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+    "-parse-as-library",
+    "-sdk",
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+    "-I",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/ConeTorusConstructorObservation.swift",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug/CADGeometry.o",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug/InternalCollectionsUtilities.o",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug/CADCore.o",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug/HashTreeCollections.o",
+    "-o",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/conetorus-constructor-observation"
+  ],
+  "exitCode": -5,
+  "elapsed": 0.7909662910969928,
+  "fixtureSHA256": "011a1b571d8b9df02a7bfce83ad5abaabbbebefa392185646ba711e54fdb407c"
+}

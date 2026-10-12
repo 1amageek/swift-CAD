@@ -1,0 +1,10 @@
+RECEIPT 4 false true true 0
+GRAPH 2 2
+ORACLE_PAIR 0 0 strata 3 singleton false
+GRAPH 2 2
+ORACLE_PAIR 1 0 strata 3 singleton false
+GRAPH 2 2
+ORACLE_PAIR 2 0 strata 3 singleton false
+GRAPH 2 2
+ORACLE_PAIR 3 0 strata 3 singleton false
+PASS cow

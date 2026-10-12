@@ -2391,6 +2391,48 @@ foreign-field/refusal, exact resources/depth, cancellation and detached/COW
 lifetime on the changed Native/ASAN/ordinary-WASM/Embedded paths. General angular
 windows, other source families and other trigonometric equations remain open.
 
+## Certified Pair Authority for Remaining Acceptance
+
+The user delegated the authority decision after the recovered acceptance mapping
+identified a concrete conflict between regenerated binary position coefficients
+and exact parent-surface UV. The authoritative certified intersection is the
+retained original surface pair plus the declared branch and authored traversal.
+Regenerated binary64 configuration, libm coefficients, projected UV and sampled
+root estimates are numerical candidates, not exact source equality authority.
+The five direct CertifiedIntersectionCurve3D variants retain those source pairs,
+component/certificate selection and T domains. Their Codable definitions persist
+source/selection data rather than the regenerated sine/cosine coefficients.
+
+The source owner must issue the complete selected original-pair relation and its
+T-to-allUV correspondence. Common DI and consumers only retain/compose that proof.
+No tolerance establishes a root, branch join, closure, period or parent equality.
+Full/open/bounded/apex/nodal kinds and every endpoint structure require their own
+exact source branch/traversal receipt. Persisted explicit physical labels remain
+physical labels; binary2*Double.pi is never silently made a mathematical period.
+Where a producer supplied a numerical localization of a critical endpoint, the
+source owner must establish and retain its exact selected endpoint/root law and
+full traversal before the exact route accepts it. Ambiguous selection fails
+explicitly. A root estimate alone cannot be reinterpreted as exact endpoint data.
+
+The exact producer migration preserves the original surfaces, selected branch,
+requested T and all defined source guards. Numerical point/evaluation APIs may
+remain candidate-producing APIs with their existing accuracy contract; they do
+not issue equality or complete UV. Any correction to their endpoint/traversal
+behavior requires explicit source-contract and compatibility verification.
+Preserving a regenerated coefficient law while attaching false parent UV is not
+an allowed compatibility strategy.
+
+This choice permits exact source equality, scoped identity and downstream UV
+consumption. Its cost is source-owned physical coefficients, critical endpoint
+selection and branch/traversal proof, with migration checks for numeric evaluation,
+serialization and public callers. These are the causal missing receipts for the
+positive certified cells, not permission to redesign the lower solver.
+
+The limited apex separation capability below is unchanged: it deliberately bounds
+both physical and regenerated coefficient interpretations and proves neither
+sphere/cone membership nor UV. Its accepted empty result remains scoped evidence;
+that binary snapshot cannot be promoted to the general original-pair source law.
+
 ## Certified Apex Whole-Support Plane Separation
 
 This contract owns the source proof for CS-CERT-SPHERECONE-APEX-EMPTY-01 in

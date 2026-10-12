@@ -1,0 +1,12 @@
+{
+  "command": [
+    "python3",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/CERT-FULL-BRANCH-ORACLES-20261012/oracle.py"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.02702133299317211,
+  "wallLimitSeconds": 30,
+  "sourceSHA256": "067ce71d0288bc7437575c08eaa9e8fc3da99a51eb05d60b56813a3f6c8b9569",
+  "logSHA256": "9c1ca0187c678679e566324f97be16e6fe20ee53cc53c667d898411af522ec40",
+  "scope": "Independent rational angle/guard/root-domain oracle checks; not CAD acceptance"
+}

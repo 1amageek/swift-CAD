@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "groups": [
+    "success",
+    "requests",
+    "empty",
+    "bare-0-forward",
+    "bare-0-reverse",
+    "bare-1-forward",
+    "bare-1-reverse",
+    "bare-2-forward",
+    "bare-2-reverse",
+    "bare-empty",
+    "resources",
+    "depth",
+    "cancel",
+    "lifetime"
+  ],
+  "fixtureSHA256": "5721d0d55891bad8e9f2c206d57d3bb2447ac9874a70f5726c946e2583462c60",
+  "compileReceiptSHA256": "0fd9ba485825e108a6a483a870d630a1dc894640ef32f681093580305c83fda9",
+  "premisesSHA256": "ef7b5aa11720607318b1c847b1de77b49965aa12b85e95be27ff0d438dd0003d",
+  "postPremisesMatch": true
+}

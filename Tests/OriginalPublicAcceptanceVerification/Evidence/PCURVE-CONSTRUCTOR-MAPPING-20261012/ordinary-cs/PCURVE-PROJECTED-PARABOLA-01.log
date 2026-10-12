@@ -1,0 +1,3 @@
+PASS PCURVE-PROJECTED-PARABOLA-01 constructor and independent position law
+ENTRY ordinary rich CS PCURVE-PROJECTED-PARABOLA-01
+OBSERVED_FAILURE A certified surface-lift representation requires its structural curve root solver.

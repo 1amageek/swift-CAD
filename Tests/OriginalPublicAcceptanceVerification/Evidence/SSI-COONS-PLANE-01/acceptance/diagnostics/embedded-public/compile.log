@@ -1,0 +1,219 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:90:14: error: extra arguments at positions #3, #4, #5, #6 in call
+ 88 |         singleton: Bool = false, empty: Bool = false) throws {
+ 89 |         guard let receipt = result.originalIssuedGeometricRelation else { throw ExactScalarFailure.invalidEvidence }
+ 90 |         print("RECEIPT",receipt.pairs.count,receipt.isEmpty,receipt.hasPositiveDimensionalSolutions,receipt.hasPositiveDimensionalImage,receipt.exactPoints.count)
+    |              `- error: extra arguments at positions #3, #4, #5, #6 in call
+ 91 |         try require(receipt.kind == .surfaceSurface && result.intersections.isEmpty)
+ 92 |         try require(receipt.isEmpty == empty)
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:90:39: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+ 88 |         singleton: Bool = false, empty: Bool = false) throws {
+ 89 |         guard let receipt = result.originalIssuedGeometricRelation else { throw ExactScalarFailure.invalidEvidence }
+ 90 |         print("RECEIPT",receipt.pairs.count,receipt.isEmpty,receipt.hasPositiveDimensionalSolutions,receipt.hasPositiveDimensionalImage,receipt.exactPoints.count)
+    |                                       `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+ 91 |         try require(receipt.kind == .surfaceSurface && result.intersections.isEmpty)
+ 92 |         try require(receipt.isEmpty == empty)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:101:54: error: extra argument in call
+ 99 |             let raw = pair.original.relation
+100 |             let graph = reverse ? raw.original.second:raw.original.first
+101 |             print("GRAPH",graph.parameterCount,graph.variableCount)
+    |                                                      `- error: extra argument in call
+102 |             try require(graph.parameterCount == 2 && graph.variableCount == 2)
+103 |             var rect: [Double]?
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:101:33: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+ 99 |             let raw = pair.original.relation
+100 |             let graph = reverse ? raw.original.second:raw.original.first
+101 |             print("GRAPH",graph.parameterCount,graph.variableCount)
+    |                                 `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+102 |             try require(graph.parameterCount == 2 && graph.variableCount == 2)
+103 |             var rect: [Double]?
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:128:105: error: extra argument in call
+126 |                 }
+127 |             } }
+128 |             guard let rect else { print("RECTANGLE_MISSING",pair.original.firstGraphIndex,pair.original.secondGraphIndex);throw ExactScalarFailure.invalidEvidence }
+    |                                                                                                         `- error: extra argument in call
+129 |             print("ORACLE_PAIR",pair.original.firstGraphIndex,pair.original.secondGraphIndex,"strata",pair.geometry.strata.count,"singleton",singleton)
+130 |             if singleton {
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:128:75: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+126 |                 }
+127 |             } }
+128 |             guard let rect else { print("RECTANGLE_MISSING",pair.original.firstGraphIndex,pair.original.secondGraphIndex);throw ExactScalarFailure.invalidEvidence }
+    |                                                                           `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+129 |             print("ORACLE_PAIR",pair.original.firstGraphIndex,pair.original.secondGraphIndex,"strata",pair.geometry.strata.count,"singleton",singleton)
+130 |             if singleton {
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:129:18: error: extra arguments at positions #3, #4, #5, #6, #7 in call
+127 |             } }
+128 |             guard let rect else { print("RECTANGLE_MISSING",pair.original.firstGraphIndex,pair.original.secondGraphIndex);throw ExactScalarFailure.invalidEvidence }
+129 |             print("ORACLE_PAIR",pair.original.firstGraphIndex,pair.original.secondGraphIndex,"strata",pair.geometry.strata.count,"singleton",singleton)
+    |                  `- error: extra arguments at positions #3, #4, #5, #6, #7 in call
+130 |             if singleton {
+131 |                 // A four-axis singleton has one possible tuple; its bounds plus exact point
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:129:47: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+127 |             } }
+128 |             guard let rect else { print("RECTANGLE_MISSING",pair.original.firstGraphIndex,pair.original.secondGraphIndex);throw ExactScalarFailure.invalidEvidence }
+129 |             print("ORACLE_PAIR",pair.original.firstGraphIndex,pair.original.secondGraphIndex,"strata",pair.geometry.strata.count,"singleton",singleton)
+    |                                               `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+130 |             if singleton {
+131 |                 // A four-axis singleton has one possible tuple; its bounds plus exact point
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:211:18: error: missing argument label 'terminator:' in call
+209 |             let first = Task { try oracle(result) }, second = Task { try oracle(result) }
+210 |             try await first.value; try await second.value
+211 |             print("PASS",group); return
+    |                  `- error: missing argument label 'terminator:' in call
+212 |         }
+213 |         let h = try host()
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:211:26: error: cannot convert value of type 'String' to expected argument type 'StaticString'
+209 |             let first = Task { try oracle(result) }, second = Task { try oracle(result) }
+210 |             try await first.value; try await second.value
+211 |             print("PASS",group); return
+    |                          `- error: cannot convert value of type 'String' to expected argument type 'StaticString'
+212 |         }
+213 |         let h = try host()
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:217:100: error: extra argument in call
+215 |         case "success":
+216 |             try oracle(query(h));try oracle(query(h,reverse:true),reverse:true)
+217 |             let c = Counter();try oracle(query(h,counter:c));print("COUNTS",c.counts.work,c.counts.bytes)
+    |                                                                                                    `- error: extra argument in call
+218 |         case "requests":
+219 |             let c = try box(0.25,0.75,0.25,0.75), p = try box(-0.25,0.25,-0.75,-0.25)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:217:86: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+215 |         case "success":
+216 |             try oracle(query(h));try oracle(query(h,reverse:true),reverse:true)
+217 |             let c = Counter();try oracle(query(h,counter:c));print("COUNTS",c.counts.work,c.counts.bytes)
+    |                                                                                      `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+218 |         case "requests":
+219 |             let c = try box(0.25,0.75,0.25,0.75), p = try box(-0.25,0.25,-0.75,-0.25)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:221:22: error: missing argument label 'terminator:' in call
+219 |             let c = try box(0.25,0.75,0.25,0.75), p = try box(-0.25,0.25,-0.75,-0.25)
+220 |             for reverse in [false,true] {
+221 |                 print("REQUEST clipped",reverse)
+    |                      `- error: missing argument label 'terminator:' in call
+222 |                 try oracle(query(h,reverse:reverse,coonsBox:c,planeBox:p,counter:Counter()),reverse:reverse,coonsBox:c,planeBox:p)
+223 |                 print("REQUEST singleton",reverse)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:221:41: error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+219 |             let c = try box(0.25,0.75,0.25,0.75), p = try box(-0.25,0.25,-0.75,-0.25)
+220 |             for reverse in [false,true] {
+221 |                 print("REQUEST clipped",reverse)
+    |                                         `- error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+222 |                 try oracle(query(h,reverse:reverse,coonsBox:c,planeBox:p,counter:Counter()),reverse:reverse,coonsBox:c,planeBox:p)
+223 |                 print("REQUEST singleton",reverse)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:223:22: error: missing argument label 'terminator:' in call
+221 |                 print("REQUEST clipped",reverse)
+222 |                 try oracle(query(h,reverse:reverse,coonsBox:c,planeBox:p,counter:Counter()),reverse:reverse,coonsBox:c,planeBox:p)
+223 |                 print("REQUEST singleton",reverse)
+    |                      `- error: missing argument label 'terminator:' in call
+224 |                 let s = try box(0.5,0.5,0.5,0.5),q = try box(0,0,-0.5,-0.5)
+225 |                 try oracle(query(h,reverse:reverse,coonsBox:s,planeBox:q,counter:Counter()),reverse:reverse,coonsBox:s,planeBox:q,singleton:true)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:223:43: error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+221 |                 print("REQUEST clipped",reverse)
+222 |                 try oracle(query(h,reverse:reverse,coonsBox:c,planeBox:p,counter:Counter()),reverse:reverse,coonsBox:c,planeBox:p)
+223 |                 print("REQUEST singleton",reverse)
+    |                                           `- error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+224 |                 let s = try box(0.5,0.5,0.5,0.5),q = try box(0,0,-0.5,-0.5)
+225 |                 try oracle(query(h,reverse:reverse,coonsBox:s,planeBox:q,counter:Counter()),reverse:reverse,coonsBox:s,planeBox:q,singleton:true)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:250:26: error: extra arguments at positions #3, #4, #5, #6 in call
+248 |                     }
+249 |                 } catch let e as KernelError {
+250 |                     print("BARE",reverse,entry,e.code,counter.counts.work,counter.counts.bytes)
+    |                          `- error: extra arguments at positions #3, #4, #5, #6 in call
+251 |                     try require(e.code == .nonDiscreteIntersection);continue
+252 |                 }
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:250:34: error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+248 |                     }
+249 |                 } catch let e as KernelError {
+250 |                     print("BARE",reverse,entry,e.code,counter.counts.work,counter.counts.bytes)
+    |                                  `- error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+251 |                     try require(e.code == .nonDiscreteIntersection);continue
+252 |                 }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:276:22: error: missing argument label 'terminator:' in call
+274 |             do { _ = try query(h,counter:Counter(),depth:1) }
+275 |             catch let e as KernelError {
+276 |                 print("DEPTH_ONE_EXPLICIT",e.code)
+    |                      `- error: missing argument label 'terminator:' in call
+277 |                 try require(e.code == .resourceLimitExceeded || e.code == .intersectionFailure)
+278 |                 print("PASS",group);return
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:276:46: error: cannot convert value of type 'KernelErrorCode' to expected argument type 'StaticString'
+274 |             do { _ = try query(h,counter:Counter(),depth:1) }
+275 |             catch let e as KernelError {
+276 |                 print("DEPTH_ONE_EXPLICIT",e.code)
+    |                                              `- error: cannot convert value of type 'KernelErrorCode' to expected argument type 'StaticString'
+277 |                 try require(e.code == .resourceLimitExceeded || e.code == .intersectionFailure)
+278 |                 print("PASS",group);return
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:278:22: error: missing argument label 'terminator:' in call
+276 |                 print("DEPTH_ONE_EXPLICIT",e.code)
+277 |                 try require(e.code == .resourceLimitExceeded || e.code == .intersectionFailure)
+278 |                 print("PASS",group);return
+    |                      `- error: missing argument label 'terminator:' in call
+279 |             }
+280 |             throw ExactScalarFailure.invalidEvidence
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:278:30: error: cannot convert value of type 'String' to expected argument type 'StaticString'
+276 |                 print("DEPTH_ONE_EXPLICIT",e.code)
+277 |                 try require(e.code == .resourceLimitExceeded || e.code == .intersectionFailure)
+278 |                 print("PASS",group);return
+    |                              `- error: cannot convert value of type 'String' to expected argument type 'StaticString'
+279 |             }
+280 |             throw ExactScalarFailure.invalidEvidence
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:292:14: error: missing argument label 'terminator:' in call
+290 |         default: throw ExactScalarFailure.invalidEvidence
+291 |         }
+292 |         print("PASS",group)
+    |              `- error: missing argument label 'terminator:' in call
+293 |     }
+294 |     static func main() async {
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:292:22: error: cannot convert value of type 'String' to expected argument type 'StaticString'
+290 |         default: throw ExactScalarFailure.invalidEvidence
+291 |         }
+292 |         print("PASS",group)
+    |                      `- error: cannot convert value of type 'String' to expected argument type 'StaticString'
+293 |     }
+294 |     static func main() async {
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:297:64: error: extra argument in call
+295 |         let group: String
+296 |         if let value = getenv("CAD_PROOF_GROUP") { group = String(cString:value) } else { group = "success" }
+297 |         do { try await run(group) } catch { print("FAIL",group,error);exit(1) }
+    |                                                                `- error: extra argument in call
+298 |     }
+299 | }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift:297:58: error: cannot convert value of type 'String' to expected argument type 'StaticString'
+295 |         let group: String
+296 |         if let value = getenv("CAD_PROOF_GROUP") { group = String(cString:value) } else { group = "success" }
+297 |         do { try await run(group) } catch { print("FAIL",group,error);exit(1) }
+    |                                                          `- error: cannot convert value of type 'String' to expected argument type 'StaticString'
+298 |     }
+299 | }

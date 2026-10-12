@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/coons-plane-issued-graph-probe"
+  ],
+  "status": "completed",
+  "exitCode": 0,
+  "elapsedSeconds": 1.0805990000953898,
+  "wallLimitSeconds": 90,
+  "sourceSHA256": "50183fb8d126f678018289c5cb7721d1789d9e4566e082cd602e250fad9c9d9a",
+  "executableSHA256": "e9eca68bf74256943bf248970f5011992f38a6621e257d547371fdd3c4e46dc1",
+  "runtimeLogSHA256": "79e13100920d5b1988eed3897eb8a4cae481cefb36a07601c3563b4b77bfcab6",
+  "scope": "Existing source/DI/L5/L6 path diagnostic; not ordinary dispatch or acceptance"
+}

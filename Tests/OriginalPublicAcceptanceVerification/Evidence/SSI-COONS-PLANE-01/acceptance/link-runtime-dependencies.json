@@ -1,0 +1,387 @@
+{
+  "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc": {
+    "sha256": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
+    "mtime": 1791453130.8119638,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift": {
+    "sha256": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
+    "mtime": 1791453130.8119638,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/clang": {
+    "sha256": "2301dabb68b7e854c7e65e975349addd00974beae38ef7d5e4e363d4e5edeb81",
+    "mtime": 1789405432.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/wasm-ld": {
+    "sha256": "a3f0d5ed96da1e84a7462609368f7105492cde0e7be438a4fa2141ec282747a4",
+    "mtime": 1789405437.0,
+    "predatesFixtureCompile": true
+  },
+  "/usr/local/bin/node": {
+    "sha256": "1f08f0e5b8d9a0136c6219f4cea4d3b4fb8ffa4d96e0ff64869ce0dda6dd6a35",
+    "mtime": 1785745047.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libsetjmp.a": {
+    "sha256": "6fc8a2b3e448a201161b914061c39a3eddf76e12a31d292a78bd5ce838f08204",
+    "mtime": 1789344829.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libwasi-emulated-signal.a": {
+    "sha256": "5b9817735eee300b07d83314e74396c0c666a21d34568a13c33e3af8cf89642e",
+    "mtime": 1789344827.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libxml2.a": {
+    "sha256": "b8a5abf3e062fdfa30980a11df9620fae02e52f55f432656e38887c80ad1b522",
+    "mtime": 1789349399.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libc++.a": {
+    "sha256": "8e1cd2bcca8ca2b4f34ad1f866ad0610f38b2fd95aca9101c1cb62c747a2104b",
+    "mtime": 1789344842.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libc++experimental.a": {
+    "sha256": "f3d47c572548651e6b2cbc89dc066ab230687d1f4d052e0b098ff66ed3232194",
+    "mtime": 1789344842.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libwasi-emulated-process-clocks.a": {
+    "sha256": "4ce5e8b807ac6c35cdbed096762a0c1509fc1393171853988c239cbeb9b7d36b",
+    "mtime": 1789344827.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libresolv.a": {
+    "sha256": "f0a17a43c74d2fe5474fa2fd29c8f14799e777d7d75a2cc4d11c20a6e7b161c5",
+    "mtime": 1789344827.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libwasi-emulated-getpid.a": {
+    "sha256": "3e5ceaa1169fabba2ea43b06a3aaf2dcafd60ae866f20dd02a83a2f4c1b98ff0",
+    "mtime": 1789344827.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libc++abi.a": {
+    "sha256": "9c06d147e008d29c4cb0503f30700da65ef73925e32c3c0f768a3444c8303d01",
+    "mtime": 1789344842.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libwasi-emulated-mman.a": {
+    "sha256": "051471d19bcac179b7cfacf882dcd5cef6f327c3a4cd685d766ac0d66c791725",
+    "mtime": 1789344827.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libc-printscan-no-floating-point.a": {
+    "sha256": "4744dd506152cea5fc08d5214bd62e74f5369f1de7670e0e3b1424a23af8ad06",
+    "mtime": 1789344829.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libc-printscan-long-double.a": {
+    "sha256": "1e04d7e337c54304d1a6818ba428023ae0f75e6152e2a6cfd2bd865c687e88ab",
+    "mtime": 1789344829.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libdl.a": {
+    "sha256": "5349df0abae0980630e4478880a3a832588712fab409571773b8fd89370d8966",
+    "mtime": 1789344829.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libxnet.a": {
+    "sha256": "f0a17a43c74d2fe5474fa2fd29c8f14799e777d7d75a2cc4d11c20a6e7b161c5",
+    "mtime": 1789344827.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libm.a": {
+    "sha256": "f0a17a43c74d2fe5474fa2fd29c8f14799e777d7d75a2cc4d11c20a6e7b161c5",
+    "mtime": 1789344827.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libcrypt.a": {
+    "sha256": "f0a17a43c74d2fe5474fa2fd29c8f14799e777d7d75a2cc4d11c20a6e7b161c5",
+    "mtime": 1789344826.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libc.a": {
+    "sha256": "b589bc643d061e04fd3c108aac1e8f6062a2ace04e4bc614df74711da5a0cd1a",
+    "mtime": 1789344829.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/librt.a": {
+    "sha256": "f0a17a43c74d2fe5474fa2fd29c8f14799e777d7d75a2cc4d11c20a6e7b161c5",
+    "mtime": 1789344827.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libutil.a": {
+    "sha256": "f0a17a43c74d2fe5474fa2fd29c8f14799e777d7d75a2cc4d11c20a6e7b161c5",
+    "mtime": 1789344826.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/libpthread.a": {
+    "sha256": "f0a17a43c74d2fe5474fa2fd29c8f14799e777d7d75a2cc4d11c20a6e7b161c5",
+    "mtime": 1789344827.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/clang/lib/wasip1/libclang_rt.builtins-wasm32.a": {
+    "sha256": "a23243191f3b9c33dc0365e8953766d2621f2137345c12684630328f8394fbc0",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/clang/lib/wasip1/libclang_rt.profile-wasm32.a": {
+    "sha256": "d2466e4be163e2b37c41a88f46678785d01cdb66e3b2c2fbee37ec2803c0ec39",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswiftSwiftOnoneSupport.a": {
+    "sha256": "953f3f5b2eae4add3d175def784e57766c71ebf395f0bf2399f8ac039e5b51e9",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libFoundation.a": {
+    "sha256": "0dbc28d6d0cbc52df548cfb04bea19c71854aaedc51e6a99577e48a72014d646",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswift_Concurrency.a": {
+    "sha256": "8ce85666dbe7a09400bb641405a706088dfe6e90fca48be73f3ab6c01e0603ea",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/lib_FoundationCollections.a": {
+    "sha256": "5252cae98db2bb0bb472ca1eb14239d05be6386a8b267fc36f9411f9ff5dc3fb",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswiftObservation.a": {
+    "sha256": "c71550bd0a6711cb89f2831fc5a7b81f6be74b2d2acf36ff28e0c895c5acec97",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libTesting.a": {
+    "sha256": "88dade7eef3537ff0d5af2f4c96af7743dd2af490fcec067a2e8eac2baf43aa0",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/lib_TestingInternals.a": {
+    "sha256": "1eda89759ef77eeef23fb89a09e314392fca4b87f0b0c02940b976822d35312a",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libFoundationEssentials.a": {
+    "sha256": "6b07e98e60fd60bf5b7958636856154e4ab5e0f6c7b3c6f0d4da0c62912a1760",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswift_RegexParser.a": {
+    "sha256": "0431b3add0ed4394b751e2b4e4d08718fcd6a4748678403518f5dbee8ffeb8f6",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/lib_TestingInterop.a": {
+    "sha256": "3e3e4f09cd728a7e9845c5c8de07d85f7ae22b2f27c742d7718250989691e033",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswiftSynchronization.a": {
+    "sha256": "adc20c5cc1f2ac52f63ccaa29617436caa73bbd8a8178811a759302efde51556",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/lib_FoundationICU.a": {
+    "sha256": "9d0ffbc8867b0cd04f11719a2b37080bf863fbb864de7f307549c5f60f302047",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswift_Builtin_float.a": {
+    "sha256": "4eb8a44a6fcf78735547b0a7035417eceb29699c74220cf50399d897cf3ebe25",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/lib_TestDiscovery.a": {
+    "sha256": "2ba277dff14b16e00d3fa42a88f475d7c9e9c949e63de4402f460750a130dffc",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswift_Differentiation.a": {
+    "sha256": "359b2303d9fb7ffa47107623d71267f8d312a87257e46b9d5aa3f17701e6a0c8",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswiftDistributed.a": {
+    "sha256": "04f39baf487f5ef77d8a9307a638b7e8fcc0054f7b29c0cdaeb012fbdb204957",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/lib_FoundationCShims.a": {
+    "sha256": "abafd54283f676d89a58bad1c6ad89fbbe21923584f5b79c76415d76aa7a0b1e",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswiftRegexBuilder.a": {
+    "sha256": "23cfbd2210a1d5b64f91013ad5b6c4e74a1f183816857cdfd4eeea29e14959c9",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libFoundationXML.a": {
+    "sha256": "90f5b0100733a8293dcea9c761c2c83356a8a15b73d5c4ac4c63ce81371f47f6",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswift_StringProcessing.a": {
+    "sha256": "ecfa9d35638db45bd90563a4072770686a0845f1264ddfe901cf266ffbe5af6f",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libFoundationInternationalization.a": {
+    "sha256": "568c78c42c39647dba045a5ddc2446387d427fb5791117744322dd692e3f067b",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libCoreFoundation.a": {
+    "sha256": "b7dd813777773812b26e3689bcb204c30f4845d677ab68f226e71ed48f596c9b",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswiftWASILibc.a": {
+    "sha256": "16047ca7934edf0c244ac2f8b2852dce3a8cfb2042fe16e92be75697366d5fc3",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libXCTest.a": {
+    "sha256": "a0c8d43bd86dc05dc594ca6624ecd2ec83bb5c80264bba7e9ca47d23fbf7b081",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswift_Volatile.a": {
+    "sha256": "ac4198ba03149cacbfc5a824f02a2011c51f278b778c8238418c0509fda4c96b",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/lib_Testing_Foundation.a": {
+    "sha256": "86c8cdc386070354521687de583505eec3c8e06b278d1b9253727f0889e38f39",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/libswiftCore.a": {
+    "sha256": "da7072f7b4d69e10a01e02386c67004516acbbd5dc062b0f58e692973a178867",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/wasi/lib_CFXMLInterface.a": {
+    "sha256": "d555033d0213ad5ec2d6116c3132fa4d0158e877cd85c34d5b6d238324e9f4e7",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang/lib/wasip1/libclang_rt.builtins-wasm32.a": {
+    "sha256": "a23243191f3b9c33dc0365e8953766d2621f2137345c12684630328f8394fbc0",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang/lib/wasip1/libclang_rt.profile-wasm32.a": {
+    "sha256": "d2466e4be163e2b37c41a88f46678785d01cdb66e3b2c2fbee37ec2803c0ec39",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/wasi/libswiftCxx.a": {
+    "sha256": "3730996a10c6f43c0336dfd522587093a30c584e39eaa1b59789255d0bc4e4aa",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/clang/lib/wasip1/libclang_rt.builtins-wasm32.a": {
+    "sha256": "a23243191f3b9c33dc0365e8953766d2621f2137345c12684630328f8394fbc0",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/clang/lib/wasip1/libclang_rt.profile-wasm32.a": {
+    "sha256": "d2466e4be163e2b37c41a88f46678785d01cdb66e3b2c2fbee37ec2803c0ec39",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswift_ConcurrencyDefaultExecutor.a": {
+    "sha256": "67622ba9bad8c3d8df9ed678223dbe7a79723a99e5a528bcd0b63dc8e25f3bc2",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswift_Concurrency.a": {
+    "sha256": "e250c6b50e0ee3f8252aac9be182627cc87268f6f7fcc0f1c0bbe9695586f812",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a": {
+    "sha256": "3abc2dd90a84bf165dbfad4ba2f3ae2470ef5cb27472cb18a9c1632e0ff719d9",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftEmbeddedPlatformPOSIX.a": {
+    "sha256": "58ccc873a6f8042460668bbdbe820ae1ed769de87a16d424600e5390b37f1484",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftExclusivitySingleThreaded.a": {
+    "sha256": "9d3c35f2120503b2dc76a2aee622a543ee36e353b659f90a2b110246d93600c7",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftExclusivityC11ThreadLocal.a": {
+    "sha256": "6b73c425a5fdc9315be081f98d85629c97124da7615d454191b6d905a5cda4b7",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-none-wasm/libswiftUnicodeDataTables.a": {
+    "sha256": "3abc2dd90a84bf165dbfad4ba2f3ae2470ef5cb27472cb18a9c1632e0ff719d9",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-none-wasm/libswiftEmbeddedPlatformPOSIX.a": {
+    "sha256": "194c61ed3125a1d3aee28d863b5a30129dbc8bb76d88cedda242d8916e70edfc",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-none-wasm/libswiftExclusivitySingleThreaded.a": {
+    "sha256": "9d3c35f2120503b2dc76a2aee622a543ee36e353b659f90a2b110246d93600c7",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm64-unknown-none-wasm/libswiftUnicodeDataTables.a": {
+    "sha256": "625496936262539087ae1fee93c5960c413a8e0496958fd775367c79cf70a819",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm64-unknown-none-wasm/libswiftEmbeddedPlatformPOSIX.a": {
+    "sha256": "ada64b3291cb240c8e9d0f53d9ba0f96d81ca688a8568ab5d4767fd913c1ad64",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm64-unknown-none-wasm/libswiftExclusivitySingleThreaded.a": {
+    "sha256": "e63a72daad170f1938932e8d5e0ff16079ede2eb0855fe50290abf526751fe59",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift-sdk.json": {
+    "sha256": "5ce9854bf06caef51f4df3993e1c98f686b296e1029ea60a9fd0265df8966f04",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/embedded-swift-sdk.json": {
+    "sha256": "7fa4767cd98af9f6ad8921e6effb25d29b8454e4eea55d450162c91c0d30aa75",
+    "mtime": 1789349942.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/embedded-toolset.json": {
+    "sha256": "7ca4a4aeeebe44a02cc2b5dfb11881a4e0e5a58cba99708727a92734b4ca2954",
+    "mtime": 1789349942.0,
+    "predatesFixtureCompile": true
+  },
+  "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/toolset.json": {
+    "sha256": "44d1b0b287ac787f0ae2de87744148de464810444afe1f12f45d367391699986",
+    "mtime": 1789349941.0,
+    "predatesFixtureCompile": true
+  },
+  "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/SDKSettings.json": {
+    "sha256": "7b93ad7e534cc4b31c6a4e39d19b5e0288acf2168c2649479a796d1cb51939fb",
+    "mtime": 1786217774.0,
+    "predatesFixtureCompile": true
+  }
+}

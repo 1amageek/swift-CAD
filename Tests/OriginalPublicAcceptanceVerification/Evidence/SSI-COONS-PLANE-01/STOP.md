@@ -1,4 +1,43 @@
-# SSI-COONS-PLANE-01: assembly capability gap
+# SSI-COONS-PLANE-01: historical runtime stop and assembly gap
+
+The runtime/assembly stops below are historical. The implemented mixed owner,
+actual ordinary dispatch and four-lane acceptance are recorded in
+[acceptance/VERIFICATION.md](acceptance/VERIFICATION.md). Their finite scope does
+not complete the general Coons family.
+
+## Current-source Native observation, 2026-10-12
+
+The fresh user-authorized Core64/Geometry2021 restoration succeeds on fixed
+Swift6.4.0 in381.402s, peak owned-process RSS2,136,375,296 bytes, with all
+pre/post production source hashes equal. No Kernel-wide rebuild was performed.
+The [restoration receipt](current-native-20261012/receipt.json) binds source,
+command, toolchain, product hashes and the restoration log hash.
+
+The original Coons constructor and ordinary rich SSI fixture compile/link
+against these current modules/objects in a fresh executable. The first diagnostic
+compile explicitly reports missing SDK; adding the actual xcrun macOS SDK fixes
+that compiler invocation. No production body or solver was edited. The diagnostic
+uses the existing PolylineLiftProof admission body directly, avoiding the lost
+test-only adapter module; [exact compiled fixture](current-native-20261012/CoonsPlaneSSIObservation.swift)
+and [compile receipt](current-native-20261012/diagnostic-compile-sdk.json) preserve
+this distinction from the historical cached assembly.
+
+| Observation | Result |
+|---|---|
+| Ordinary entry | DefaultSurfaceSurfaceIntersector.intersectionResult, actual four-chart original Coons versus whole planeX=.5, default options |
+| Runtime | Timeout after120.013888s; process group terminated; no success or typed geometry failure was returned |
+| Retained independent expected result | All(.5,V;0,-V), V[0,1], XYZ(.5,V,0), image1/fiber0 and every closed chart incidence |
+| Stack sample | BoundedParametricSurfaceIntersector → ParametricSurfaceIntersectionCompletenessVerifier → ParametricSurfaceIntersectionGraphProver numerical gauge refinement → PreparedSurfaceDifferentialEncloser → OriginalCoonsSurface3D interval jets |
+| Meaning | Reproduced current ordinary-public-route runtime stop. This is neither an empty result nor evidence that the existing exact source/DI relation is unavailable. |
+| Next change | Connect existing retained source/DI relation and geometric publication for this input, preserving options/admission/owners and chart incidences; do not increase the120s diagnostic limit or repeat the unchanged fallback. |
+
+[Runtime receipt](current-native-20261012/coons-rich-runtime.json),
+[runtime output](current-native-20261012/coons-rich-runtime.log), and
+[stack sample](current-native-20261012/coons-rich-sample.txt) identify the observed
+path. This is Native-only stop evidence, not ASAN/WASM/Embedded acceptance,
+implementation completion, review or main integration.
+
+## Historical assembly attempts
 
 通常 SSI の実行時停止は未観測。初回の Native compile/link は cached PlanePlane signature mismatch で失敗した。明示的に許可された因果的な追加 assembly は現行の実 PlanePlane body だけを加えたが、120 秒で timeout となった。bare/rich の実行前で終了しており、geometric contract の反例でも、static intake limit の runtime 再現でもない。
 
@@ -104,3 +143,38 @@ cached `SurfaceSurfaceIntersectionResult` は現行 issued-receipt field と一�
 両 `receipt.json` の `postHashesMatch=true`、`freshProductionPostHashesMatch=true`。各実行時の fresh production、fixture/runner、admitted cache/module/archive/compiler/SDK premises は pre/post 同一で、HEAD も同一。新しい counter/shared mutable task state は追加していない。既存 fixture admission は local noncopyable value のまま。cancellation/storage/depth/lifetime の runtime verification は未実施であり、source contract を変更していない。
 
 残る gap はこの入力の ordinary bare/rich 実動証拠。具体的な geometric/public broken contract はまだ得られていないので production implementation を選ばない。既存 8 cells の完成、全 87 cells、whole seven families の完成判定には使用しない。
+
+## Existing source/DI connection checked on 2026-10-12
+
+The changed verification entry
+[CoonsPlaneIssuedGraphProbe](../../CoonsPlaneIssuedGraphProbe.swift) binds the
+same actual four-chart original Coons source through the existing retained source
+issuer, exact DI cover and rational graph preparer. It compiles the original
+plane over its full unbounded UV domain with the existing plane graph compiler,
+then consumes those graphs directly through existing L5 and L6. It does not call
+or retry the numerical SSI fallback and does not add a geometry producer.
+
+The query uses the ordinary `NativeSurfaceSurfacePointAllowance` with default
+options and `.legacy` admission throughout source preparation, DI, L5 and L6;
+construction admission is separate exactly as in the ordinary red fixture.
+[Initial connection receipt](issued-native-20261012/runtime.json) succeeds in
+1.081s. [Full-partition oracle receipt](issued-oracle-native-20261012/runtime.json)
+then verifies the unchanged source coefficient laws `(U,V,0,1)`, identity source
+transport, all four distinct closed half-square chart domains, and equality of
+selected versus independently expected membership for every four-coordinate
+partition leaf, including points and intervals: `U=1/2 && planeU=0 && planeV=-V`, inside that original chart.
+Each chart retains one continuous interval and its two endpoints, with
+image dimension equal to parameter dimension and fiber dimension zero.
+This verification strengthens the initial count-only observation; it is not a
+repetition of the failing numerical route or acceptance of ordinary SSI.
+
+The concrete remaining Coons cell gap is the ordinary dispatcher and retained
+mixed Coons/whole-plane result-owner publication. The existing general issued
+family port expects two rational graph families; the sealed whole-plane graph is
+a different primitive receipt. Its unbounded support must remain primitive: do
+not turn it into a fabricated finite rational plane cover. The shared L5 solver
+and L6 geometry resolver already handle this input with the original allowance.
+Ordinary bare/rich dispatch, order/requests, failure/resource/cancel/lifetime,
+remaining target lanes, review, commit and main integration remain open. Full
+M4-M8 mapping is also unfinished. No milestone or whole requirement is completed
+by this Native internal-path verification.

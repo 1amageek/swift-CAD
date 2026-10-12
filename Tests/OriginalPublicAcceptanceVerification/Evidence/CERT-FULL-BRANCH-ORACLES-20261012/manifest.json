@@ -1,0 +1,8 @@
+{
+  "scope": "Scoped diagnostic/oracle verification only; no ordinary Coons SSI or family acceptance",
+  "files": {
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/CERT-FULL-BRANCH-ORACLES-20261012/oracle.py": "067ce71d0288bc7437575c08eaa9e8fc3da99a51eb05d60b56813a3f6c8b9569",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/CERT-FULL-BRANCH-ORACLES-20261012/receipt.json": "13687c36074690d4758740f264d1bea88b861fbff359cd5aab4d8514970ae691",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/CERT-FULL-BRANCH-ORACLES-20261012/runtime.log": "9c1ca0187c678679e566324f97be16e6fe20ee53cc53c667d898411af522ec40"
+  }
+}

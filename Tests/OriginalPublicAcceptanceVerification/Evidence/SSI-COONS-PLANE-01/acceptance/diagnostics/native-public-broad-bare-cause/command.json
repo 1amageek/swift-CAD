@@ -1,0 +1,18 @@
+[
+  "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+  "-parse-as-library",
+  "-swift-version",
+  "6",
+  "-I",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native-public",
+  "-I",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug",
+  "-sdk",
+  "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+  "-target",
+  "arm64-apple-macosx15.0",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native-public/broad-bare-cause/fixture.swift",
+  "@/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native-public/link-objects.rsp",
+  "-o",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native-public/broad-bare-cause/Acceptance"
+]

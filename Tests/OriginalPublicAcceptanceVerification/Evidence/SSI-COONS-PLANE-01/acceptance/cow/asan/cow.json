@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/asan-cow/Acceptance"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 2.6729342920007184,
+  "wallLimitSeconds": 120,
+  "logSHA256": "19b372983d337ef585339c0b4caec5d328223ee963db89dbd5dd479ac7418311",
+  "executableSHA256": "9c47b5c1051044fe5befd6dd3fe587a6a87dc7ad3deabb1595b8a6ac4fa5ed02",
+  "fixtureSHA256": "e194f8d7ce5a348e8452b59dd07c48f0e922ad0bfcc417bbb4b87131b558c187",
+  "compileReceiptSHA256": "5e00cdbb88b9860ad27bf8542dbd0fe2abd70e70b11823fc87eb8a7ffe58786e"
+}

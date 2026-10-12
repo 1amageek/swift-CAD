@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "groups": [
+    "cow"
+  ],
+  "fixtureSHA256": "e194f8d7ce5a348e8452b59dd07c48f0e922ad0bfcc417bbb4b87131b558c187",
+  "compileReceiptSHA256": "6ec5c3f178d5f484a788cf6c455bc2ae6ced448f7c82d091024a06fd8cc8a42c",
+  "premisesSHA256": "c02fdb12472088880f7a6f70db96018fd64a4cb96aac8ec83bf13d7a3ebad8fe",
+  "postPremisesMatch": true
+}

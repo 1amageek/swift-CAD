@@ -1,0 +1,25 @@
+{
+  "command": [
+    "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+    "-parse-as-library",
+    "-I",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug",
+    "-sdk",
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/PcurveSourceMappingProbe.swift",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug/CADCore.o",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug/CADGeometry.o",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug/HashTreeCollections.o",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug/InternalCollectionsUtilities.o",
+    "-o",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/pcurve-source-mapping-checked-rejection"
+  ],
+  "sourceSHA256": "4b115ef1a9629bdd95e451585c8bd9d43a1205899db7c330b4e9d4e42c4a25ce",
+  "baseReceiptSHA256": "c359275255053bafb34dc4c60a55ca95c90c1cbcdebdcfc9a3ec66028ec484b9",
+  "compileExit": 0,
+  "compileSeconds": 0.44040154095273465,
+  "runtimeExit": 0,
+  "runtimeSeconds": 0.6073210421018302,
+  "executableSHA256": "e1279eadcc7c6fed07cde8b1e742057e7415e02a911a236dee45bee6525c2564",
+  "runtimeLogSHA256": "5654d1e132e676589cd7308832c4b1a8fb9c23fb792938b90706fc82ee42d0cb"
+}

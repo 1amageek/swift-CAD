@@ -1,0 +1,21 @@
+(node:1216) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+RECEIPT 4 true false false 0
+GRAPH 2 2
+ORACLE_PAIR 0 0 strata 0 singleton false
+GRAPH 2 2
+ORACLE_PAIR 1 0 strata 0 singleton false
+GRAPH 2 2
+ORACLE_PAIR 2 0 strata 0 singleton false
+GRAPH 2 2
+ORACLE_PAIR 3 0 strata 0 singleton false
+RECEIPT 4 true false false 0
+GRAPH 2 2
+ORACLE_PAIR 0 0 strata 0 singleton false
+GRAPH 2 2
+ORACLE_PAIR 0 1 strata 0 singleton false
+GRAPH 2 2
+ORACLE_PAIR 0 2 strata 0 singleton false
+GRAPH 2 2
+ORACLE_PAIR 0 3 strata 0 singleton false
+PASS empty

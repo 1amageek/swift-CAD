@@ -4,6 +4,8 @@ extension DefaultSurfaceSurfaceIntersector {
     public func intersectionResult(first: Surface3D, second: Surface3D,
         options: SurfaceSurfaceIntersectionOptions = .init(), tolerance: ModelingTolerance) throws -> SurfaceSurfaceIntersectionResult {
         return try GeometryExactScalarFailure.withPublication {
+          if let issued = try OriginalRetainedCoonsPlanePublicProducer().resolve(first: first, second: second,
+              options: options, tolerance: tolerance, includeRelations: true) { return issued }
           if let exact = try NativeExactPublicSurfaceSurfaceProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true) { return exact }
           if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
@@ -27,6 +29,8 @@ extension DefaultSurfaceSurfaceIntersector {
           let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
               maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
               consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+          if let issued = try OriginalRetainedCoonsPlanePublicProducer().resolve(first: first, second: second,
+              options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return issued }
           if let exact = try NativeExactPublicSurfaceSurfaceProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return exact }
           if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
@@ -55,6 +59,9 @@ extension DefaultSurfaceSurfaceIntersector {
           let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
               maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
               consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+          if let issued = try OriginalRetainedCoonsPlanePublicProducer().resolve(first: first, second: second,
+              firstBox: firstBox, secondBox: secondBox, options: options,
+              tolerance: tolerance, includeRelations: true, admission: admission) { return issued }
           if let exact = try NativeExactPublicSurfaceSurfaceProducer().resolve(first: first, second: second,
               firstBox: firstBox, secondBox: secondBox, options: options,
               tolerance: tolerance, includeRelations: true, admission: admission) { return exact }

@@ -48,6 +48,24 @@ flowchart LR
 
 ## Contracts and Invariants
 
+### Retained surface family against an original plane
+
+`OriginalSurfacePlaneRelations` retains the already issued complete surface graph
+family and `OriginalIssuedPlaneGraph`, with explicit source order. Its sealed
+resolver compiles each selected chart/plane pair through existing L5 once. Plane
+UV may be unbounded, empty, singleton or disconnected; no rational finite chart
+or invented inverse is introduced. Pair indices and parameter roles follow the
+public order, including plane-first. Both source/DI owners and every auxiliary,
+guard and chart incidence live as long as the result.
+
+The resolver borrows the same admission, field and source/chart/cell/topology
+limits. Count overflow and any started failure are atomic failures. Array storage
+is charged before allocation. It changes no source formula, domain theorem or
+L0-L6 solver. The upper geometric owner consumes these retained relations and
+does not solve the original problem again. Verification uses the independent
+four-chart Coons/whole-plane oracle and reversed-source/request/empty controls
+owned by [Coverage](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md).
+
 ### Retained lift against the whole original plane
 
 CS-POLY-01's observed public stop and acceptance are owned by

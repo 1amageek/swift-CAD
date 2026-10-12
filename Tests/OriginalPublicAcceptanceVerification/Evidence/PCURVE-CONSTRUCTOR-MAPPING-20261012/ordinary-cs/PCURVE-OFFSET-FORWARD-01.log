@@ -1,0 +1,11 @@
+PASS PCURVE-PROJECTED-PARABOLA-01 constructor and independent position law
+PASS PCURVE-HARMONIC-01 constructor and independent position law
+PASS PCURVE-SPHERICAL-GREAT-CIRCLE-01 constructor and independent position law
+PASS PCURVE-OFFSET-FORWARD-01 constructor and independent position law
+ENTRY ordinary rich CS PCURVE-OFFSET-FORWARD-01
+RESULT PCURVE-OFFSET-FORWARD-01 points 1 overlaps 0
+RECEIPTS false false false false false false false false false false false false false false
+POINT CurveSurfaceIntersection(point: CADCore.Point3D(x: 0.0, y: 0.375, z: 2.0), curveParameter: 0.5, surfaceU: 2.0, surfaceV: -0.375, kind: CADGeometry.CurveSurfaceIntersectionKind.transverse, residual: 0.0, iterations: 0, originalCurveBoundary: nil)
+PASS PCURVE-OFFSET-PULLBACK-01 constructor and independent position law
+PASS PCURVE-OFFSET-PULLBACK-FOREIGN-01 rejected wrong directed host
+SCOPE constructor and numerical position checks only; exact public acceptance remains open

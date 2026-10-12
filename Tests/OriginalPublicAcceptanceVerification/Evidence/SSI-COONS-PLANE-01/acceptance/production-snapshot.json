@@ -1,0 +1,10 @@
+{
+  "Sources/CADGeometry/NativeExactRelations/OriginalSurfacePlaneRelationResolving.swift": "9ec101db1fd05a22b1a09c63f80eed941c033212a3fe26769a44100d62e3dd8d",
+  "Sources/CADGeometry/NativeExactRelations/OriginalSurfacePlaneRelations.swift": "ef5f1ca396d202557d07129949804acfc5f7e3d762d8699151e5a6e07c324178",
+  "Sources/CADGeometry/NativeExactRelations/DefaultOriginalSurfacePlaneRelationResolver.swift": "b2af32721dced3a65371478c7f59305261fb5001139af94da501e0b9dd906d83",
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalRetainedCoonsPlanePublicProducer.swift": "4eb03c297e1490dda207baee5c90cc7fa5694cb20c4d9ab9bda891d83d496692",
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalSurfacePlaneGeometricRelations.swift": "da7fb3dc21ff87a266dfce501150fbcbbb90bf822edd2229e563fbd48b73b509",
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricPublication.swift": "ec7441e3b562edb6ec2107f01fa414b79dd6483fbea18e9f032dba49a7c68047",
+  "Sources/CADGeometry/DefaultSurfaceSurfaceIntersector.swift": "b935d4ea18c31e2d4885d9329120ecf19abbd2c5f351bc611dea27da02c653b4",
+  "Sources/CADGeometry/DefaultSurfaceSurfaceIntersector+Result.swift": "261f3b7fd03cf57d13bcc094b8a287bfa4c8c42f3c22f9c6707ce3d1def5bc62"
+}

@@ -1,0 +1,10 @@
+{
+  "scope": "Scoped diagnostic/oracle verification only; no ordinary Coons SSI or family acceptance",
+  "files": {
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/SSI-COONS-PLANE-01/issued-oracle-native-20261012/compile.json": "4970dc5b8886246ff1d3e81fa6a2229549e786dcf843043a594d0aeefab61314",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/SSI-COONS-PLANE-01/issued-oracle-native-20261012/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/SSI-COONS-PLANE-01/issued-oracle-native-20261012/compiled-source.swift": "6cd38c3cb23fe1725948b2fcc6b47f7a9cbc87a548d465616b2287c76a0f17a4",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/SSI-COONS-PLANE-01/issued-oracle-native-20261012/runtime.json": "4ae1969328a09196c7f3a0170268fa21ad33864783ce9378df0c01e0d06261dd",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/SSI-COONS-PLANE-01/issued-oracle-native-20261012/runtime.log": "dbe0ff96f0a1d149b024d6d60b8fd8d598d51e63b3dba2c6864c5d24de16f102"
+  }
+}

@@ -1,0 +1,4 @@
+(node:1775) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+BARE false 2 nonDiscreteIntersection 3354551 39884424
+PASS bare-2-forward

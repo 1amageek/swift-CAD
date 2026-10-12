@@ -1,0 +1,25 @@
+{
+  "scope": "Scoped diagnostic/oracle verification only; no ordinary Coons SSI or family acceptance",
+  "files": {
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/constructor-compiled-source.swift": "c27d6e8b13cb929232d468369f41022bf724b6bdb73466861296020d13c59611",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/PCURVE-HARMONIC-01.json": "dfa8c1fe5f1412d55b473521eeb07a6dad7680d9bcac8328294668e623c9fe38",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/PCURVE-HARMONIC-01.log": "9b74a7ed5ee8a30264a0618b83b953b6fd4122b52b508fd9b4313f7fd5a55700",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/PCURVE-OFFSET-FORWARD-01.json": "30e1026b75e49d060f6ce934d136c594d8c4d40225bc36ec48236e655324d22b",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/PCURVE-OFFSET-FORWARD-01.log": "34d22b989bf24986c42de1a78eb647f9a3b6c35d2e92517d3eaf186eca50f70e",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/PCURVE-OFFSET-PULLBACK-01.json": "3af10c797aa22d80fab8c99151fbd24fac800d9d214c8859b9af780ebb89268c",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/PCURVE-OFFSET-PULLBACK-01.log": "8b7efd8109938ad4e0b854c159d444dcb4d96bc7f315f271e0487bc26a0f1006",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/PCURVE-PROJECTED-PARABOLA-01.json": "aba1ecaf835527c40d0bd55407facd9ffa9e4949cdf29481862c18b2954cece3",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/PCURVE-PROJECTED-PARABOLA-01.log": "ba91beddda13a650cac6476abf58695541b8a9def61cd8952171113a5c2a9c42",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/PCURVE-SPHERICAL-GREAT-CIRCLE-01.json": "4cd48690dae7c31fe0aa2feb145ae86c698374783be0446bcd06a6a1e6e6de94",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/PCURVE-SPHERICAL-GREAT-CIRCLE-01.log": "10ee7bf5ed7c4fcdca2409dff9873f4e46fe33a1db5fe111c33435c81d1e4ca2",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/compile.json": "ad2ff9364f8d5d7978aa539dcb92c9d94b3a74537a2183d01c492710e0b283a6",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/ordinary-cs/compiled-source.swift": "2775215e9b47096a92becba2e79bd0a34dd73da865045bebfd9f027958b122f6",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/receipt.json": "e3140709a57cee09571f6cee874f0bec9d114c52c3f058be96bcbff27877c678",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/rejection-recheck-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/rejection-recheck-runtime.log": "5654d1e132e676589cd7308832c4b1a8fb9c23fb792938b90706fc82ee42d0cb",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/rejection-recheck.json": "bf1bd22e48688cb01dc588f18a59891d4c9f5fb85ed8e23cdf50daf355316040",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CONSTRUCTOR-MAPPING-20261012/runtime.log": "5654d1e132e676589cd7308832c4b1a8fb9c23fb792938b90706fc82ee42d0cb"
+  }
+}

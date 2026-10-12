@@ -20,7 +20,7 @@ struct OriginalIssuedGeometricPublication {
     let points: [OriginalIssuedExactIntersectionPoint]
     static func resolve<R: OriginalIssuedGraphRelationOwning,A: ExactScalarAdmission & ~Copyable>(
         _ relations: borrowing R, geometryLimits: ExactGeometricRelationLimits, maximumPoints: Int,
-        transports: (OriginalIssuedGraphRelationPair) -> (OriginalRationalParameterTransport<Base>,OriginalRationalParameterTransport<Base>?),
+        transports: (OriginalIssuedGraphRelationPair) -> (OriginalRationalParameterTransport<Base>?,OriginalRationalParameterTransport<Base>?),
         firstCoordinates: ((OriginalIssuedGraphRelationPair) -> [ExactPolynomial<Base>])? = nil,
         using a: inout A) throws -> Self {
         guard maximumPoints >= 0 else { throw ExactGeometricRelationFailure.invalidSourceBinding }
@@ -52,18 +52,11 @@ struct OriginalIssuedGeometricPublication {
                     for i in pair.relation.selection.cells.indices { try a.consumeWork(1); if pair.relation.selection.cells[i] == cell { ordinal = i; break } }
                     guard let ordinal else { throw ExactGeometricRelationFailure.invalidCoverage }
                     let local = try resolver.point(atParameterOrdinal:ordinal,in:geometry,using:&a)
-                    let first = try transport(maps.0,coordinates:local.parameters,offset:0,field:local.witness.field,using:&a)
-                    let second: [Field.Value]
-                    if let map = maps.1 {
-                        second = try transport(map,coordinates:local.parameters,offset:pair.relation.original.first.parameterCount,field:local.witness.field,using:&a)
-                    } else {
-                        let offset = pair.relation.original.first.parameterCount, count = pair.relation.original.second.parameterCount
-                        guard offset >= 0,count >= 0,offset <= local.parameters.count,count <= local.parameters.count-offset else { throw ExactGeometricRelationFailure.invalidSourceBinding }
-                        try a.retainStorage(bytes:exactScalarPayloadBytes(count:count,of:Field.Value.self))
-                        var values: [Field.Value] = []; values.reserveCapacity(count)
-                        for i in 0..<count { try a.consumeWork(1);values.append(local.parameters[offset+i]) }
-                        second = values
-                    }
+                    let first = try parameters(maps.0, coordinates: local.parameters, offset: 0,
+                        count: pair.relation.original.first.parameterCount, field: local.witness.field, using: &a)
+                    let second = try parameters(maps.1, coordinates: local.parameters,
+                        offset: pair.relation.original.first.parameterCount,
+                        count: pair.relation.original.second.parameterCount, field: local.witness.field, using: &a)
                     let restored: [Field.Value]?
                     if let firstCoordinates {
                         let laws = firstCoordinates(pair), count = pair.relation.original.first.parameterCount
@@ -87,6 +80,17 @@ struct OriginalIssuedGeometricPublication {
             pairs.append(.init(original:pair,geometry:geometry))
         }
         try a.checkpoint(); return .init(pairs:pairs,points:points)
+    }
+    private static func parameters<A: ExactScalarAdmission & ~Copyable>(
+        _ map: OriginalRationalParameterTransport<Base>?, coordinates: [Field.Value],
+        offset: Int, count: Int, field: Field, using a: inout A) throws -> [Field.Value] {
+        if let map { return try transport(map, coordinates: coordinates, offset: offset, field: field, using: &a) }
+        guard offset >= 0, count >= 0, offset <= coordinates.count,
+            count <= coordinates.count - offset else { throw ExactGeometricRelationFailure.invalidSourceBinding }
+        try a.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Field.Value.self))
+        var values: [Field.Value] = []; values.reserveCapacity(count)
+        for i in 0..<count { try a.consumeWork(1); values.append(coordinates[offset+i]) }
+        return values
     }
     private static func transport<A: ExactScalarAdmission & ~Copyable>(_ original: OriginalRationalParameterTransport<Base>,
         coordinates: [Field.Value], offset: Int, field: Field, using a: inout A) throws -> [Field.Value] {

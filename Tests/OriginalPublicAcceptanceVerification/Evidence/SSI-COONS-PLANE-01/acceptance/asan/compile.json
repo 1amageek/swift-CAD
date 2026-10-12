@@ -1,0 +1,28 @@
+{
+  "command": [
+    "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+    "-parse-as-library",
+    "-swift-version",
+    "6",
+    "-Onone",
+    "-enable-testing",
+    "-sdk",
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+    "-target",
+    "arm64-apple-macosx15.0",
+    "-sanitize=address",
+    "-I",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/asan/build/out/Products/Debug",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift",
+    "@/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/asan-public/objects.rsp",
+    "-o",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/asan-public/Acceptance"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 6.507405332988128,
+  "wallLimitSeconds": 120,
+  "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "fixtureSHA256": "5721d0d55891bad8e9f2c206d57d3bb2447ac9874a70f5726c946e2583462c60",
+  "premisesSHA256": "ef7b5aa11720607318b1c847b1de77b49965aa12b85e95be27ff0d438dd0003d",
+  "executableSHA256": "bccaea1d1ddfb46be737db556ca4942865660a2219ad8a431f319f14412a5673"
+}

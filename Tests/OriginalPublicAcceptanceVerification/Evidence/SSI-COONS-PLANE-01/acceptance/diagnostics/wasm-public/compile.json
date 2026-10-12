@@ -1,0 +1,33 @@
+{
+  "command": [
+    "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+    "-parse-as-library",
+    "-swift-version",
+    "6",
+    "-Onone",
+    "-enable-testing",
+    "-target",
+    "wasm32-unknown-wasip1",
+    "-sdk",
+    "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+    "-resource-dir",
+    "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static",
+    "-static-stdlib",
+    "-Xlinker",
+    "-z",
+    "-Xlinker",
+    "stack-size=67108864",
+    "-I",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/wasm/build/out/Products/Debug-webassembly-wasm32",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift",
+    "@/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/wasm-public/objects.rsp",
+    "-o",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/wasm-public/Acceptance.wasm"
+  ],
+  "exitCode": 1,
+  "elapsedSeconds": 7.270157458027825,
+  "wallLimitSeconds": 120,
+  "logSHA256": "28171ab56cd44dd0091f4722be0556c6a865943d01ffb6a1008fd4694138c6a8",
+  "fixtureSHA256": "5721d0d55891bad8e9f2c206d57d3bb2447ac9874a70f5726c946e2583462c60",
+  "premisesSHA256": "83b9581e17ac0266f97bab13372dd8b4725d08240bf0e390713ebba4442c54b1"
+}

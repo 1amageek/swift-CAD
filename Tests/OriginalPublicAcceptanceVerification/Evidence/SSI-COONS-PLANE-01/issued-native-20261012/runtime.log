@@ -1,0 +1,15 @@
+SOURCE_DI complete original Coons four-chart family
+PLANE_DI complete original unbounded UV graph
+L5_ENTRY chart 0
+L5_RESULT chart 0 selected 3 components 1
+L6_RESULT chart 0 strata 3
+L5_ENTRY chart 1
+L5_RESULT chart 1 selected 3 components 1
+L6_RESULT chart 1 strata 3
+L5_ENTRY chart 2
+L5_RESULT chart 2 selected 3 components 1
+L6_RESULT chart 2 strata 3
+L5_ENTRY chart 3
+L5_RESULT chart 3 selected 3 components 1
+L6_RESULT chart 3 strata 3
+SCOPE existing source/DI/L5/L6 diagnostic only; ordinary dispatch, whole-cell oracle, ownership publication and acceptance remain open

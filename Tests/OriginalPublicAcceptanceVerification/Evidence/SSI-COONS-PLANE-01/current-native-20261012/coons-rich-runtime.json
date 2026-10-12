@@ -1,0 +1,11 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/coons-observation",
+    "rich"
+  ],
+  "exitCode": "timeout",
+  "elapsedSeconds": 120.0138878748985,
+  "limitSeconds": 120,
+  "executableSHA256": "434c2c12634d5c4a427c5925d0fa1fd6b2d8c05e90ac83b5768b65e895acf9c5",
+  "logSHA256": "513d0d2a33f8469990e3227a730517ba835fa0e26f4890091b2a96dbf03c9fb9"
+}

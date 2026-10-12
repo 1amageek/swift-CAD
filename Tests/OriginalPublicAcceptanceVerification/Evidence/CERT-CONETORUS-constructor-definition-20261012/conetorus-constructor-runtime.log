@@ -1,0 +1,2 @@
+START_BRANCH 0
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: KernelError(phase: geometry, code: invalidInput, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: A general cone-torus curve requires non-coaxial source surfaces.)

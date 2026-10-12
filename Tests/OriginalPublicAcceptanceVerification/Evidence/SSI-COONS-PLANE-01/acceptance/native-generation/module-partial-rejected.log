@@ -1,0 +1,80 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:336:5: warning: 'internal' modifier conflicts with extension's default access of 'private'
+334 | 
+335 | private extension SurfaceParameterCurve {
+336 |     internal func thirdOrderDifferential(
+    |     `- warning: 'internal' modifier conflicts with extension's default access of 'private'
+337 |         atNormalizedFraction fraction: Double,
+338 |         on supportSurface: Surface3D,
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/BoundedParametricSurfaceIntersector.swift:202:9: warning: initialization of immutable value 'first' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+200 |     admission: SurfaceSurfaceQueryAdmission
+201 |   ) throws -> SurfaceSurfaceIntersection {
+202 |     let first = preparedFirstSurface.surface
+    |         `- warning: initialization of immutable value 'first' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+203 |     let second = preparedSecondSurface.surface
+204 |     let implicit: CertifiedImplicitIntersectionCurve
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/BoundedParametricSurfaceIntersector.swift:203:9: warning: initialization of immutable value 'second' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+201 |   ) throws -> SurfaceSurfaceIntersection {
+202 |     let first = preparedFirstSurface.surface
+203 |     let second = preparedSecondSurface.surface
+    |         `- warning: initialization of immutable value 'second' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+204 |     let implicit: CertifiedImplicitIntersectionCurve
+205 |     do {
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/CurveCurveContact/OriginalNativeCurveCurveCriticalContact.swift:32:22: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 30 |               parentDepth <= budget.maximumDepth else { throw budget.exhausted() }
+ 31 |         let maximumDepth = budget.maximumDepth - parentDepth
+ 32 |         let domain = try SurfaceParameterBox(u: firstRange, v: secondRange)
+    |                      `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 33 |         var emptyProjection = false
+ 34 |         for axes in [(0, 1), (0, 2), (1, 2)] {
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:336:5: warning: 'internal' modifier conflicts with extension's default access of 'private'
+334 | 
+335 | private extension SurfaceParameterCurve {
+336 |     internal func thirdOrderDifferential(
+    |     `- warning: 'internal' modifier conflicts with extension's default access of 'private'
+337 |         atNormalizedFraction fraction: Double,
+338 |         on supportSurface: Surface3D,
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:145:14: warning: case is already handled by previous patterns; consider removing it
+143 |                 .parameterDerivativesThroughThirdOrder(at: parameter, tolerance: image.sourceTolerance).thirdDerivative,
+144 |                 usage: &usage)
+145 |         case let .originalGuideTraversalChain(curve):
+    |              `- warning: case is already handled by previous patterns; consider removing it
+146 |             let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+147 |                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:153:14: warning: case is already handled by previous patterns; consider removing it
+151 |             third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint,
+152 |                 z: jet.z.derivatives[3].midpoint)
+153 |         case let .originalPolyline(curve):
+    |              `- warning: case is already handled by previous patterns; consider removing it
+154 |             let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+155 |                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:161:14: warning: case is already handled by previous patterns; consider removing it
+159 |             third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint,
+160 |                 z: jet.z.derivatives[3].midpoint)
+161 |         case let .originalGuideEndpointConnector(curve):
+    |              `- warning: case is already handled by previous patterns; consider removing it
+162 |             let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+163 |                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/ExactRectangularBSplineSurfacePatchBuilder.swift:155:217: warning: case is already handled by previous patterns; consider removing it
+153 |                 )
+154 |             )
+155 |         case .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted), .procedural(.originalAffineWord):
+    |                                                                                                                                                                                                                         `- warning: case is already handled by previous patterns; consider removing it
+156 |             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+157 |                 message: "An original foreign chart image requires retained-map surface conversion rather than canonical chart substitution.")
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/OriginalCoons/OriginalCurveTraversalContinuityAdmission.swift:77:17: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 75 |         case .originalGuideTraversalChain(let chain):
+ 76 |             guard depth < capability.remainingSourceDepth,
+ 77 |                 try !first.isNegative, !last.isNegative,
+    |                 `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 78 |                 try !ExactRationalCoefficient.one.subtracting(first, usage: &usage).isNegative,
+ 79 |                 try !ExactRationalCoefficient.one.subtracting(last, usage: &usage).isNegative else { return false }
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>

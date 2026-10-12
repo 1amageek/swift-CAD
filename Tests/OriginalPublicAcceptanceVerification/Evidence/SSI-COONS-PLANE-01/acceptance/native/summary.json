@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "groups": [
+    "bare-0-forward",
+    "bare-0-reverse",
+    "bare-1-forward",
+    "bare-1-reverse",
+    "bare-2-forward",
+    "bare-2-reverse",
+    "bare-empty",
+    "cancel",
+    "depth",
+    "empty",
+    "lifetime",
+    "requests",
+    "resources",
+    "success"
+  ],
+  "fixtureSHA256": "5721d0d55891bad8e9f2c206d57d3bb2447ac9874a70f5726c946e2583462c60",
+  "compileReceiptSHA256": "38bbb61308448fc7bd7d6ecb6ad8a088f382258b63c2cf20e4b679230d1c703d",
+  "productionSourceSnapshot": "dependency-builds/asan/receipt.json"
+}

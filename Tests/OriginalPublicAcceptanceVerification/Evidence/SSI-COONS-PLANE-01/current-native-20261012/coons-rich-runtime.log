@@ -1,0 +1,3 @@
+INPUT SSI-COONS-PLANE-01 original-four-chart-Coons full-square whole-plane-X=.5 stored-normal-unitX
+ORACLE XYZ=(.5,V,0); CoonsUV=(.5,V); planeUV=(0,-V); 0<=V<=1; image=1 fiber=0
+ENTRY rich

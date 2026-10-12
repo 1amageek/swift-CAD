@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "reviewCount": 1,
+  "findingOnlyConfirmationCount": 1,
+  "inputs": {
+    "Sources/CADGeometry/NativeExactRelations/OriginalSurfacePlaneRelationResolving.swift": "9ec101db1fd05a22b1a09c63f80eed941c033212a3fe26769a44100d62e3dd8d",
+    "Sources/CADGeometry/NativeExactRelations/OriginalSurfacePlaneRelations.swift": "ef5f1ca396d202557d07129949804acfc5f7e3d762d8699151e5a6e07c324178",
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalSurfacePlaneRelationResolver.swift": "b2af32721dced3a65371478c7f59305261fb5001139af94da501e0b9dd906d83",
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalRetainedCoonsPlanePublicProducer.swift": "4eb03c297e1490dda207baee5c90cc7fa5694cb20c4d9ab9bda891d83d496692",
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalSurfacePlaneGeometricRelations.swift": "da7fb3dc21ff87a266dfce501150fbcbbb90bf822edd2229e563fbd48b73b509",
+    "Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricPublication.swift": "ec7441e3b562edb6ec2107f01fa414b79dd6483fbea18e9f032dba49a7c68047",
+    "Sources/CADGeometry/DefaultSurfaceSurfaceIntersector.swift": "b935d4ea18c31e2d4885d9329120ecf19abbd2c5f351bc611dea27da02c653b4",
+    "Sources/CADGeometry/DefaultSurfaceSurfaceIntersector+Result.swift": "261f3b7fd03cf57d13bcc094b8a287bfa4c8c42f3c22f9c6707ce3d1def5bc62",
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md": "8767bd3a47240e46c5bed9dba8f30c4e00a734e47488c6c15d2e41721968360b",
+    "Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md": "65f034ee3db4767eda43af40eb9e44a968fa2189d425f6dde681722922ffac54",
+    "Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIAcceptance.swift": "e194f8d7ce5a348e8452b59dd07c48f0e922ad0bfcc417bbb4b87131b558c187",
+    "Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIPortability.py": "1b0fba3f18ee77e106e80ff39bf954462a61c619530451efa74c9dabf04b847b",
+    "Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIWASI.mjs": "a12890ac0ea7b6ad7790321f8aa5ce0ea31f79fdba3db047b09d7b4874f31bc7"
+  },
+  "cowTargetedChecks": {
+    "native": "950a494a3944c205810e10c00a6f8fd7f7c21b1a9210009d657fd79bb1222674",
+    "asan": "dfcb89186af90096495d29f3cfdfe975f9a8d63bfd9ebbc2a8be3bfe36a22797",
+    "wasm": "74547fcbb937c4adf23afcac5c600af64050e370d76e0a7ce9de4f96f76490b2",
+    "embedded": "198ebb4a17a92c122f364e7fc0fe8470c00b92b592babbe4d3b21775e3932b35"
+  }
+}

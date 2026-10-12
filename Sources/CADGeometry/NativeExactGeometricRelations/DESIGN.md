@@ -39,6 +39,38 @@ flowchart LR
 ```
 
 ## Contracts and Invariants
+
+### Ordinary retained Coons and plane SSI
+
+The ordinary bare/rich, caller-admitted and boxed SSI entries select the retained
+Coons/axis-normal plane producer before the historical numerical fallback. The
+producer reuses the original Coons atlas, issued domain/graph family, original
+plane basis/whole-domain compiler and mixed relation resolver. Applicability is
+decided before solving; a selected path never retries a legacy solver on failure.
+The scope is explicit: other source families and plane basis capabilities keep
+their existing dispatch and remain uncompleted coverage obligations.
+
+`OriginalSurfacePlaneGeometricRelations` implements the existing public reading
+protocol and retains the full mixed source relation plus existing L6 strata and
+exact points. Shared publication treats an absent transport as the original
+primitive parameter identity on EITHER source side. Plane-first therefore keeps
+public coordinate roles; it does not normalize the result to Coons-first.
+There is one L5 decomposition and one L6 resolution per retained chart pair.
+
+Rich results publish that owner even for a continuous or empty intersection.
+Bare array results explicitly report nonDiscreteIntersection for positive
+parameter dimension; they cannot return an empty array for a nonempty exact
+relation. Isolated contacts require the existing exact-point owner in rich output;
+an unimplemented numerical bare publisher must fail explicitly. All allocations,
+component/stratum/count bounds, source/transport depth and final cancellation use
+the original caller admission. Immutable owners and protocol witnesses are common
+to Native/WASM/Embedded; new mutable storage is limited to local scratch arrays.
+
+Verification owns full selection/all-incidence/XYZ/image-fiber oracles, both source
+orders, closed request boundaries/singletons/complete-empty, exact resource and
+one-less failures, callback terminal cancel and detached-source readers. Fixed
+four-lane receipts must bind the changed source and actual public dispatch bodies.
+Prepared-only evidence cannot discharge ordinary dispatch or main delivery.
 - Preserve every source parameter tuple, requested domain, nonzero denominator guard,
   complete selection and topology owner. Equal XYZ never merges distinct UV.
 - L5-backed publication resolves L6 exactly once from the retained L5 relation.

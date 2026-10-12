@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/pcurve-source-mapping-public-probe",
+    "PCURVE-OFFSET-PULLBACK-01"
+  ],
+  "status": "completed",
+  "exitCode": 0,
+  "elapsedSeconds": 0.008700749953277409,
+  "wallLimitSeconds": 30,
+  "sourceSHA256": "2775215e9b47096a92becba2e79bd0a34dd73da865045bebfd9f027958b122f6",
+  "executableSHA256": "5b9d7d2f484df924b7617cf13e0f1a790c08d009d918e3cf78506f859cdb8776",
+  "runtimeLogSHA256": "8b7efd8109938ad4e0b854c159d444dcb4d96bc7f315f271e0487bc26a0f1006"
+}

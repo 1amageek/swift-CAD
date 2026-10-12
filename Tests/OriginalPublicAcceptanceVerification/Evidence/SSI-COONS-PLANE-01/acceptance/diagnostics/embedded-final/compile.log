@@ -1,0 +1,14 @@
+error: link command failed with exit code 1 (use -v to see invocation)
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_getNormData
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_getNormData
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_getNormData
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_getNormData
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_getComposition
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_getComposition
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_getNormData
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_getDecompositionEntry
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_getNormData
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_nfd_decompositions
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_getNormData
+wasm-ld: error: /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.NWG8gK/Acceptance-1.o: undefined symbol: _swift_stdlib_getNormData
+clang: error: linker command failed with exit code 1 (use -v to see invocation)

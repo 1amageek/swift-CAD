@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/CoonsPlaneSSIWASI.mjs",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/wasm-final/Acceptance.wasm"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 3.6680408749962226,
+  "wallLimitSeconds": 120,
+  "logSHA256": "228ffe60a7e747eeaea23b78618c8a2a65aadcf30c2a28fa489e1093d10af918",
+  "executableSHA256": "765153c849e46965db32fbfa825f6b128646ddc913a1319aca3e144a7c6bdfa2",
+  "fixtureSHA256": "f85bfb16f36cd62a8e31c6775ae483878fe4d5855c355c6efbd95907fcc5980b",
+  "compileReceiptSHA256": "bd5d1d52c6b351b87ad7e4545c111baa4eec5546402c43d06245d3ff58fab5c1"
+}

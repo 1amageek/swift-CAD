@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/coons-plane-issued-oracle-probe"
+  ],
+  "status": "completed",
+  "exitCode": 0,
+  "elapsedSeconds": 1.1465012080734596,
+  "wallLimitSeconds": 90,
+  "sourceSHA256": "6cd38c3cb23fe1725948b2fcc6b47f7a9cbc87a548d465616b2287c76a0f17a4",
+  "executableSHA256": "d39012d45bc8b7b363b3799f1fbeb2e61fe5ca186e49f7dec67e6ed6e08c6546",
+  "runtimeLogSHA256": "dbe0ff96f0a1d149b024d6d60b8fd8d598d51e63b3dba2c6864c5d24de16f102",
+  "scope": "Full partition oracle on existing source/DI/L5/L6; not ordinary dispatch acceptance"
+}

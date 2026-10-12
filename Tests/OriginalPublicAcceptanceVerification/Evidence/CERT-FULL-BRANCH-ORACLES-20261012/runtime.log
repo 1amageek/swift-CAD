@@ -1,0 +1,9 @@
+{
+  "scope": "Independent full-branch oracle guard/root-domain bounds only; no CAD acceptance",
+  "periodBits": "401921fb54442d18",
+  "periodStrictlyBelowMathematicalFullTurn": true,
+  "sphereDiscriminantLowerBound": "38424481/25000000",
+  "coneQuadraticLowerBound": "261759681/400000000",
+  "referenceConeZLowerBound": "521/195",
+  "reversedQuarterSubcurveIncludesOnlyFirstPhysicalRoot": true
+}

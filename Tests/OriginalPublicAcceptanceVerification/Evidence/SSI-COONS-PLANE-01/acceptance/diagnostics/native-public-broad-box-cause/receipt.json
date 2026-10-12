@@ -1,0 +1,9 @@
+{
+  "exitCode": 0,
+  "elapsedSeconds": 7.620204665930942,
+  "fixtureSHA256": "bb7507433aade35f3d03d8e5d4b33e00cbcaa9a18960d4391028765209c25954",
+  "executableSHA256": "42a59609e48965eb93540abd94b1a1c612297db75047cd2cfaedb0daf0f0f4f4",
+  "premisesSHA256": "e4f08a0028be8944ffc29f9d0139728864161f1645300c21c6f748f2e642c8e1",
+  "logSHA256": "722328e18db75f94d407ae5b7c243fe582e8203f560b8bb007b6555b5baa6ba9",
+  "classification": "diagnostic only, not accepted success"
+}
