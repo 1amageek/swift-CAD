@@ -5,6 +5,9 @@ public struct OriginalImplicitCurveGraphReduction: Sendable {
     public typealias Graph = OriginalParametricGraphReceipt<OriginalImplicitCurveSnapshot,Field,OriginalImplicitCurveGraphEvidence>
     public let original: Graph
     public let graph: Graph
+    public var cellOrdinal: Int { original.evidence.cellOrdinal }
+    public var globalSupport: OriginalSourceParameterInterval<Field.Value> { original.evidence.globalSupport }
+    public var localParameter: Polynomial { original.evidence.localParameter }
     public let substitutedConditions: [OriginalParametricGraphCondition<Field>]
     public let conditionRanges: [OriginalSourceParameterInterval<Field.Value>]
     public let retainedConditionOrdinals: [Int]
@@ -47,7 +50,8 @@ public struct OriginalImplicitCurveGraphReduction: Sendable {
             try a.admitDepth(value:proofDepth.value,coefficient:proofDepth.coefficient)
             guard original.source.owner === graph.source.owner,
                 original.source.owner === original.evidence.source.owner,
-                graph.source.owner === graph.evidence.source.owner else {
+                graph.source.owner === graph.evidence.source.owner,
+                cellOrdinal == graph.evidence.cellOrdinal else {
                 throw OriginalSourceIssuanceFailure.foreignBinding
             }
             guard original.layout.variableCount == 5, original.layout.parameters.count == 1,

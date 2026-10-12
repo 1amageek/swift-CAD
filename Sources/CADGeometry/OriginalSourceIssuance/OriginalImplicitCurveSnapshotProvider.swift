@@ -6,11 +6,14 @@ public struct OriginalImplicitCurveSnapshotProvider: OriginalSourceSnapshotting 
     public init(tolerance: ModelingTolerance) { self.tolerance = tolerance }
 
     public static func supports(_ input: borrowing Curve3D) -> Bool {
-        guard case .implicit(let curve) = copy input, !curve.isClosed, curve.cells.count == 1,
-            curve.cells[0].freeParameter == .firstV, curve.cells[0].direction == .forward,
+        guard case .implicit(let curve) = copy input, !curve.isClosed,
+            curve.cells.count == 1 || curve.cells.count == 2,
             case .bSpline(let first) = curve.firstSurface,
             case .bSpline(let second) = curve.secondSurface,
             native(first, uDegree: 1), native(second, uDegree: 2) else { return false }
+        for cell in curve.cells {
+            guard cell.freeParameter == .firstV, cell.direction == .forward else { return false }
+        }
         let p = first.controlPoints, q = second.controlPoints
         guard p[0][0].x != p[0][1].x, p[0][0].y != p[1][0].y,
             q[0][0].y != q[0][2].y, q[0][0].z != q[1][0].z else { return false }
@@ -74,7 +77,7 @@ public struct OriginalImplicitCurveSnapshotProvider: OriginalSourceSnapshotting 
             try input.validate(tolerance: tolerance)
             guard limits.remainingSourceDepth > 0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
             // FIXME(INCOMPLETE_IMPLEMENTATION): The live implicit CS source port currently
-            // supplies only this single-cell triangular Native representation. General cells,
+            // supplies only one or two forward triangular Native cells. General cells,
             // hosts, free coordinates and directions need complete original graph authority.
             guard Self.supports(input), case .implicit(let curve) = copy input,
                 case .bSpline(let first) = curve.firstSurface,

@@ -1,11 +1,11 @@
 import CADCore
 
-/// Publishes the supported source-owned implicit cell through existing issued graph CS.
+/// Publishes the supported source-owned implicit family through existing issued graph CS.
 struct OriginalImplicitCurvePublicProducer {
     private typealias Base = OriginalExactScalarDomain
     private typealias Curve = OriginalImplicitCurveSnapshot
     private typealias Evidence = OriginalImplicitCurveGraphEvidence
-    private typealias CurveCover = OriginalCompleteCurveGraphDomainCover<Curve,Evidence,OriginalImplicitCurveGraphReduction>
+    private typealias CurveCover = OriginalCompleteCurveGraphDomainCover<Curve,Evidence,OriginalFiniteImplicitCurveGraphCoverage>
     private typealias Surface = BSplineSurface3D
     private typealias SurfaceChart = OriginalBSplineChartSelection
     private typealias SurfaceLaw = OriginalRationalChartReceipt<Surface,SurfaceChart,Base>
@@ -15,7 +15,7 @@ struct OriginalImplicitCurvePublicProducer {
         tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil,
         retainingRelations: Bool = false) throws -> CurveSurfaceIntersectionResult? {
         // FIXME(INCOMPLETE_IMPLEMENTATION): The ordinary implicit selector consumes
-        // only the source-owned single forward axis-separated Native cell capability.
+        // only the source-owned finite forward axis-separated Native cell capability.
         // Other implicit branches require complete original graph/coverage authority.
         guard OriginalImplicitCurveSnapshotProvider.supports(curve) else { return nil }
         // FIXME(INCOMPLETE_IMPLEMENTATION): This producer currently admits finite
@@ -77,11 +77,22 @@ struct OriginalImplicitCurvePublicProducer {
             let targetCover = try DefaultOriginalIssuedDomainBinder<Surface,SurfaceChart,Base>()
                 .bind(laws: targetFamily.laws, request: targetRequest, limits: limits, using: &a)
             let algebraic = try ExactAlgebraicScalarDomain.base(field: field, maximumExtensionLevel: Int.max, using: &a)
-            let first = try DefaultOriginalCompleteCurveGraphFamilyPreparer<Curve,Evidence,OriginalImplicitCurveGraphReduction>()
+            let first = try DefaultOriginalCompleteCurveGraphFamilyPreparer<Curve,Evidence,OriginalFiniteImplicitCurveGraphCoverage>()
                 .prepare(family: family, request: curveRequest, field: algebraic, maximumGraphs: charts, limits: limits, using: &a)
             let second = try DefaultOriginalRationalGraphFamilyPreparer<Surface,SurfaceChart>()
                 .prepare(cover: targetCover, field: algebraic, maximumGraphs: charts, limits: limits, using: &a)
-            for graph in first.graphs { try checkDegree(graph.original.graph, maximum: options.maximumPolynomialDegree, using: &a) }
+            guard first.graphs.count == family.coverage.reductions.count else {
+                throw ExactGeometricRelationFailure.invalidCoverage
+            }
+            for index in first.graphs.indices {
+                try a.consumeWork(1)
+                let graph = first.graphs[index].original.graph
+                guard graph.evidence.cellOrdinal == index,
+                    family.coverage.reductions[index].cellOrdinal == index else {
+                    throw ExactGeometricRelationFailure.invalidCoverage
+                }
+                try checkDegree(graph, maximum: options.maximumPolynomialDegree, using: &a)
+            }
             for graph in second.graphs { try checkDegree(graph.original.graph, maximum: options.maximumPolynomialDegree, using: &a) }
             let structural = try NativeExactPublicLimits.unboundedStructure(), topology = structural.topology
             let geometryLimits = try ExactGeometricRelationLimits(cells: structural.cells,
@@ -110,7 +121,7 @@ struct OriginalImplicitCurvePublicProducer {
                 transports: { pair in
                     (retainedRaw.first.graphs[pair.firstGraphIndex].original.graph.parameterTransport,
                      retainedRaw.second.graphs[pair.secondGraphIndex].original.graph.parameterTransport)
-                }, firstCoordinates: { _ in family.coverage.originalCoordinates }, using: &a)
+                }, firstCoordinates: { pair in family.coverage.reductions[pair.firstGraphIndex].originalCoordinates }, using: &a)
             typealias Geometry = OriginalIssuedGeometricRelations<Curve,Evidence,CurveCover,Surface,SurfaceLaw,SurfaceCover>
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Geometry.self))
             let geometry = Geometry(original: copy raw, pairs: publication.pairs, exactPoints: publication.points)

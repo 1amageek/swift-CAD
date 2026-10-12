@@ -1,0 +1,4 @@
+PASS actual closed-guide and ruled constructors
+PASS depth3 single parent, two retained depth2 guides, all seven closed ruled laws and exact authored UV/XYZ
+PASS complete fullUV issued cover and seven two-axis original graphs
+OBSERVATION_STOP relation(PublicLiftPlane.ExactParametricRelationFailure.cell(PublicLiftPlane.ExactRealCellFailure.scalar(CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.work))))

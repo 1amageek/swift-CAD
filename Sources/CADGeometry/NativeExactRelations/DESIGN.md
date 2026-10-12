@@ -768,6 +768,16 @@ readmission, binding, compilation, solving and publication work/storage/depth/
 cancellation. Unsupported coverage fails explicitly. Later proof reads receive
 their own explicit admission and readmit retained history.
 
+For CS-IMPLICIT-SPLIT-DYADIC-PARABOLA-PLANE-01, the source-owned finite
+coverage contains reductions in actual stored-cell order. Each evidence retains
+its original cell ordinal, closed global T support and checked local-parameter
+polynomial. The source owner proves the complete closed cover and exact shared
+host correspondence at the seam. The family bridge compiles every graph in that
+same order without filtering empty requested bindings. It preserves authored T
+as the sole parameter and does not regenerate local/global parameter laws. Raw
+pairs therefore retain the actual first-graph index and both seam incidents;
+collection proof history and every original five-coordinate graph remain retained.
+
 The source-owned complete-family theorem and its unique position/host lift
 authority are assumptions from [Source Issuance](../OriginalSourceIssuance/DESIGN.md).
 [Geometric publication](../NativeExactGeometricRelations/DESIGN.md#implicit-curve-publication)

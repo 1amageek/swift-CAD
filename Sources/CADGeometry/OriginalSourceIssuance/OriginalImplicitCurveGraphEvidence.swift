@@ -4,6 +4,10 @@ public struct OriginalImplicitCurveGraphEvidence: Sendable {
     public typealias Polynomial = ExactPolynomial<Field>
     public let source: OriginalSourceBinding<OriginalImplicitCurveSnapshot>
     public let field: Field
+    public let cellOrdinal: Int
+    public let globalSupport: OriginalSourceParameterInterval<Field.Value>
+    /// Exact original global T to this stored cell's normalized local parameter.
+    public let localParameter: Polynomial
     public let first: OriginalFiniteBSplineCharts<BSplineSurface3D>
     public let second: OriginalFiniteBSplineCharts<BSplineSurface3D>
     public let graphPolynomials: ExactPolynomialDomain<Field>
@@ -22,6 +26,7 @@ public struct OriginalImplicitCurveGraphEvidence: Sendable {
     public let proofDepth: ExactScalarDepth
 
     init(source: OriginalSourceBinding<OriginalImplicitCurveSnapshot>, field: Field,
+        cellOrdinal: Int, globalSupport: OriginalSourceParameterInterval<Field.Value>, localParameter: Polynomial,
         first: OriginalFiniteBSplineCharts<BSplineSurface3D>, second: OriginalFiniteBSplineCharts<BSplineSurface3D>,
         graphPolynomials: ExactPolynomialDomain<Field>, conditions: [OriginalParametricGraphCondition<Field>],
         parameterPolynomials: ExactPolynomialDomain<Field>, freeOffset: Field.Value, freeGain: Field.Value,
@@ -31,6 +36,7 @@ public struct OriginalImplicitCurveGraphEvidence: Sendable {
         eliminationEquations: [Int], eliminationPivots: [Field.Value], dependentJacobian: Polynomial,
         proofDepth: ExactScalarDepth) {
         self.source = source; self.field = field; self.first = first; self.second = second
+        self.cellOrdinal = cellOrdinal; self.globalSupport = globalSupport; self.localParameter = localParameter
         self.graphPolynomials = graphPolynomials; self.conditions = conditions
         self.freeOffset = freeOffset; self.freeGain = freeGain
         self.parameterPolynomials = parameterPolynomials; self.forwardHostCoordinates = forwardHostCoordinates
@@ -45,7 +51,9 @@ public struct OriginalImplicitCurveGraphEvidence: Sendable {
         do {
             try a.checkpoint(); try source.require(limits)
             try a.admitDepth(value: proofDepth.value, coefficient: proofDepth.coefficient)
-            guard limits.remainingSourceDepth > 0, first.laws.count == 1, second.laws.count == 1,
+            guard limits.remainingSourceDepth > 0,
+                cellOrdinal >= 0, cellOrdinal < source.original.original.cells.count,
+                first.laws.count == 1, second.laws.count == 1,
                 source.original.first.owns(first.laws[0].chart), source.original.second.owns(second.laws[0].chart) else {
                 throw OriginalSourceIssuanceFailure.foreignBinding
             }
@@ -68,6 +76,9 @@ public struct OriginalImplicitCurveGraphEvidence: Sendable {
                 }
             }
             try family(first); try family(second)
+            _ = try field.importing(globalSupport.lower,using:&a)
+            _ = try field.importing(globalSupport.upper,using:&a)
+            try polynomial(localParameter)
             for condition in conditions { try polynomial(condition.polynomial) }
             _ = try field.importing(freeOffset,using:&a); _ = try field.importing(freeGain,using:&a)
             for p in forwardHostCoordinates { try polynomial(p) }

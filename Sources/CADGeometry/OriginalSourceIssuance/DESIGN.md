@@ -2585,3 +2585,98 @@ the range/relation proofs and retained/eliminated partition, the reduced/origina
 coordinate publication and both full and empty requested domains under the
 unchanged allowance. The SourceIssuance component owns these five source files;
 the pair owner owns the complete-family/request bridge and numeric publication.
+
+## Finite Forward Implicit Cell Coverage
+
+This contract extends the preceding single-cell contract for
+CS-IMPLICIT-SPLIT-DYADIC-PARABOLA-PLANE-01. Its actual ordinary observation
+returns one numerical representative without any original receipt or the two
+closed seam incidents. The source selector currently declines the two-cell
+input. The extension admits only the existing single forward firstV cell or
+exactly two forward firstV cells over the same bounded triangular Native host
+profile. Closed sources, reversed traversal and other host representations
+remain outside this capability. This source contract alone does not establish
+ordinary public completeness.
+
+```text
+Immutable original curve + two retained Native host bindings
+    -> complete Native laws prepared once
+    -> stored-cell order / closed global-T span / checked local-T law
+    -> per-cell original five-coordinate graph and checked reduction
+    -> sealed finite coverage + existing complete graph family
+    -> existing DI graph compiler / L5 / L6 / every closed seam incident
+```
+
+OriginalFiniteImplicitCurveGraphCoverage is a new sealed source receipt. Its
+initializer remains internal; consumers cannot manufacture a complete cell
+cover. It owns the following public contract:
+
+| Member | Meaning |
+|---|---|
+| source: OriginalSourceBinding<OriginalImplicitCurveSnapshot> | The same immutable original curve and Native parent owners retained by every reduction. |
+| field: OriginalExactScalarDomain | The field owning all retained spans, polynomials and coefficients. |
+| reductions: [OriginalImplicitCurveGraphReduction] | Exactly one checked reduction per actual stored cell, in original order, without omissions or duplication. |
+| support: OriginalSourceParameterInterval<Field.Value> | The complete closed authored global T support [0,1], independent of the requested subdomain. |
+| proofDepth: ExactScalarDepth | The attained depth of the complete cover and every retained proof. |
+| admitProof(limits:using:) | Generic ExactScalarAdmission readmission, with typed OriginalSourceIssuanceFailure and the same caller ledger. |
+
+OriginalImplicitCurveGraphEvidence adds cellOrdinal: Int,
+globalSupport: OriginalSourceParameterInterval<Field.Value>, and
+localParameter: ExactPolynomial<Field>. OriginalImplicitCurveGraphReduction
+exposes those same fields through its retained original evidence. For actual
+cell count n and ordinal i, the source derives globalSupport = [i/n,(i+1)/n]
+and localParameter = n*T-i by exact integer field arithmetic. It validates the
+stored free-coordinate law lower + width*localParameter, including the exact
+binary imports of lower, upper and the original stored width. Its affine
+global coefficients must reproduce both authored free endpoints exactly.
+No fixture coordinate, special seam fraction or fitted curve is authority.
+
+Both the original five-coordinate graph and reduced one-coordinate graph use
+original global T, with identity parameter transport. Each span includes both
+endpoints. Forward host-coordinate laws, homogeneous position and total T
+derivative are derived and checked in that global coordinate. All original
+three position equations, the free-coordinate equation, all 27 conditions,
+denominators, elimination witnesses and ordinal correspondence remain retained
+per cell. Existing exact Bernstein range proofs operate after affine pullback
+of each global span to local [0,1]; a guard may be removed from solver input
+only when its range proves it on that entire closed span. Unknown guards stay
+active, and unresolved authority or scalar failures propagate.
+
+The source verifies a complete ordered closed cover, the local/global endpoint
+identities, and exact agreement of all four issued host-coordinate maps at
+every shared endpoint. Triangular uniqueness then identifies the two endpoint
+lifts with the same original host tuple, retaining both cell ordinals and
+local labels. Position equality follows from the retained original host laws;
+constructor tolerance connectivity or numerical anchors are not substituted
+for this exact seam proof. The family uses this finite coverage as Coverage,
+with family.graphs[i] equal to coverage.reductions[i].graph. Whole support
+remains [0,1]; request clipping is owned by the existing domain binder.
+
+Readmission checks original source and Native parent owners, field imports,
+original cell order/count, closed span cover, local endpoint maps, every
+per-cell reduction and attained depths under the same admission. Allocation,
+traversal, comparisons, work, storage and cancellation are charged to that
+ledger. Native laws are prepared once and immutably shared by the per-cell
+evidence. Cell count does not invent another source nesting level. Maximum
+chart, source depth and exact-work failures propagate without becoming a
+capability decline. Stored state, Sendable and lifetime contracts remain the
+same on Native, WASM and Embedded.
+
+The pair owner consumes the complete coverage through a finiteCoverage reader
+requirement and selects the actual reduction using checked firstGraphIndex
+and cellOrdinal correspondence. Explicit firstReduction/firstEvidence views
+describe only the first stored cell. Legacy reduction/evidence accessors are
+deprecated aliases of those first-cell views, preserving single-cell source
+compatibility; they never denote complete multi-cell authority. Existing
+per-pair coordinate publication and exact TUV incident grouping are reused.
+No lower graph contract, new root solver, query ceiling or materialized
+seven-coordinate solver partition is introduced.
+
+Verification must preserve the accepted single-cell behavior and show one
+public seam point with both exact stored-cell incidents, source-issued local
+labels 1 and 0, original host UV4 and XYZ, plus complete empty restricted T.
+It must check cover/order/owner identity, all per-cell original and substituted
+conditions, span-scoped range witnesses, foreign-field/depth/budget/cancel
+failures and detached/COW lifetime. The existing compiler and relation
+consumers remain unchanged premises; actual ordinary publication is required
+before this finite cell counts as complete.

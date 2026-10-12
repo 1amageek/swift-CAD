@@ -1,0 +1,3 @@
+POSITIVE bare diagnostic The original lift lies in the plane over a positive-dimensional domain.
+PASS affine guards: exact open/closed/equality/complement/constant/negative-slope preimages; map constant/finite and invalid weight/arity; foreign query refusal
+PASS ordinary public positive-dimensional lift/plane: bare refuses, rich retains complete image/fiber relation

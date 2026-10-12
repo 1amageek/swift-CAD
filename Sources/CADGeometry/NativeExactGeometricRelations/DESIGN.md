@@ -664,6 +664,25 @@ source-issued full graph5 + checked graph1 and bijective forward host laws
     -> ordinary numerical points + retained implicit/source/geometric receipts
 ```
 
+The split-cell consumer selects the source reduction by the actual pair's
+`firstGraphIndex`, checked against the corresponding graph evidence's original
+cell ordinal. Exact coordinate restoration, tuple validation, total derivative
+and represented position all use that same cell's sealed reduction. The shared
+numeric publisher already supplies the actual graph to these operations and
+retains every exact incident while grouping equal TUV tuples. No generic grouping
+or evaluator protocol change is required. At the shared endpoint, the complete
+result has one exact TUV group and two actual cell incidents; the source-owned
+local-parameter laws identify cell 0's local end and cell 1's local start. Neither
+a coordinate sample nor equality of XYZ replaces the finite-cover/seam theorem.
+The public complete-family reader retains the entire finite coverage, including
+all reductions, guards and owners for empty results and later admitted reads.
+Its `finiteCoverage` requirement is the whole-family authority. Explicit
+`firstEvidence` and `firstReduction` requirements denote only the first stored
+cell. Legacy `evidence` and `reduction` remain deprecated aliases to those
+first-cell views, preserving existing single-cell source compatibility without
+claiming that one cell covers a split family. All production consumers use the
+complete collection and the actual graph/pair correspondence.
+
 Verification owns the actual ordinary bare/rich and callback routes, full TUV and
 host UV oracle over every retained terminal cell, complete empty/singleton
 selections, image/fiber meaning, candidate/source/depth/resource/cancel boundaries

@@ -1,0 +1,5 @@
+RUN M6 hole closed
+RUN M6 hole strict
+RUN M6 hole boundary
+PASS M6 exact public face holes, strict/closed/boundary and exact raw/refined owners
+PASS M6 exact L5 public face boundary consumers holes

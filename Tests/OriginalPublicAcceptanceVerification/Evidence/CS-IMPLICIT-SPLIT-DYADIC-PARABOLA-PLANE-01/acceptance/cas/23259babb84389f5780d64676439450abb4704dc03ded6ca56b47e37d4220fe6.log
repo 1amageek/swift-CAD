@@ -1,0 +1,4 @@
+(node:60777) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+continuous-exact-representation true numeric-empty true dimensions-1-1-0 true
+PASS split implicit finite acceptance continuous

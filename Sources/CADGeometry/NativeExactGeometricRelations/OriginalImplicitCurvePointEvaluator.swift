@@ -6,25 +6,34 @@ struct OriginalImplicitCurvePointEvaluator: OriginalRationalGraphCurvePointEvalu
     typealias Algebraic = ExactAlgebraicScalarDomain<Base>
     typealias Graph = OriginalParametricGraphReceipt<Source,Base,Evidence>
 
-    let reduction: OriginalImplicitCurveGraphReduction
+    let finiteCoverage: OriginalFiniteImplicitCurveGraphCoverage
 
     func admit<A: ExactScalarAdmission & ~Copyable>(_ graph: Graph,
         limits: OriginalDomainIdentityLimits, using a: inout A) throws {
-        try a.checkpoint(); try reduction.admitProof(limits: limits.source, using: &a)
+        try a.checkpoint()
+        let reduction = try selectedReduction(graph, using: &a)
+        try reduction.admitProof(limits: limits.source, using: &a)
         try OriginalRationalGraphPointAccess.requireIdentity(graph, arity: 1, using: &a)
         let evidence = graph.evidence
         let anchor = try reduction.original.source.chart(0, limits: limits.source, using: &a)
-        guard graph.source.owns(anchor), reduction.graph.source.owns(anchor),
+        guard graph.source.owns(anchor), reduction.graph.source.owns(anchor), finiteCoverage.source.owns(anchor),
             graph.layout.auxiliaries.isEmpty, reduction.originalCoordinates.count == 5,
             evidence.parameterPolynomials.variableCount == 1,
             evidence.forwardHostCoordinates.count == 4, evidence.forwardHomogeneous.count == 4,
-            evidence.forwardHomogeneousDerivative.count == 4, evidence.hostCoordinateRanges.count == 4 else {
+            evidence.forwardHomogeneousDerivative.count == 4, evidence.hostCoordinateRanges.count == 4,
+            graph.support.count == 1, graph.includesUpperBoundary.count == 1,
+            graph.includesUpperBoundary[0] else {
             throw ExactGeometricRelationFailure.invalidSourceBinding
+        }
+        guard try graph.field.compare(graph.support[0].lower, reduction.globalSupport.lower, using: &a) == .equal,
+            try graph.field.compare(graph.support[0].upper, reduction.globalSupport.upper, using: &a) == .equal else {
+            throw ExactGeometricRelationFailure.invalidCoverage
         }
     }
 
     func validate<A: ExactScalarAdmission & ~Copyable>(_ point: OriginalIssuedExactIntersectionPoint,
         graph: Graph, limits: OriginalDomainIdentityLimits, using a: inout A) throws {
+        let reduction = try selectedReduction(graph, using: &a)
         try reduction.admitProof(limits: limits.source, using: &a)
         guard point.firstParameters.count == 1, let restored = point.originalFirstCoordinates,
             restored.count == 5 else { throw ExactGeometricRelationFailure.invalidSourceBinding }
@@ -39,7 +48,7 @@ struct OriginalImplicitCurvePointEvaluator: OriginalRationalGraphCurvePointEvalu
                 throw ExactGeometricRelationFailure.invalidCoverage
             }
         }
-        try validateOriginal(restored, field: field, using: &a)
+        try validateOriginal(restored, reduction: reduction, field: field, using: &a)
         let values = try homogeneous(graph.evidence.forwardHomogeneous, at: point.firstParameters, ring: ring, using: &a)
         guard try field.sign(of: values[3], using: &a) != .zero else { throw ExactGeometricRelationFailure.invalidCoverage }
         for index in 0..<3 {
@@ -51,7 +60,7 @@ struct OriginalImplicitCurvePointEvaluator: OriginalRationalGraphCurvePointEvalu
     }
 
     private func validateOriginal<A: ExactScalarAdmission & ~Copyable>(_ coordinates: [Algebraic.Value],
-        field: Algebraic, using a: inout A) throws {
+        reduction: OriginalImplicitCurveGraphReduction, field: Algebraic, using a: inout A) throws {
         let original = reduction.original
         let ring = try ExactPolynomialDomain(field: field, variableCount: 5, using: &a)
         for axis in original.layout.parameters.indices {
@@ -83,9 +92,10 @@ struct OriginalImplicitCurvePointEvaluator: OriginalRationalGraphCurvePointEvalu
     func tangent<A: ExactScalarAdmission & ~Copyable>(_ graph: Graph,
         at parameters: [Algebraic.Value], field: Algebraic, using a: inout A) throws -> [Algebraic.Value] {
         guard parameters.count == 1 else { throw ExactGeometricRelationFailure.invalidSourceBinding }
+        let evidence = try selectedReduction(graph, using: &a).original.evidence
         let ring = try ExactPolynomialDomain(field: field, variableCount: 1, using: &a)
-        let value = try homogeneous(graph.evidence.forwardHomogeneous, at: parameters, ring: ring, using: &a)
-        let derivative = try homogeneous(graph.evidence.forwardHomogeneousDerivative, at: parameters, ring: ring, using: &a)
+        let value = try homogeneous(evidence.forwardHomogeneous, at: parameters, ring: ring, using: &a)
+        let derivative = try homogeneous(evidence.forwardHomogeneousDerivative, at: parameters, ring: ring, using: &a)
         guard try field.sign(of: value[3], using: &a) != .zero else { throw ExactGeometricRelationFailure.invalidCoverage }
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Algebraic.Value.self))
         var tangent: [Algebraic.Value] = []; tangent.reserveCapacity(3)
@@ -100,7 +110,8 @@ struct OriginalImplicitCurvePointEvaluator: OriginalRationalGraphCurvePointEvalu
     func position<A: ExactScalarAdmission & ~Copyable>(_ graph: Graph, numbers: [Double],
         field: Base, limits: OriginalDomainIdentityLimits, using a: inout A) throws -> [OriginalExactScalar]? {
         guard !numbers.isEmpty else { throw ExactGeometricRelationFailure.invalidSourceBinding }
-        let evidence = graph.evidence, ring = evidence.parameterPolynomials
+        let reduction = try selectedReduction(graph, using: &a)
+        let evidence = reduction.original.evidence, ring = evidence.parameterPolynomials
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalExactScalar.self))
         let parameter = [try evidence.field.binary64(exactly: numbers[0], using: &a)]
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 5, of: OriginalExactScalar.self))
@@ -128,6 +139,18 @@ struct OriginalImplicitCurvePointEvaluator: OriginalRationalGraphCurvePointEvalu
             result.append(try field.importing(evidence.field.dividing(numerator, weight, using: &a), using: &a))
         }
         return result
+    }
+
+    private func selectedReduction<A: ExactScalarAdmission & ~Copyable>(_ graph: Graph,
+        using a: inout A) throws -> OriginalImplicitCurveGraphReduction {
+        try a.consumeWork(1)
+        let ordinal = graph.evidence.cellOrdinal
+        guard ordinal >= 0, ordinal < finiteCoverage.reductions.count else {
+            throw ExactGeometricRelationFailure.invalidSourceBinding
+        }
+        let reduction = finiteCoverage.reductions[ordinal]
+        guard reduction.cellOrdinal == ordinal else { throw ExactGeometricRelationFailure.invalidCoverage }
+        return reduction
     }
 
     private func homogeneous<A: ExactScalarAdmission & ~Copyable>(_ laws: [ExactPolynomial<Base>],

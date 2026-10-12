@@ -1,0 +1,7 @@
+(node:60613) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ordinary-work 881807
+ordinary-bytes 10602744
+ordinary-work 883507
+ordinary-bytes 10859288
+PASS split implicit finite acceptance ordinary

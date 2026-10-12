@@ -3,7 +3,10 @@ public struct OriginalImplicitCurveSnapshot: Sendable {
     public let original: CertifiedImplicitIntersectionCurve
     public let first: OriginalSourceBinding<BSplineSurface3D>
     public let second: OriginalSourceBinding<BSplineSurface3D>
-    public var cell: CertifiedImplicitIntersectionGraphCell { original.cells[0] }
+    public var cells: [CertifiedImplicitIntersectionGraphCell] { original.cells }
+    public var firstCell: CertifiedImplicitIntersectionGraphCell { original.cells[0] }
+    @available(*, deprecated, renamed: "firstCell")
+    public var cell: CertifiedImplicitIntersectionGraphCell { firstCell }
 
     init(original: CertifiedImplicitIntersectionCurve,
         first: OriginalSourceBinding<BSplineSurface3D>, second: OriginalSourceBinding<BSplineSurface3D>) {

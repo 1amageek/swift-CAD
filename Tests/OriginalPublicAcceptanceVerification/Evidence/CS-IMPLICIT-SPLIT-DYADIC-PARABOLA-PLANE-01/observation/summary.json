@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "cell": "CS-IMPLICIT-SPLIT-DYADIC-PARABOLA-PLANE-01",
+  "status": "native-ordinary-observation-recorded",
+  "observationComplete": true,
+  "sourceContractComplete": false,
+  "cellComplete": false,
+  "scope": {
+    "lane": "native",
+    "ordinaryCalls": 1,
+    "constructorCalls": 1,
+    "upperBodies": 56,
+    "selectorBodies": 1,
+    "swiftInputs": 58,
+    "cachedArchives": 13,
+    "totalArchivesIncludingImplicitSourcePhase": 14,
+    "compiledSourceBodies": 0,
+    "compiledLowerBodies": 0,
+    "compileRuntimeReplayForPackaging": 0
+  },
+  "sourceAtCompile": "387e647952cad68310949e745c25578948853c9d",
+  "headAfter": "387e647952cad68310949e745c25578948853c9d",
+  "fixture": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-SPLIT-DYADIC-PARABOLA-PLANE-01/observation/cas/aedefbeb1ae58bfa0ded66e0ab1c6501ff7f7f353fe8474e624cc66a6bc11bf1.swift",
+    "sha256": "aedefbeb1ae58bfa0ded66e0ab1c6501ff7f7f353fe8474e624cc66a6bc11bf1",
+    "bytes": 10510,
+    "kind": "frozen-observation-text"
+  },
+  "runner": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-SPLIT-DYADIC-PARABOLA-PLANE-01/observation/cas/ad1ffbf5d9e2b4ba9e34123e57710f5bd07c601f11dd750841394cb464726a02.py",
+    "sha256": "ad1ffbf5d9e2b4ba9e34123e57710f5bd07c601f11dd750841394cb464726a02",
+    "bytes": 6712,
+    "kind": "frozen-observation-text"
+  },
+  "rawReceipt": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-SPLIT-DYADIC-PARABOLA-PLANE-01/observation/cas/952c65579afa1af590c7e08356e0efedd7b7a2b31e60d2b40e809d91d21c7dc5.json",
+    "sha256": "952c65579afa1af590c7e08356e0efedd7b7a2b31e60d2b40e809d91d21c7dc5",
+    "bytes": 154495,
+    "kind": "frozen-observation-text"
+  },
+  "command": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-SPLIT-DYADIC-PARABOLA-PLANE-01/observation/cas/b1c5e7a6ed4230ba3be9923a0bff5b93799409d56477d9f472dc2b873e2ce779.json",
+    "sha256": "b1c5e7a6ed4230ba3be9923a0bff5b93799409d56477d9f472dc2b873e2ce779",
+    "bytes": 15215,
+    "kind": "frozen-observation-text"
+  },
+  "runtimeLog": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-SPLIT-DYADIC-PARABOLA-PLANE-01/observation/cas/4db7a9adcc1511bfecfc241f0adb0c58fe7ff76df0145f3877c6dbd4542b03d3.log",
+    "sha256": "4db7a9adcc1511bfecfc241f0adb0c58fe7ff76df0145f3877c6dbd4542b03d3",
+    "bytes": 2117,
+    "kind": "frozen-observation-text"
+  },
+  "compilerLog": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "kind": "command-receipt-log-or-fixture"
+  },
+  "bindings": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-SPLIT-DYADIC-PARABOLA-PLANE-01/observation/cas/f7cfeb72bc5be6051fe5b2e43c0aff1c1c66262af2aab8cd914dfaad25c1e54a.json",
+    "sha256": "f7cfeb72bc5be6051fe5b2e43c0aff1c1c66262af2aab8cd914dfaad25c1e54a",
+    "bytes": 85578,
+    "kind": "frozen-observation-text"
+  },
+  "independentOracle": {
+    "firstSupport": "S1(a,b)=(a/32,b/64,0)",
+    "secondSupport": "S2(s,r)=(s^2/32,s/64,(2r-1)/64)",
+    "target": "H(U,V)=(U/32,1/128,(2V-1)/64)",
+    "closedCellLayout": "i in {0,1}, lambda in [0,1], T=(i+lambda)/2, tau=1/4+T/2",
+    "sourceParameters": "(a,b;s,r)=(tau^2,tau;tau,1/2)",
+    "soleTuple": [
+      "1/2",
+      "1/4",
+      "1/2"
+    ],
+    "firstHostUV": [
+      "1/4",
+      "1/2"
+    ],
+    "secondHostUV": [
+      "1/2",
+      "1/2"
+    ],
+    "xyz": [
+      "1/128",
+      "1/128",
+      "0"
+    ],
+    "dimensions": [
+      0,
+      0,
+      0
+    ],
+    "closedIncidents": [
+      {
+        "storedCell": 0,
+        "local": "1"
+      },
+      {
+        "storedCell": 1,
+        "local": "0"
+      }
+    ],
+    "completeEquality": "Y equality forces tau=1/2; X and Z force U=1/4,V=1/2.",
+    "guards": "All selected original UV coordinates remain inside both stored closed cells and support/target knot boxes."
+  },
+  "observed": {
+    "cellComplete": false,
+    "exactNumericalTupleMatchesIndependentOracle": false,
+    "hasPositiveDimensionalSolutions": false,
+    "overlapCount": 0,
+    "overlaps": [],
+    "pointCount": 1,
+    "points": [
+      {
+        "iterations": 1,
+        "kind": "transverse",
+        "originalCurveBoundary": false,
+        "residual": 3.496446946337351e-18,
+        "t": 0.5,
+        "u": 0.25000000000000017,
+        "v": 0.5,
+        "xyz": [
+          0.007812500000000005,
+          0.007812500000000003,
+          -8.673617379884035e-19
+        ]
+      }
+    ],
+    "receiptPresence": {
+      "originalAffinePoints": false,
+      "originalAngularPlaneRelation": false,
+      "originalCertifiedApexPlaneExclusion": false,
+      "originalContainedLiftPlaneFamily": false,
+      "originalCoonsPoints": false,
+      "originalExactGeometricRelation": false,
+      "originalImplicitCurveRelation": false,
+      "originalIssuedGeometricRelation": false,
+      "originalIssuedNumericalPoints": false,
+      "originalNativePoints": false,
+      "originalNativeRelations": false,
+      "originalPolynomialPoints": false,
+      "originalRevolutionAxisRelation": false
+    },
+    "representation": "numericalRepresentatives",
+    "stage": "public-result"
+  },
+  "roundingComparison": {
+    "representativeMinusExactRational": {
+      "t": "0",
+      "u": "3/18014398509481984",
+      "v": "0",
+      "xyz": [
+        "3/576460752303423488",
+        "1/288230376151711744",
+        "-1/1152921504606846976"
+      ]
+    },
+    "interpretation": "Small binary64 representative differences do not establish root loss or merging. No original receipt proves the exact tuple, original host UV, both seam incidents or full requested coverage."
+  },
+  "integrity": {
+    "prePostHashesMatch": true,
+    "fixedChecks": 539,
+    "finalRecordedChecks": 542,
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-split-observation-20261013/Observation": "50839b881f6a0720b2e1e5a5c2bb684f9092c379164aa1409cf5bf71c9a03135"
+    },
+    "ownedDescendantsRemaining": [
+      [],
+      []
+    ]
+  },
+  "resources": [
+    {
+      "label": "compile-link",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 19.563488790998235,
+      "cumulativeElapsedSeconds": 19.563569457968697,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "cumulativeOwnedCPULimitSeconds": 120,
+      "sampledCumulativeCPUSeconds": 15.44,
+      "peakOwnedProcessResidentSumKiB": 643920,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "runtime",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 1.799913041992113,
+      "cumulativeElapsedSeconds": 21.704977874993347,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "cumulativeOwnedCPULimitSeconds": 120,
+      "sampledCumulativeCPUSeconds": 16.45,
+      "peakOwnedProcessResidentSumKiB": 16880,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "4db7a9adcc1511bfecfc241f0adb0c58fe7ff76df0145f3877c6dbd4542b03d3"
+    }
+  ],
+  "remainingGap": "Ordinary result must retain original split source/DI, exact sole tuple and host UV, both closed seam incidents, and whole-request coverage."
+}
