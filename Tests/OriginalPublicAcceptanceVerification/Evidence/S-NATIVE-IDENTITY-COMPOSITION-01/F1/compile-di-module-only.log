@@ -1,0 +1,16 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-identity-composition-f1-native-20261013-v1/DI-inputs/OriginalParameterIdentity/OriginalParameterIdentity.swift:18:24: error: cannot find type 'OriginalIdentityReadmission' in scope
+16 |         let boundaries: [OriginalSourceBoundaryDeclaration<S>]
+17 |         let parents: [OriginalParameterIdentity<S,F>]
+18 |         let inherited: OriginalIdentityReadmission<F>?
+   |                        `- error: cannot find type 'OriginalIdentityReadmission' in scope
+19 |         init(sources: [OriginalSourceBinding<S>],laws: [ExactPolynomial<F>],periods: [OriginalSourcePeriodReceipt<S,F>],boundaries: [OriginalSourceBoundaryDeclaration<S>],poles: [OriginalSourcePoleReceipt<S,F>],fibers: [OriginalSourceCollapsedFiberReceipt<S,F>],parents: [OriginalParameterIdentity<S,F>], inherited: OriginalIdentityReadmission<F>? = nil) {
+20 |             self.sources = sources; self.laws = laws; self.periods = periods; self.boundaries = boundaries; self.poles = poles; self.fibers = fibers; self.parents = parents
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-identity-composition-f1-native-20261013-v1/DI-inputs/OriginalParameterIdentity/OriginalParameterIdentity.swift:19:317: error: cannot find type 'OriginalIdentityReadmission' in scope
+17 |         let parents: [OriginalParameterIdentity<S,F>]
+18 |         let inherited: OriginalIdentityReadmission<F>?
+19 |         init(sources: [OriginalSourceBinding<S>],laws: [ExactPolynomial<F>],periods: [OriginalSourcePeriodReceipt<S,F>],boundaries: [OriginalSourceBoundaryDeclaration<S>],poles: [OriginalSourcePoleReceipt<S,F>],fibers: [OriginalSourceCollapsedFiberReceipt<S,F>],parents: [OriginalParameterIdentity<S,F>], inherited: OriginalIdentityReadmission<F>? = nil) {
+   |                                                                                                                                                                                                                                                                                                                             `- error: cannot find type 'OriginalIdentityReadmission' in scope
+20 |             self.sources = sources; self.laws = laws; self.periods = periods; self.boundaries = boundaries; self.poles = poles; self.fibers = fibers; self.parents = parents
+21 |             self.inherited = inherited

@@ -1,0 +1,9 @@
+(node:97573) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+START S-NATIVE-IDENTITY-COMPOSITION-01 one complete original-domain public query
+PASS exact original fold, once-bound same owner, one chart/pair and checked whole closed directed edge
+PASS actual E/R/S/I/C: middle intersection and full pullback, reverse closed J, depth3/proofCount5
+METRIC preparationWork/storage 8111108 124562104 
+METRIC publicReturnWork/storage 23468132 368075957 
+METRIC raw/refined/included/work/bytes 45 2409 31 74427 2174572 
+PASS every terminal raw/refined iff: (u,v,-u,v), u!=0, NOT(u=1 AND -1/2<=v<=1/2); alignment/range retained, image2/fiber0 is oracle meaning

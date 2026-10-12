@@ -1,0 +1,7 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-identity-composition-prototype-20261013-v2/NativeIdentityCompositionAcceptance.swift:329:29: error: main() must be '@MainActor'
+327 |         var oracleAdmission = try ledger();try oracle(result,&oracleAdmission)
+328 |     }
+329 |     nonisolated static func main() {
+    |                             `- error: main() must be '@MainActor'
+330 |         do { try run() }
+331 |         catch {

@@ -1,0 +1,5 @@
+(node:31487) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+START M6 exact self pole
+PASS M6 exact collapsed pole product proof excludes only selected open scope
+PASS M6 complete Native exact self-contact consumer pole

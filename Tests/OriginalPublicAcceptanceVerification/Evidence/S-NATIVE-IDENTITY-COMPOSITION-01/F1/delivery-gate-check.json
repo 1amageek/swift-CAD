@@ -1,0 +1,12 @@
+{
+  "command": [
+    "python3",
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/integration-audit.py",
+    "7cdadc501f948f8f7ec0b8321e2e9a7ff1d2da7b",
+    "--deliver"
+  ],
+  "timeoutSeconds": 10,
+  "exitCode": 1,
+  "matchedFailure": "F1 current-source binding remains open; acceptance delivery is disabled",
+  "gitOperationsReached": false
+}

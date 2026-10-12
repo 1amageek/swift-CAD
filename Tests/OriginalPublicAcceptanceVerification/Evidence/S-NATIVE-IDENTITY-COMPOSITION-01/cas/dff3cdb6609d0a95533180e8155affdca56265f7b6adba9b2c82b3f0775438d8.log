@@ -1,0 +1,7 @@
+(node:97881) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS exact original fold, once-bound same owner, one chart/pair and checked whole closed directed edge
+PASS actual E/R/S/I/C: middle intersection and full pullback, reverse closed J, depth3/proofCount5
+METRIC raw/refined/included/work/bytes 45 2409 31 74427 2174572 
+PASS every terminal raw/refined iff: (u,v,-u,v), u!=0, NOT(u=1 AND -1/2<=v<=1/2); alignment/range retained, image2/fiber0 is oracle meaning
+PASS independent prepared query exact workN/storageN; whole-cell oracle uses separate ledger

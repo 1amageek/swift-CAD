@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "cell": "CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01",
+  "files": [
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/bindings.json",
+      "sha256": "aab4da8ea7a9f9c29466a5165608f32c986f7c2377ca5a475d5a95cd66b27e84",
+      "bytes": 71785,
+      "kind": "durable-observation-text"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/cas/2136d1cd7f6a2ac3a7dc2f2397bc3212f94bced801bd5089a2000552f65c9304.swift",
+      "sha256": "2136d1cd7f6a2ac3a7dc2f2397bc3212f94bced801bd5089a2000552f65c9304",
+      "bytes": 39007,
+      "kind": "durable-observation-text"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/compile-command.json",
+      "sha256": "e00d7e6552407b5bc095e819fd75a3712c3aba38c5813650e65826f3dcff0970",
+      "bytes": 12531,
+      "kind": "durable-observation-text"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/compile-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "durable-observation-text"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/execution-started.json",
+      "sha256": "879a58faf3a43dd230bba991d8226eb145401890d0e58a2e7500771e29f11ffb",
+      "bytes": 151,
+      "kind": "durable-observation-text"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/premises.json",
+      "sha256": "3830d46dda637e0700608f6b5b04b6852b0f47bbfe4bb10119952615822b042e",
+      "bytes": 132353,
+      "kind": "durable-observation-text"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/receipt.json",
+      "sha256": "0151343facc2f3c14b01630f2fcfa9a5314c6e2d7d5ee3356e2f3c5d7fab4c2c",
+      "bytes": 137406,
+      "kind": "durable-observation-text"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/runs.json",
+      "sha256": "d887f30e4fd55285e8271332827c99195e27a92238699fcf1a328da46cbe53bb",
+      "bytes": 14262,
+      "kind": "durable-observation-text"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/runtime.log",
+      "sha256": "32393be6779c6096209791d418f5c8e9a7d68fe228d4e2ed6c779309587d5c35",
+      "bytes": 1825,
+      "kind": "durable-observation-text"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-DYADIC-PARABOLA-PLANE-01/observation/summary.json",
+      "sha256": "b665dfe6c85e3b32deb4564bacf3e1cc96cd1e2ed9cc17ebd5791b5f27564051",
+      "bytes": 23803,
+      "kind": "durable-observation-text"
+    }
+  ],
+  "trackedCode": [
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaObservation.swift",
+      "sha256": "64124f64bb40cf165076181ba7bbceb188b06904849b4216691a7af5b8423142",
+      "bytes": 7699,
+      "kind": "exact-observed-fixture"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/ImplicitDyadicParabolaObservation.py",
+      "sha256": "9afbb3e0823ea5ee9b80f5b7d755489e8164da66844cc9d7bcc6673841521085",
+      "bytes": 13443,
+      "kind": "exact-observed-runner"
+    }
+  ],
+  "reusedUpperCompilerCAS": 39,
+  "reusedSelectorCAS": 1,
+  "newCompilerTextCAS": 1,
+  "binaryCopied": false,
+  "newWholeSourceArchive": false
+}

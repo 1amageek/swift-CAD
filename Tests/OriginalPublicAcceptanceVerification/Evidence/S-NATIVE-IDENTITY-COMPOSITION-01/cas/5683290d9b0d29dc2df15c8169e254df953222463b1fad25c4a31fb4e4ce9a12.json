@@ -1,0 +1,58 @@
+{
+  "native": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/module-receipt.json",
+    "sha256": "ea39dee5e610be285bd4ced06d6a568e8b004bda0260501adb5a6abdccb69346",
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/NativeDeclaredWholeEdgeSelf.swiftmodule": "9ee67c39c0a7de9960471c224f08f4175d59975b224cee2b9fc2c24a159f8f4b",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/libNativeDeclaredWholeEdgeSelf.a": "00addeec1c0f1c6cf0aa55e63ab788bd26a6c7d04fb6bc71ceb0e65049aa1dae"
+    },
+    "selectedSource4": {
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift": "75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift": "01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift": "55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift": "e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c"
+    }
+  },
+  "asan": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/module-receipt.json",
+    "sha256": "16188efd7d7a9f7d5eb30aae176f4d600c285d3930f5f6792c7c6298aa900e56",
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/NativeDeclaredWholeEdgeSelf.swiftmodule": "8dc3a4163d3e2be46b70af8ee55d3ac2776ceae7c24259c6aa8b6c2f36bbe8cd",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/libNativeDeclaredWholeEdgeSelf.a": "24f9cd649c4d2026949a8f6e918e6480974feedd8a2948a12b4b65cf99880a2f"
+    },
+    "selectedSource4": {
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift": "75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift": "01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift": "55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift": "e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c"
+    }
+  },
+  "wasm": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/module-receipt.json",
+    "sha256": "9ddd206f3f690a23a5b66c05929d31cf407d5073312fcc71134feaba05aabea7",
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/NativeDeclaredWholeEdgeSelf.swiftmodule": "ff5ae5c34c0fbc5da83761ee910f3840af1577bc873ad7d2d6aeb1e40b9237dc",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/libNativeDeclaredWholeEdgeSelf.a": "273cabf499d61aa1ac20694f83b868a4928924793addbe064f801671c31fd467"
+    },
+    "selectedSource4": {
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift": "75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift": "01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift": "55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift": "e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c"
+    }
+  },
+  "embedded": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/module-receipt.json",
+    "sha256": "bf02d0c7a2a86ef990f34ff4703b6629f0bb691c624f156310323e384b589aca",
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/NativeDeclaredWholeEdgeSelf.swiftmodule": "86b110ad8c983c9b99030da4f5fbf570fa3146fa05e5ae2c37eeaee56a8963c3",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/libNativeDeclaredWholeEdgeSelf.a": "cc560959e03e3f2eb2395dfa62abf2a8c612d5ee7cd0815732caf0456cdb022f"
+    },
+    "selectedSource4": {
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift": "75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift": "01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift": "55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6",
+      "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift": "e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c"
+    }
+  }
+}

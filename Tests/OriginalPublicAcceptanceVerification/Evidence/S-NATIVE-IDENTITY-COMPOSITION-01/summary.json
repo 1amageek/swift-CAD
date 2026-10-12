@@ -1,0 +1,1177 @@
+{
+  "cell": "S-NATIVE-IDENTITY-COMPOSITION-01",
+  "status": "four-target-scoped-acceptance-frozen",
+  "cellComplete": false,
+  "deliveryPending": true,
+  "baselineCommit": "7cdadc501f948f8f7ec0b8321e2e9a7ff1d2da7b",
+  "productionChanged": false,
+  "sourceBodies": 0,
+  "freshUpperBodies": 0,
+  "reusedSelf4Bodies": 4,
+  "rebuiltLowerBodies": 0,
+  "selectedProduction4": {
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift": "75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift": "01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift": "55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift": "e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c"
+  },
+  "fixture": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/a97ee6c0cb20c8e5c54f8b2945bcaee32eb005757d22036fccf9e02c1880a7fe.swift",
+    "sha256": "a97ee6c0cb20c8e5c54f8b2945bcaee32eb005757d22036fccf9e02c1880a7fe",
+    "bytes": 22703,
+    "kind": "exact-retained-text"
+  },
+  "runner": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1.py",
+    "sha256": "6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1",
+    "bytes": 11740,
+    "kind": "exact-retained-text"
+  },
+  "manifest": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/manifest.json",
+    "sha256": "8771ca0838f56aea0ba37f966ea0c6ac3accaa4515ac6f295bee14fcccb79224",
+    "bytes": 1293188,
+    "kind": "exact-retained-text"
+  },
+  "acceptedParts": [
+    {
+      "id": "native-initial-complete",
+      "lane": "native",
+      "groups": [
+        "complete"
+      ],
+      "rawSuccess": true,
+      "rawState": "complete-oracle-verified",
+      "receipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/ac0efbdc56d9ba369523035aac4e911f63eb94f450fc0ed9c3a3e4b74725e9f7.json",
+        "sha256": "ac0efbdc56d9ba369523035aac4e911f63eb94f450fc0ed9c3a3e4b74725e9f7",
+        "bytes": 397303,
+        "kind": "exact-retained-text"
+      },
+      "assemblyCommand": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/dbc4a0e84ffdc44798ef50091bd29a60845a37efb9f59167b5aea398ceb6d0d4.json",
+        "sha256": "dbc4a0e84ffdc44798ef50091bd29a60845a37efb9f59167b5aea398ceb6d0d4",
+        "bytes": 105794,
+        "kind": "exact-retained-text"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/9db1cff1bd7d7a3e2fa4d1f9349f0a2e006cb40d20059f7f3015bed13b4afe55.swift",
+        "sha256": "9db1cff1bd7d7a3e2fa4d1f9349f0a2e006cb40d20059f7f3015bed13b4afe55",
+        "bytes": 14324,
+        "kind": "exact-retained-text"
+      },
+      "runner": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/42f76582e9fe543492d2db3bc4240a8746439596e047a2af78951b2f81ed86d0.py",
+        "sha256": "42f76582e9fe543492d2db3bc4240a8746439596e047a2af78951b2f81ed86d0",
+        "bytes": 10894,
+        "kind": "exact-retained-text"
+      },
+      "products": {
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-identity-composition-native-observation-20261013-v1/Composition": "598b5bb7a14204be4281a51af2cc17a2cec6601bc0132a8ab4d3a6139c64b3af"
+      },
+      "runs": [
+        {
+          "label": "compile-link",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 0.834789540967904,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 0.36,
+          "peakOwnedProcessResidentSumKiB": 316032,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-complete",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 11.67091166600585,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 10.73,
+          "peakOwnedProcessResidentSumKiB": 35040,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "2bbecb966c8fe1d3ec040b48dd152e35516c037039aea31895c2ce36a40993fa",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/2bbecb966c8fe1d3ec040b48dd152e35516c037039aea31895c2ce36a40993fa.log",
+            "sha256": "2bbecb966c8fe1d3ec040b48dd152e35516c037039aea31895c2ce36a40993fa",
+            "bytes": 590,
+            "kind": "exact-retained-text"
+          }
+        }
+      ],
+      "reusedSelf4": {
+        "compilerReceipt": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ea39dee5e610be285bd4ced06d6a568e8b004bda0260501adb5a6abdccb69346.json",
+          "sha256": "ea39dee5e610be285bd4ced06d6a568e8b004bda0260501adb5a6abdccb69346",
+          "bytes": 209166,
+          "kind": "exact-retained-text"
+        },
+        "products": {
+          "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/NativeDeclaredWholeEdgeSelf.swiftmodule": "9ee67c39c0a7de9960471c224f08f4175d59975b224cee2b9fc2c24a159f8f4b",
+          "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/libNativeDeclaredWholeEdgeSelf.a": "00addeec1c0f1c6cf0aa55e63ab788bd26a6c7d04fb6bc71ceb0e65049aa1dae"
+        },
+        "selectedProduction4": {
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift": "75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift": "01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift": "55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift": "e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c"
+        },
+        "priorWholeEdgeSummary": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/summary.json",
+          "sha256": "9871728c09816b0e7a7946ec11fa930502083dfebf755bcea88cabb127a6f5b5",
+          "bytes": 2016338,
+          "kind": "exact-retained-text"
+        },
+        "priorBindingKey": "compiledBindings lane=native"
+      },
+      "reusedNative32AndSource5": [
+        {
+          "moduleName": "QuadraticBoundarySources",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/acceptance/native-20261012-v3/QuadraticBoundarySources-receipt.json",
+            "sha256": "e2df29886fb622dddbc7f21e88eccf1baa95d0a0e8f7b7af27ff0d08ce25338e",
+            "bytes": 186103,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "moduleName": "NativeDomainAdapters",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/acceptance/native-20261012-v14/NativeDomainAdapters-receipt.json",
+            "sha256": "5de3eda052e3b0c1a2f5635147f144d8ee518e5b43fbf62f865de64e8659d23b",
+            "bytes": 206816,
+            "kind": "exact-retained-text"
+          }
+        }
+      ]
+    },
+    {
+      "id": "native-composition-controls",
+      "lane": "native",
+      "groups": [
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel"
+      ],
+      "rawSuccess": true,
+      "rawState": "selected-groups-verified",
+      "receipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/1aa24fd3bb4ecfd85e95421864600adca4c5c4aba3aa96d1b91f25357eb1e90a.json",
+        "sha256": "1aa24fd3bb4ecfd85e95421864600adca4c5c4aba3aa96d1b91f25357eb1e90a",
+        "bytes": 400689,
+        "kind": "exact-retained-text"
+      },
+      "assemblyCommand": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/796f9fda3136b8aedfb8685a7f0dee01366bfe207ed065bbb2d88cf98c5218ee.json",
+        "sha256": "796f9fda3136b8aedfb8685a7f0dee01366bfe207ed065bbb2d88cf98c5218ee",
+        "bytes": 105788,
+        "kind": "exact-retained-text"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/a97ee6c0cb20c8e5c54f8b2945bcaee32eb005757d22036fccf9e02c1880a7fe.swift",
+        "sha256": "a97ee6c0cb20c8e5c54f8b2945bcaee32eb005757d22036fccf9e02c1880a7fe",
+        "bytes": 22703,
+        "kind": "exact-retained-text"
+      },
+      "runner": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1.py",
+        "sha256": "6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1",
+        "bytes": 11740,
+        "kind": "exact-retained-text"
+      },
+      "products": {
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-identity-composition-native-controls-20261013-v3/Composition": "2807b7a7f30b2fc9ca86576c234aaf0d180b6897d80e106788b5463a6f9a5aa1"
+      },
+      "runs": [
+        {
+          "label": "compile-link",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 1.0027302498929203,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 0.89,
+          "peakOwnedProcessResidentSumKiB": 503104,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-controls",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 11.73120670800563,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 10.74,
+          "peakOwnedProcessResidentSumKiB": 34816,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "b1d71f24fca2652a110e15253c629fbba45ca4be4adab8eb12fbc71655e7478b",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/b1d71f24fca2652a110e15253c629fbba45ca4be4adab8eb12fbc71655e7478b.log",
+            "sha256": "b1d71f24fca2652a110e15253c629fbba45ca4be4adab8eb12fbc71655e7478b",
+            "bytes": 544,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-exact",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 11.187431791913696,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 10.86,
+          "peakOwnedProcessResidentSumKiB": 35264,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "6a6f6781297f5e4b057eb58ab777bc6da1397028b2261dfc09e6d203ce5e83ea",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/6a6f6781297f5e4b057eb58ab777bc6da1397028b2261dfc09e6d203ce5e83ea.log",
+            "sha256": "6a6f6781297f5e4b057eb58ab777bc6da1397028b2261dfc09e6d203ce5e83ea",
+            "bytes": 500,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-work",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 10.514231084031053,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 10.32,
+          "peakOwnedProcessResidentSumKiB": 35152,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "cec0a5fccfb6e1df5cd30aee5987c433f73f9d13d08f81b43fe8f6ff1b7d05cb",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/cec0a5fccfb6e1df5cd30aee5987c433f73f9d13d08f81b43fe8f6ff1b7d05cb.log",
+            "sha256": "cec0a5fccfb6e1df5cd30aee5987c433f73f9d13d08f81b43fe8f6ff1b7d05cb",
+            "bytes": 240,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-storage",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 10.505918457987718,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 10.31,
+          "peakOwnedProcessResidentSumKiB": 35184,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "1bdb45d81ffaf437ca9e6283af74019e7fff5967cff66f915341cd029889c12f",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/1bdb45d81ffaf437ca9e6283af74019e7fff5967cff66f915341cd029889c12f.log",
+            "sha256": "1bdb45d81ffaf437ca9e6283af74019e7fff5967cff66f915341cd029889c12f",
+            "bytes": 246,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-cancel",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 10.71065633406397,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 10.57,
+          "peakOwnedProcessResidentSumKiB": 35248,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "e2a6c08fbe0a4f9ce528e7310a9acbfcb361629999adf4f3782266e051359ed4",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/e2a6c08fbe0a4f9ce528e7310a9acbfcb361629999adf4f3782266e051359ed4.log",
+            "sha256": "e2a6c08fbe0a4f9ce528e7310a9acbfcb361629999adf4f3782266e051359ed4",
+            "bytes": 289,
+            "kind": "exact-retained-text"
+          }
+        }
+      ],
+      "reusedSelf4": {
+        "compilerReceipt": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ea39dee5e610be285bd4ced06d6a568e8b004bda0260501adb5a6abdccb69346.json",
+          "sha256": "ea39dee5e610be285bd4ced06d6a568e8b004bda0260501adb5a6abdccb69346",
+          "bytes": 209166,
+          "kind": "exact-retained-text"
+        },
+        "products": {
+          "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/NativeDeclaredWholeEdgeSelf.swiftmodule": "9ee67c39c0a7de9960471c224f08f4175d59975b224cee2b9fc2c24a159f8f4b",
+          "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/libNativeDeclaredWholeEdgeSelf.a": "00addeec1c0f1c6cf0aa55e63ab788bd26a6c7d04fb6bc71ceb0e65049aa1dae"
+        },
+        "selectedProduction4": {
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift": "75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift": "01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift": "55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift": "e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c"
+        },
+        "priorWholeEdgeSummary": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/summary.json",
+          "sha256": "9871728c09816b0e7a7946ec11fa930502083dfebf755bcea88cabb127a6f5b5",
+          "bytes": 2016338,
+          "kind": "exact-retained-text"
+        },
+        "priorBindingKey": "compiledBindings lane=native"
+      },
+      "reusedNative32AndSource5": [
+        {
+          "moduleName": "QuadraticBoundarySources",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/acceptance/native-20261012-v3/QuadraticBoundarySources-receipt.json",
+            "sha256": "e2df29886fb622dddbc7f21e88eccf1baa95d0a0e8f7b7af27ff0d08ce25338e",
+            "bytes": 186103,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "moduleName": "NativeDomainAdapters",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/acceptance/native-20261012-v14/NativeDomainAdapters-receipt.json",
+            "sha256": "5de3eda052e3b0c1a2f5635147f144d8ee518e5b43fbf62f865de64e8659d23b",
+            "bytes": 206816,
+            "kind": "exact-retained-text"
+          }
+        }
+      ],
+      "queryBoundary": {
+        "work": 15457625,
+        "storageBytes": 480861813,
+        "storageCalls": 2647637
+      }
+    },
+    {
+      "id": "asan-complete-and-controls",
+      "lane": "asan",
+      "groups": [
+        "complete",
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel"
+      ],
+      "rawSuccess": true,
+      "rawState": "selected-groups-verified",
+      "receipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/cb02b103ee6be9b2b8e240bb81c0f2db182c0dd5f56a0925c658d0de02817b4b.json",
+        "sha256": "cb02b103ee6be9b2b8e240bb81c0f2db182c0dd5f56a0925c658d0de02817b4b",
+        "bytes": 391886,
+        "kind": "exact-retained-text"
+      },
+      "assemblyCommand": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/501066d9be86ba6e061e28d01ec52ec12cd28465982e87fa4cc1d570fb544d3e.json",
+        "sha256": "501066d9be86ba6e061e28d01ec52ec12cd28465982e87fa4cc1d570fb544d3e",
+        "bytes": 104745,
+        "kind": "exact-retained-text"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/a97ee6c0cb20c8e5c54f8b2945bcaee32eb005757d22036fccf9e02c1880a7fe.swift",
+        "sha256": "a97ee6c0cb20c8e5c54f8b2945bcaee32eb005757d22036fccf9e02c1880a7fe",
+        "bytes": 22703,
+        "kind": "exact-retained-text"
+      },
+      "runner": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1.py",
+        "sha256": "6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1",
+        "bytes": 11740,
+        "kind": "exact-retained-text"
+      },
+      "products": {
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-identity-composition-asan-20261013-v1/Composition": "a53e54010564f8b9db3ebf72c83ea5b60636aa0c0b898280698c0534c7a5b57e"
+      },
+      "runs": [
+        {
+          "label": "compile-link",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 2.1508137499913573,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 2.04,
+          "peakOwnedProcessResidentSumKiB": 445296,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-complete",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 9.273840000038035,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 8.23,
+          "peakOwnedProcessResidentSumKiB": 554112,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "2bbecb966c8fe1d3ec040b48dd152e35516c037039aea31895c2ce36a40993fa",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/2bbecb966c8fe1d3ec040b48dd152e35516c037039aea31895c2ce36a40993fa.log",
+            "sha256": "2bbecb966c8fe1d3ec040b48dd152e35516c037039aea31895c2ce36a40993fa",
+            "bytes": 590,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-controls",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 8.713598083006218,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 8.41,
+          "peakOwnedProcessResidentSumKiB": 554496,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "b1d71f24fca2652a110e15253c629fbba45ca4be4adab8eb12fbc71655e7478b",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/b1d71f24fca2652a110e15253c629fbba45ca4be4adab8eb12fbc71655e7478b.log",
+            "sha256": "b1d71f24fca2652a110e15253c629fbba45ca4be4adab8eb12fbc71655e7478b",
+            "bytes": 544,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-exact",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 8.669193041045219,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 8.4,
+          "peakOwnedProcessResidentSumKiB": 554336,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "6a6f6781297f5e4b057eb58ab777bc6da1397028b2261dfc09e6d203ce5e83ea",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/6a6f6781297f5e4b057eb58ab777bc6da1397028b2261dfc09e6d203ce5e83ea.log",
+            "sha256": "6a6f6781297f5e4b057eb58ab777bc6da1397028b2261dfc09e6d203ce5e83ea",
+            "bytes": 500,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-work",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 8.648252916987985,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 8.5,
+          "peakOwnedProcessResidentSumKiB": 531824,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "cec0a5fccfb6e1df5cd30aee5987c433f73f9d13d08f81b43fe8f6ff1b7d05cb",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/cec0a5fccfb6e1df5cd30aee5987c433f73f9d13d08f81b43fe8f6ff1b7d05cb.log",
+            "sha256": "cec0a5fccfb6e1df5cd30aee5987c433f73f9d13d08f81b43fe8f6ff1b7d05cb",
+            "bytes": 240,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-storage",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 8.579841000027955,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 8.43,
+          "peakOwnedProcessResidentSumKiB": 545680,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "1bdb45d81ffaf437ca9e6283af74019e7fff5967cff66f915341cd029889c12f",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/1bdb45d81ffaf437ca9e6283af74019e7fff5967cff66f915341cd029889c12f.log",
+            "sha256": "1bdb45d81ffaf437ca9e6283af74019e7fff5967cff66f915341cd029889c12f",
+            "bytes": 246,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-cancel",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 8.886601082980633,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 8.7,
+          "peakOwnedProcessResidentSumKiB": 547584,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "e2a6c08fbe0a4f9ce528e7310a9acbfcb361629999adf4f3782266e051359ed4",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/e2a6c08fbe0a4f9ce528e7310a9acbfcb361629999adf4f3782266e051359ed4.log",
+            "sha256": "e2a6c08fbe0a4f9ce528e7310a9acbfcb361629999adf4f3782266e051359ed4",
+            "bytes": 289,
+            "kind": "exact-retained-text"
+          }
+        }
+      ],
+      "reusedSelf4": {
+        "compilerReceipt": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/16188efd7d7a9f7d5eb30aae176f4d600c285d3930f5f6792c7c6298aa900e56.json",
+          "sha256": "16188efd7d7a9f7d5eb30aae176f4d600c285d3930f5f6792c7c6298aa900e56",
+          "bytes": 198313,
+          "kind": "exact-retained-text"
+        },
+        "products": {
+          "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/NativeDeclaredWholeEdgeSelf.swiftmodule": "8dc3a4163d3e2be46b70af8ee55d3ac2776ceae7c24259c6aa8b6c2f36bbe8cd",
+          "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/libNativeDeclaredWholeEdgeSelf.a": "24f9cd649c4d2026949a8f6e918e6480974feedd8a2948a12b4b65cf99880a2f"
+        },
+        "selectedProduction4": {
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift": "75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift": "01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift": "55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift": "e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c"
+        },
+        "priorWholeEdgeSummary": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/summary.json",
+          "sha256": "9871728c09816b0e7a7946ec11fa930502083dfebf755bcea88cabb127a6f5b5",
+          "bytes": 2016338,
+          "kind": "exact-retained-text"
+        },
+        "priorBindingKey": "compiledBindings lane=asan"
+      },
+      "reusedNative32AndSource5": [
+        {
+          "moduleName": "QuadraticBoundarySources",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/acceptance/asan-20261012-v1/QuadraticBoundarySources-receipt.json",
+            "sha256": "77dc2206020cdc199a35f13b7f88619c20559c1bc9257777d9e56d99181a88e8",
+            "bytes": 186249,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "moduleName": "NativeDomainAdapters",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/acceptance/asan-20261012-v1/NativeDomainAdapters-receipt.json",
+            "sha256": "2532be80939dacb836c47bce7508e53e06502a6a1903c5d4a352cf1e2efd5c3c",
+            "bytes": 195636,
+            "kind": "exact-retained-text"
+          }
+        }
+      ],
+      "queryBoundary": {
+        "work": 15457625,
+        "storageBytes": 480861813,
+        "storageCalls": 2647637
+      }
+    },
+    {
+      "id": "wasm-complete-and-controls",
+      "lane": "wasm",
+      "groups": [
+        "complete",
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel"
+      ],
+      "rawSuccess": true,
+      "rawState": "selected-groups-verified",
+      "receipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/cd49e90bb19b41dd764650645a21999d511d577f5066fbc0f84ee9a04e2fb143.json",
+        "sha256": "cd49e90bb19b41dd764650645a21999d511d577f5066fbc0f84ee9a04e2fb143",
+        "bytes": 1173728,
+        "kind": "exact-retained-text"
+      },
+      "assemblyCommand": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/19727316ab237758ea5e793f318d701454a7e1f71963bc57716afe7d6469b66a.json",
+        "sha256": "19727316ab237758ea5e793f318d701454a7e1f71963bc57716afe7d6469b66a",
+        "bytes": 422192,
+        "kind": "exact-retained-text"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/a97ee6c0cb20c8e5c54f8b2945bcaee32eb005757d22036fccf9e02c1880a7fe.swift",
+        "sha256": "a97ee6c0cb20c8e5c54f8b2945bcaee32eb005757d22036fccf9e02c1880a7fe",
+        "bytes": 22703,
+        "kind": "exact-retained-text"
+      },
+      "runner": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1.py",
+        "sha256": "6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1",
+        "bytes": 11740,
+        "kind": "exact-retained-text"
+      },
+      "products": {
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-identity-composition-wasm-20261013-v1/Composition.wasm": "dcbf41422317b933ca743721b2025495c26989edaae8c8f9594465d202cb3296"
+      },
+      "runs": [
+        {
+          "label": "compile-link",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 2.219657832989469,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 1.01,
+          "peakOwnedProcessResidentSumKiB": 867504,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-complete",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 17.43783216609154,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 17.71,
+          "peakOwnedProcessResidentSumKiB": 476048,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "c6f55b326f19cb5ce624b92e1f8e5205d9e5b4a212c1560d09c693a6cfdbeac3",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/c6f55b326f19cb5ce624b92e1f8e5205d9e5b4a212c1560d09c693a6cfdbeac3.log",
+            "sha256": "c6f55b326f19cb5ce624b92e1f8e5205d9e5b4a212c1560d09c693a6cfdbeac3",
+            "bytes": 757,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-controls",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 16.664273291942663,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 16.91,
+          "peakOwnedProcessResidentSumKiB": 468032,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "49fd414c62a84b87075caf85076f5fe167ddf9b189bd895833eb94a00b410de4",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/49fd414c62a84b87075caf85076f5fe167ddf9b189bd895833eb94a00b410de4.log",
+            "sha256": "49fd414c62a84b87075caf85076f5fe167ddf9b189bd895833eb94a00b410de4",
+            "bytes": 711,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-exact",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 18.11690024996642,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 18.21,
+          "peakOwnedProcessResidentSumKiB": 468208,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "998b3f00be644e6a8ca5a3cd724419e7d585418a3e798682b6bc328a952e4d10",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/998b3f00be644e6a8ca5a3cd724419e7d585418a3e798682b6bc328a952e4d10.log",
+            "sha256": "998b3f00be644e6a8ca5a3cd724419e7d585418a3e798682b6bc328a952e4d10",
+            "bytes": 667,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-work",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 17.421011582948267,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 17.46,
+          "peakOwnedProcessResidentSumKiB": 477664,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "db006e2fcbe7e36a116ec3f518f78b3eeb7a4aebed84f4a4bffc43f6eba2ac39",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/db006e2fcbe7e36a116ec3f518f78b3eeb7a4aebed84f4a4bffc43f6eba2ac39.log",
+            "sha256": "db006e2fcbe7e36a116ec3f518f78b3eeb7a4aebed84f4a4bffc43f6eba2ac39",
+            "bytes": 407,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-storage",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 16.078934250050224,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 16.29,
+          "peakOwnedProcessResidentSumKiB": 471616,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "e22c4dc2673d78eeb926901923592a5eb9922c585113598333a4d6700396a170",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/e22c4dc2673d78eeb926901923592a5eb9922c585113598333a4d6700396a170.log",
+            "sha256": "e22c4dc2673d78eeb926901923592a5eb9922c585113598333a4d6700396a170",
+            "bytes": 413,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-cancel",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 16.230553042027168,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 16.6,
+          "peakOwnedProcessResidentSumKiB": 473168,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "48e7530d82ee93dbad0481e990ddb00a7ac6f4693c141a80eb531e922966845c",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/48e7530d82ee93dbad0481e990ddb00a7ac6f4693c141a80eb531e922966845c.log",
+            "sha256": "48e7530d82ee93dbad0481e990ddb00a7ac6f4693c141a80eb531e922966845c",
+            "bytes": 456,
+            "kind": "exact-retained-text"
+          }
+        }
+      ],
+      "reusedSelf4": {
+        "compilerReceipt": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/9ddd206f3f690a23a5b66c05929d31cf407d5073312fcc71134feaba05aabea7.json",
+          "sha256": "9ddd206f3f690a23a5b66c05929d31cf407d5073312fcc71134feaba05aabea7",
+          "bytes": 651249,
+          "kind": "exact-retained-text"
+        },
+        "products": {
+          "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/NativeDeclaredWholeEdgeSelf.swiftmodule": "ff5ae5c34c0fbc5da83761ee910f3840af1577bc873ad7d2d6aeb1e40b9237dc",
+          "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/libNativeDeclaredWholeEdgeSelf.a": "273cabf499d61aa1ac20694f83b868a4928924793addbe064f801671c31fd467"
+        },
+        "selectedProduction4": {
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift": "75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift": "01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift": "55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift": "e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c"
+        },
+        "priorWholeEdgeSummary": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/summary.json",
+          "sha256": "9871728c09816b0e7a7946ec11fa930502083dfebf755bcea88cabb127a6f5b5",
+          "bytes": 2016338,
+          "kind": "exact-retained-text"
+        },
+        "priorBindingKey": "compiledBindings lane=wasm"
+      },
+      "reusedNative32AndSource5": [
+        {
+          "moduleName": "QuadraticBoundarySources",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/acceptance/wasm-20261012-v1/QuadraticBoundarySources-receipt.json",
+            "sha256": "f6d2293b8b7754ef2808defd7c8c20347885cc44b7f2ee5ed081880104e8ccb4",
+            "bytes": 638722,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "moduleName": "NativeDomainAdapters",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/acceptance/wasm-20261012-v1/NativeDomainAdapters-receipt.json",
+            "sha256": "58e881ca3940e17279a011bd0428bce70db03c6911fdbbb2fa41a42de6ab4672",
+            "bytes": 648124,
+            "kind": "exact-retained-text"
+          }
+        }
+      ],
+      "queryBoundary": {
+        "work": 15357024,
+        "storageBytes": 243513853,
+        "storageCalls": 2647637
+      }
+    },
+    {
+      "id": "embedded-complete-and-controls",
+      "lane": "embedded",
+      "groups": [
+        "complete",
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel"
+      ],
+      "rawSuccess": true,
+      "rawState": "selected-groups-verified",
+      "receipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/2317aca973f945f8ee2d1ccfb5bcae600046dc57f74c6cb28ebe3e583d597357.json",
+        "sha256": "2317aca973f945f8ee2d1ccfb5bcae600046dc57f74c6cb28ebe3e583d597357",
+        "bytes": 1198770,
+        "kind": "exact-retained-text"
+      },
+      "assemblyCommand": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/253b8f56cbca2e98e2eb3cbc4e9538df0b900f2a5fc772681fff38752d9f2f4a.json",
+        "sha256": "253b8f56cbca2e98e2eb3cbc4e9538df0b900f2a5fc772681fff38752d9f2f4a",
+        "bytes": 432717,
+        "kind": "exact-retained-text"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/a97ee6c0cb20c8e5c54f8b2945bcaee32eb005757d22036fccf9e02c1880a7fe.swift",
+        "sha256": "a97ee6c0cb20c8e5c54f8b2945bcaee32eb005757d22036fccf9e02c1880a7fe",
+        "bytes": 22703,
+        "kind": "exact-retained-text"
+      },
+      "runner": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1.py",
+        "sha256": "6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1",
+        "bytes": 11740,
+        "kind": "exact-retained-text"
+      },
+      "products": {
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-identity-composition-embedded-20261013-v1/Composition.wasm": "a1cb8837e57107226d65ca68ee7343fd2ac6d9fab1185f95962cd2996a9d11fb"
+      },
+      "runs": [
+        {
+          "label": "compile-link",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 6.665540834073909,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 5.52,
+          "peakOwnedProcessResidentSumKiB": 1056048,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-complete",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 8.422371875029057,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 8.43,
+          "peakOwnedProcessResidentSumKiB": 586992,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "67897854fd1c10648d1d03ecbdf2de3c982055ece859a6b52e5d2a15d5b11e45",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/67897854fd1c10648d1d03ecbdf2de3c982055ece859a6b52e5d2a15d5b11e45.log",
+            "sha256": "67897854fd1c10648d1d03ecbdf2de3c982055ece859a6b52e5d2a15d5b11e45",
+            "bytes": 757,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-controls",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 9.143909208010882,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 8.76,
+          "peakOwnedProcessResidentSumKiB": 600656,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "619474402aba1a1e7bc3c21e7607bd8162cf8cf696593baaf68dbc99c5c1ce12",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/619474402aba1a1e7bc3c21e7607bd8162cf8cf696593baaf68dbc99c5c1ce12.log",
+            "sha256": "619474402aba1a1e7bc3c21e7607bd8162cf8cf696593baaf68dbc99c5c1ce12",
+            "bytes": 711,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-exact",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 7.83341770793777,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 7.95,
+          "peakOwnedProcessResidentSumKiB": 592032,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "dff3cdb6609d0a95533180e8155affdca56265f7b6adba9b2c82b3f0775438d8",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/dff3cdb6609d0a95533180e8155affdca56265f7b6adba9b2c82b3f0775438d8.log",
+            "sha256": "dff3cdb6609d0a95533180e8155affdca56265f7b6adba9b2c82b3f0775438d8",
+            "bytes": 667,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-work",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 7.664273125003092,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 7.64,
+          "peakOwnedProcessResidentSumKiB": 589904,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "9d44800b7f8d1b49491ddd0e4150f2e181ae97ba106fa34bd9ac23f3e305be66",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/9d44800b7f8d1b49491ddd0e4150f2e181ae97ba106fa34bd9ac23f3e305be66.log",
+            "sha256": "9d44800b7f8d1b49491ddd0e4150f2e181ae97ba106fa34bd9ac23f3e305be66",
+            "bytes": 407,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-storage",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 7.619237500010058,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 7.66,
+          "peakOwnedProcessResidentSumKiB": 593168,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "c831dff7ae420530d4edebdb934b8a11b7ed05ce14bb2be22a70e1232cf36883",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/c831dff7ae420530d4edebdb934b8a11b7ed05ce14bb2be22a70e1232cf36883.log",
+            "sha256": "c831dff7ae420530d4edebdb934b8a11b7ed05ce14bb2be22a70e1232cf36883",
+            "bytes": 413,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "label": "runtime-cancel",
+          "exitCode": 0,
+          "boundedStop": null,
+          "elapsedSeconds": 7.749137374921702,
+          "wallLimitSeconds": 120,
+          "cpuLimitSecondsPerProcess": 120,
+          "sampledOwnedCPULimitSeconds": 120,
+          "sampledCPUSeconds": 7.94,
+          "peakOwnedProcessResidentSumKiB": 596688,
+          "ownedDescendantsRemaining": [],
+          "logSHA256": "9f63ab4f2bea14cf5586d05b32c6c4a10e7c6d757fd662d5150d7e0e3e06afcd",
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/9f63ab4f2bea14cf5586d05b32c6c4a10e7c6d757fd662d5150d7e0e3e06afcd.log",
+            "sha256": "9f63ab4f2bea14cf5586d05b32c6c4a10e7c6d757fd662d5150d7e0e3e06afcd",
+            "bytes": 456,
+            "kind": "exact-retained-text"
+          }
+        }
+      ],
+      "reusedSelf4": {
+        "compilerReceipt": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/bf02d0c7a2a86ef990f34ff4703b6629f0bb691c624f156310323e384b589aca.json",
+          "sha256": "bf02d0c7a2a86ef990f34ff4703b6629f0bb691c624f156310323e384b589aca",
+          "bytes": 671465,
+          "kind": "exact-retained-text"
+        },
+        "products": {
+          "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/NativeDeclaredWholeEdgeSelf.swiftmodule": "86b110ad8c983c9b99030da4f5fbf570fa3146fa05e5ae2c37eeaee56a8963c3",
+          "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/libNativeDeclaredWholeEdgeSelf.a": "cc560959e03e3f2eb2395dfa62abf2a8c612d5ee7cd0815732caf0456cdb022f"
+        },
+        "selectedProduction4": {
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift": "75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift": "01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift": "55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6",
+          "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift": "e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c"
+        },
+        "priorWholeEdgeSummary": {
+          "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/summary.json",
+          "sha256": "9871728c09816b0e7a7946ec11fa930502083dfebf755bcea88cabb127a6f5b5",
+          "bytes": 2016338,
+          "kind": "exact-retained-text"
+        },
+        "priorBindingKey": "compiledBindings lane=embedded"
+      },
+      "reusedNative32AndSource5": [
+        {
+          "moduleName": "QuadraticBoundarySources",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/acceptance/embedded-20261012-v1/QuadraticBoundarySources-receipt.json",
+            "sha256": "9776444eecae3c05fbd5237ddb2bf33a7e0c7b5d1fc4b40866b68289d4ae0dff",
+            "bytes": 647486,
+            "kind": "exact-retained-text"
+          }
+        },
+        {
+          "moduleName": "NativeDomainAdapters",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/acceptance/embedded-20261012-v1/NativeDomainAdapters-receipt.json",
+            "sha256": "df80e6c26e3549d8fa2f8df51c0c2851c32d1536c28df067581d73131d13d795",
+            "bytes": 656884,
+            "kind": "exact-retained-text"
+          }
+        }
+      ],
+      "queryBoundary": {
+        "work": 15357024,
+        "storageBytes": 243513853,
+        "storageCalls": 2647637
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "id": "native-nonisolated-main-compile-diagnostic",
+      "accepted": false,
+      "success": false,
+      "receipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/25e9cc7c3029931ab7aed71f695545ff07900071dad4b8fbaf7b5c509605531b.json",
+        "sha256": "25e9cc7c3029931ab7aed71f695545ff07900071dad4b8fbaf7b5c509605531b",
+        "bytes": 319415,
+        "kind": "exact-retained-text"
+      },
+      "command": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/dc2f7c28ad64effa600b2b089c1f281ce325c63ef5e47c2c05c904fc58e91ef4.json",
+        "sha256": "dc2f7c28ad64effa600b2b089c1f281ce325c63ef5e47c2c05c904fc58e91ef4",
+        "bytes": 105788,
+        "kind": "exact-retained-text"
+      },
+      "log": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/7f49a7241eb683358867ebcfacf47d9cb7fc4d3c17becc66580ac67e8f9a558e.log",
+        "sha256": "7f49a7241eb683358867ebcfacf47d9cb7fc4d3c17becc66580ac67e8f9a558e",
+        "bytes": 452,
+        "kind": "exact-retained-text"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/85b440b40b6eb76c6400c8bc321e8290ec7b1fe52b716955df7df09647747e79.swift",
+        "sha256": "85b440b40b6eb76c6400c8bc321e8290ec7b1fe52b716955df7df09647747e79",
+        "bytes": 22715,
+        "kind": "exact-retained-text"
+      },
+      "runner": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1.py",
+        "sha256": "6f4174b7e28ee780e1aae5406cdf4cc9c8414dad94993e18e722b21872aeeca1",
+        "bytes": 11740,
+        "kind": "exact-retained-text"
+      },
+      "runtimeExecuted": false,
+      "cause": "Swift compiler requires @main main() to be MainActor. Only main isolation declaration was corrected before any controls runtime; synchronous proof work remains nonisolated."
+    }
+  ],
+  "reusedModuleAnchors": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/5683290d9b0d29dc2df15c8169e254df953222463b1fad25c4a31fb4e4ce9a12.json",
+    "sha256": "5683290d9b0d29dc2df15c8169e254df953222463b1fad25c4a31fb4e4ce9a12",
+    "bytes": 6167,
+    "kind": "exact-retained-text"
+  },
+  "priorWholeEdge": {
+    "summary": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/summary.json",
+      "sha256": "9871728c09816b0e7a7946ec11fa930502083dfebf755bcea88cabb127a6f5b5",
+      "bytes": 2016338,
+      "kind": "exact-retained-text"
+    },
+    "manifest": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/manifest.json",
+      "sha256": "f6200e238700b41ba1b78c2b408eb52767b218c7e8fff60d646cd1016f951056",
+      "bytes": 77856,
+      "kind": "exact-retained-text"
+    },
+    "integration": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/integration.json",
+      "sha256": "80fccacfad109fa4624f9e703cd8799e26574f1ffc993ff5144b1f3e216fc73a",
+      "bytes": 2444948,
+      "kind": "exact-retained-text"
+    },
+    "scope": "Matched immutable Native32/source5/SourceGeometry/DI/L0-L5 and self4 compiler/product/source bindings only. Whole-edge cell acceptance does not establish this composition residual."
+  },
+  "input": {
+    "surface": "G(u,v)=(u^2,v,0)",
+    "domain": "Full closed D=[-1,1]^2 on both ordered sides",
+    "constructor": "BSplineSurface3D(uDegree:2,vDegree:1,uKnots:[-1,-1,-1,1,1,1],vKnots:[-1,-1,1,1],controlPoints:[[(1,-1,0),(-1,-1,0),(1,-1,0)],[(1,1,0),(-1,1,0),(1,1,0)]])",
+    "binding": "Bind once and prepare one frame in ExactAlgebraicScalarDomain<ExactRationalScalarDomain>; both full covers share that source/frame/scalar owner. One chart and one raw pair.",
+    "stages": [
+      "E:A->B, A={-1}x[-1,1],B={1}x[-1,1]; checked whole boundary, identity permutation/gains, offset(2,0)",
+      "R=restricted(E,left A V[-1,1/2],right B V[-1/2,1]); full pullback A_J->B_J, J=[-1/2,1/2]",
+      "S=symmetric(E):B->A",
+      "I=compose(S,R):B_J->B_J, depth2/proofCount3",
+      "C=compose(I,S):B_J->A_J, offset(-2,0),depth3/proofCount5,declaredSharedBoundary"
+    ],
+    "publicQuery": "DefaultOriginalExactNativeSelfContactQuery.contacts(in:raw,excluding:[C],domainLimits:cellLimits:topologyLimits:using:)",
+    "automaticExclusion": "Authored diagonal only; E/R/S/I are not passed to the public consumer"
+  },
+  "oracle": {
+    "raw": "u^2=s^2 and v=w throughout full D x D",
+    "residual": "{(u,v,-u,v):u in[-1,1],u!=0,v in[-1,1],NOT(u=1 AND -1/2<=v<=1/2)}",
+    "image": "(0,1]x[-1,1]x{0}",
+    "parameterDimension": 2,
+    "imageDimension": 2,
+    "fiberDimension": 0,
+    "dimensionsScope": "Independent mathematical oracle meanings. The actual public self result does not expose image/fiber fields; no such DTO field or L6 geometric publication is claimed.",
+    "rawSelectedCells": 45,
+    "refinedTerminalCells": 2409,
+    "includedTerminalCells": 31,
+    "method": "Every raw/refined terminal cell checked by exact sign-invariant iff; full raw source IDs/order and coordinate map unchanged; included ordinals in range and excluded ordinals -1."
+  },
+  "correspondence": {
+    "path": "Existing self4 -> Native parameter refiner -> checked L4 refinePullback -> unchanged retained pullback/sourceCellOrdinals",
+    "scope": "Full source-cell alignment, coordinate map and ordinal range are checked. Existing L4 correspondence theorem is reused; no independent unique-cell reclassification from equality signs is claimed."
+  },
+  "controls": {
+    "scope": "Every forward edge retained; reverse excluded at -1/2,0,1/2 and retained at -1,1; closed scope checked in actual C relation view.",
+    "owner": "Same source and same scalar field, independently prepared middle frame: compose(C,foreignE) throws foreignOwner.",
+    "identityBoundary": "Actual C relation readmission accepts transportDepth3/proofCount5 and refuses transportDepth2 with transportDepthLimit or proofCount4 with identityLimit.",
+    "lifetime": "Construction-local E/R/S/I/C and query-local raw/admission references exit retained(); the surviving result supports relation readmission, scoped identity decisions and tuple queries.",
+    "resource": "Calibration prepared query and each exactN/workN-1/storageN-1/cancel group use independent caller ledgers and separate processes. Preparation and oracle costs excluded from calibrated query N.",
+    "cancellation": "Cancelled entry and cancellation injected at the measured final storage call both throw scalar(cancelled); final checkpoint prevents publication.",
+    "positionOnly": "Kind remains declaredSharedBoundary. Gu(-1,v)=-2X and Gu(1,v)=2X; no derivative/normal germ or typed germ refusal is inferred."
+  },
+  "callerLimits": {
+    "work": 80000000,
+    "storageBytes": 1073741824,
+    "valueDepth": 32,
+    "coefficientDepth": 32,
+    "sourceDepth": 0,
+    "transportDepth": 16,
+    "charts": 64,
+    "families": 2,
+    "identityProofs": 64
+  },
+  "processLimits": {
+    "wallSeconds": 120,
+    "perProcessCPUSeconds": 120,
+    "sampledOwnedCPUSeconds": 120,
+    "descendantCleanup": true
+  },
+  "publication": {
+    "scope": "Final durable fixture/runner are byte-identical to the accepted v2 prototype. The initial Native complete part retains its own earlier exact fixture/runner. Moving paths caused no runtime/compile repeat.",
+    "runtimeRepeated": false
+  },
+  "verificationLimits": [
+    "Same-owner finite affine composition only; distinct-owner paired transitivity/general nonlinear identity remain open.",
+    "No production/source/lower rebuild, no limit increase, no approximate or replacement solver.",
+    "Only named accepted part groups contribute coverage. The compile diagnostic remains false.",
+    "Review, integration audit, commit and delivery are owned separately; this packet alone does not claim cell completion."
+  ]
+}
