@@ -1004,8 +1004,23 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     let prover = try ParametricSurfaceIntersectionGraphProver(firstSurface: first,
       secondSurface: second, parameterBox: parameterBox, tolerance: tolerance, admission: admission)
     let fraction = (atEnd == (direction == .forward)) ? 1.0 : 0.0
-    guard let root = try prover.gaugeParameterBounds(freeParameter: freeParameter,
-      atNormalizedFraction: fraction, tolerance: tolerance) else {
+    let endpointRoot: [ScalarInterval]?
+    if !admission.usesCallerAccounting,
+      case .bSpline(let firstBSpline) = first.surface,
+      case .bSpline(let secondBSpline) = second.surface,
+      let exactGraph = try ExactIsoparametricPlanarIntersectionGraph.certified(
+        first: firstBSpline, second: secondBSpline, tolerance: tolerance),
+      exactGraph.certifiesExactDomain(parameterBox: parameterBox,
+        freeParameter: freeParameter, first: firstBSpline, second: secondBSpline)
+    {
+      // The exact original domain owns existence at its closed boundary gauges.
+      endpointRoot = try prover.inheritedGaugeParameterBounds(freeParameter: freeParameter,
+        atNormalizedFraction: fraction, tolerance: tolerance)
+    } else {
+      endpointRoot = try prover.gaugeParameterBounds(freeParameter: freeParameter,
+        atNormalizedFraction: fraction, tolerance: tolerance)
+    }
+    guard let root = endpointRoot else {
       throw certificateFailure(tolerance: tolerance,
         message: "Original graph endpoint requires its unique closed gauge root enclosure.")
     }

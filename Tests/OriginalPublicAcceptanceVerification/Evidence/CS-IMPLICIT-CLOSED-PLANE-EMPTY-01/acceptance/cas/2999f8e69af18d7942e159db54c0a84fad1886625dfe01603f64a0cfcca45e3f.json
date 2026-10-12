@@ -1,0 +1,421 @@
+{
+  "state": "FROZEN-OUTPUT-ARGUMENT-CORRECTION-PENDING-ROOT-GO",
+  "executionCount": 0,
+  "compilerExecutions": 0,
+  "driverExecutions": 0,
+  "dryRuns": 0,
+  "linkExecutions": 0,
+  "runtimeExecutions": 0,
+  "receipts": {
+    "m6Embedded": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDomainConsumerVerification/Evidence/M6/embedded/receipt.json",
+      "sha256": "1a21419b1a677e75f99cf636cd863632dd87712db75e7aab5613cb40e459a754",
+      "bytes": 1010019
+    },
+    "valueInventory": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/generation-inventory.json",
+      "sha256": "e8c0e90471d7b2ceb26626c53f0f7945b84cd433d31d0021e25ce53211baff2e",
+      "bytes": 2699581
+    },
+    "optionProbe": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/embedded-option-probe/summary.json",
+      "sha256": "786714999183bd7d8efc6fa9c8304182c98313a0ce87e388dd76a215d246bad6",
+      "bytes": 5507
+    },
+    "reverseSource6": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source-compile-receipt.json",
+      "sha256": "2f54dc07584618d480d51fded68c8a2e1c2048f262d40fcf30690e1ea4469455",
+      "bytes": 61511
+    },
+    "reverseUpper": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/upper-module-compile-receipt.json",
+      "sha256": "3ad5c34cdf61ee90859ed283d9c98a0570c5ecdc185f7001584d9dec05b1ad6a",
+      "bytes": 108960
+    },
+    "reverseFixture": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/upper-compile-receipt.json",
+      "sha256": "4eac7cb5d62784a7ef70b98fcbe31748dcab643b854eb0982da7d3825833e890",
+      "bytes": 97096
+    },
+    "nativeClosedUpper": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/upper-premises.json",
+      "sha256": "8a1842a65c0132b9a40cff2be03f173740e8c6b0e42241a5fd7cbdb21716eea6",
+      "bytes": 1105222
+    },
+    "nativeClosedSource4": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-compile-receipt.json",
+      "sha256": "ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79",
+      "bytes": 922211
+    }
+  },
+  "commandCarriers": {
+    "description": {
+      "path": "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/description.json",
+      "sha256": "a6dae12738235ed3b3166cc36fad60b30902155c4c7ebced7ed01aa9407fa34c",
+      "bytes": 7096757
+    },
+    "reverseUpperCommand": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/upper-command.json",
+      "sha256": "86047f79ae626b50cc82b130bc0215b5c96f0cb1a4f0f7700a5460b9ad99e7ab",
+      "bytes": 13952
+    },
+    "reverseFixtureCommand": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/upper-command.json",
+      "sha256": "8d2b1a0f493d18cbd076588d43d210f9e3062ea00fd51c06b2e6d9dfac4ea775",
+      "bytes": 7753
+    },
+    "note": "Current command/inventory files are not historically receipt-hashed command authority; receipt source and product hashes are checked independently."
+  },
+  "toolchain": {
+    "executable": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+    "frontend": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend",
+    "version": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0",
+    "sdk": "swift-6.4.0-RELEASE_wasm-embedded",
+    "target": "wasm32-unknown-wasip1",
+    "package": "nativeexactrelationverification",
+    "mode": "Embedded",
+    "optimization": "Onone",
+    "wmo": true,
+    "geometryCodegenThreads": 14,
+    "archiver": {
+      "path": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/llvm-ar",
+      "sha256": "b7887fdb8c74de7757bcef575f8c516d8962cbd5dfa412e5d41f777d0f7a25a9",
+      "bytes": 40608352
+    }
+  },
+  "counts": {
+    "geometryDeclarationInputs": 1651,
+    "changedBodies": 3,
+    "reusedHistoricalSourceBodies": 1648,
+    "oldGeometryPartitionObjects": 1651,
+    "reusedGeometryObjectBodies": 0,
+    "plannedFreshGeometryCodegenObjects": 1651,
+    "plannedFreshGeometryModuleWrapObjects": 1,
+    "plannedFreshGeometryModules": 1,
+    "plannedFreshGeometryArchives": 1,
+    "freshSourceBodies": 4,
+    "reusedSource6Bodies": 6,
+    "freshUpperSelectedBodies": 59,
+    "upperSelectorBodies": 1,
+    "fixtureBodies": 1,
+    "linkedArchives": 17,
+    "unchangedLinkedArchives": 14,
+    "lowerCodegen": 0,
+    "currentMainBroadBuild": 0,
+    "plannedFreshGeometryArchiveMembers": 1652,
+    "geometrySourceCompilationJobs": 1
+  },
+  "compatibility": {
+    "sameModule": "CADGeometry",
+    "samePackage": "nativeexactrelationverification",
+    "sourceSet": "Exact M6 Embedded1651, replacing only the three selected current bodies",
+    "storedLayoutChanges": "None in the three exact textual diffs; two method-body changes plus one internal instance method addition",
+    "freshImportPrecedence": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/geometry",
+    "oldGeometryArchiveRemoved": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedCADGeometry.a"
+    ],
+    "oldReverseUpperArchiveRemoved": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/upper-module/libImplicitAcceptanceUpper.a"
+    ],
+    "source6": "Reused immutable ImplicitSourcePhase module/archive. Actual import/link acceptance remains unobserved; no source-at-compile claim is made from matching filenames.",
+    "lower": "Reused immutable target-matched products; no Core/Kernel/L2-L6 codegen"
+  },
+  "commands": {
+    "geometry-object": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry-object-command.json",
+      "sha256": "8b165943a5c8372d936f0459a47a1186f0fb1236f42b72b0af6f2073926e733f",
+      "bytes": 2201
+    },
+    "geometry-module": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry-module-command.json",
+      "sha256": "1e1fceb243431c0b03b2355301484af4cf87ec7a5df2e990f1a442dccbe572ab",
+      "bytes": 2215
+    },
+    "geometry-modulewrap": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry-modulewrap-command.json",
+      "sha256": "b2f04efd74b1954ffa9f2a54a792fd7e7f5268e2eaf5e7eae3885a48cdd36f05",
+      "bytes": 457
+    },
+    "geometry-archive": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry-archive-command.json",
+      "sha256": "6c8fe04f09e5e3647f58c5058b33a2d503630258b1a999e0ba652fa2672f0d9e",
+      "bytes": 391
+    },
+    "source4": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source4-command.json",
+      "sha256": "8510cea6e4120f4e9dcb5d978994ad4a4adc2aed105df65692c0ba212f70b128",
+      "bytes": 6279
+    },
+    "upper60": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper60-command.json",
+      "sha256": "bf78834d4364bfd062589955fd172386b7207033d2d98674982a1bc84f17dab9",
+      "bytes": 15205
+    },
+    "fixture1-link": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture1-link-command.json",
+      "sha256": "8314d701db5636701a160c841bfc772652adeaff6522b51d0430b572fbb5b0f3",
+      "bytes": 8301
+    },
+    "runtime-complete": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/runtime-complete-command.json",
+      "sha256": "6e8452b62dd22ce067d307117020562a39df49305b07dfa6c857c4b7c22685d9",
+      "bytes": 289
+    }
+  },
+  "uncertainty": {
+    "geometryWallSeconds": null,
+    "geometryCPUSeconds": null,
+    "geometryPeakRSSBytes": null,
+    "old919SecondProductIsGeometryTiming": false,
+    "commandValidity": "Geometry object driver planning passed. Frontend, module emission, modulewrap, llvm-ar, imports, link, and runtime remain unobserved.",
+    "objectCount": "Actual driver output-filelist has1651 paths. No object has been generated; the archive will also retain one fresh modulewrap.",
+    "portableEntry": "Current owner fixture already uses direct if-let getenv decoding. Its current exact bytes replace only the prior fixture suffix in the copied import wrapper; actual Embedded acceptance remains unobserved."
+  },
+  "suggestedOperationalBounds": {
+    "geometry": {
+      "wallSeconds": 1200,
+      "perProcessCPUSeconds": 1200,
+      "ownedCPUSeconds": 1200,
+      "residentSumBytes": 8589934592,
+      "scope": "Proposed shared aggregate ceilings across the geometry object/module/wrap/archive sequence, not per-command grants or measured requirements; user/root decision pending"
+    },
+    "source4": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "upper60": {
+      "wallSeconds": 240,
+      "perProcessCPUSeconds": 360,
+      "ownedCPUSeconds": 360
+    },
+    "fixture1": {
+      "wallSeconds": 240,
+      "perProcessCPUSeconds": 360,
+      "ownedCPUSeconds": 360
+    },
+    "runtimePerGroup": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "retry": "No automatic retry or ceiling increase"
+  },
+  "fixture": {
+    "original": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitClosedPlaneEmptyAcceptance.swift",
+      "sha256": "abc7c5921fd75f5336d142856591c3ee75c65139c89e4b42e7987a28adf95a51",
+      "bytes": 42467
+    },
+    "priorProof": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/Proof.swift",
+      "sha256": "34c95b05d12da382ce4deb7d5905f062a917bd46dc9e5e86cd329b1ea5cb053e",
+      "bytes": 73895
+    },
+    "preparedProof": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift",
+      "sha256": "a9f26ce732b17f2616a20cb6e28d858bca809764a37ad0d433862b3eb3250887",
+      "bytes": 74588
+    },
+    "selector": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/ActualSelectorDeclineAdapters.swift",
+      "sha256": "ca9bb1481918341cd34d9ee954240d6953b3d3e246b191203154abd66f0f6a8d",
+      "bytes": 31504
+    }
+  },
+  "artifacts": {
+    "geometryInputs": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/geometry-inputs.json",
+      "sha256": "e45d7da1350cd41807147f2e04362ec4755b2da7fefabc70490cdebb3dfebf0f",
+      "bytes": 1197755
+    },
+    "filelist": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/geometry/inputs.txt",
+      "sha256": "65294e8cb842ceccc8d2f11205d527d416f1caf498f345c3dff01bff8940efdb",
+      "bytes": 204545
+    },
+    "source4Bindings": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/source4-bindings.json",
+      "sha256": "2945da3fe9fe81f88601879a3fcd75d9b8dcdcf5994872ad3ce81dc753c6dad5",
+      "bytes": 2513
+    },
+    "upper59Bindings": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper59-bindings.json",
+      "sha256": "50419964488499e2ed8adcb34b8bb75d8b719743b7e1b4a18c2c9e2e993c6b99",
+      "bytes": 54557
+    },
+    "immutableProducts": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/immutable-products.json",
+      "sha256": "ff1300d45e47305a8b726d3e0ff0808990c9ca17734e2f0ecf81646870f5f99b",
+      "bytes": 13343
+    },
+    "prepareScript": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/PrepareProposal.py",
+      "sha256": "c92c539bf7da2c4a8350da462b7c96d4e323d3a118bb6deb5515b8cdc22a4ee2",
+      "bytes": 13336
+    },
+    "boundedWrapperProposal": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/BOUNDED_WRAPPER.md",
+      "sha256": "8718c1a695d25f6c55de7b6497ef49228eda955145237a7149d721d3dada94a8",
+      "bytes": 4469
+    },
+    "correctedPreparation": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/PrepareV2.py",
+      "sha256": "1fecec339fbd3ad0900686c3fbc9934dadf9d3d7027a36ffe56e8ceb519f6f14",
+      "bytes": 2720
+    },
+    "layoutFreezeScript": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/FreezeCorrectedProfile.py",
+      "sha256": "dfcdf40e96420cd36363b0b24a9f15b4dc6ddc7669cebe4b0f028b2ca297bed2",
+      "bytes": 6644
+    },
+    "outputFileMap": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry/output-file-map.json",
+      "sha256": "c68a36c59a0a7934d7f63acbff329f1f62c9f838a8c94e6b69cd50c36d2f26c5",
+      "bytes": 1452460
+    },
+    "archiveResponseFile": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry/archive-inputs.txt",
+      "sha256": "34dd142bd18c3978c3055df6c32f372a23781d7d7dee8548e23fba800ab2920b",
+      "bytes": 266179
+    },
+    "driverLayout": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-layout.json",
+      "sha256": "06b061053830f0112ef184bf2b0325315ff33a52d1b7e346b7bd4faeb560ed3a",
+      "bytes": 2461
+    }
+  },
+  "geometryCommandConstruction": "Exact fixed source set; original M6 output-file-map roles rewritten only to private paths, original threads14, restored Clang -g pair, Swift6.4 llvm-ar response file. No primary-only compilation or historical object mixing.",
+  "priorApprovedProfile": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/profile.json",
+    "sha256": "4eddf899eb75558a761a891459619b8e842a783f4d3e3a817de5b3251187bead",
+    "bytes": 13047
+  },
+  "priorFailure": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/receipt.json",
+    "sha256": "7bdd3f33ed8fac5feb1e779c95a60777ea5968a544ba395cacd456d80951bb47",
+    "bytes": 383970
+  },
+  "outputPathChanges": "Only fresh outputs, private caches, and fresh import directories move to v2; all existing .swift input paths and response file bytes are retained.",
+  "causalCorrection": [
+    {
+      "command": "geometry-object",
+      "semanticDiff": [
+        "insert -g between -Xcc and -package-name"
+      ],
+      "priorCommand": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/geometry-object-command.json",
+        "sha256": "533345998de558a42c1edfbff9218c59a0414f126a2777a5b8c6711d9552becc",
+        "bytes": 2175
+      }
+    },
+    {
+      "command": "geometry-module",
+      "semanticDiff": [
+        "insert -g between -Xcc and -package-name"
+      ],
+      "priorCommand": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/geometry-module-command.json",
+        "sha256": "681aeaa0fa3d3c25aceb875b1b4ccbc270ff346aafbe1ae826f1899345065a54",
+        "bytes": 2206
+      }
+    }
+  ],
+  "priorSpentGeometry": {
+    "wallSeconds": 1.0026544580468908,
+    "ownedCPUSeconds": 0.16
+  },
+  "remainingBudgetRule": "Debit the prior driver stage and this bounded diagnostic from the same original 1200-second Geometry wall/owned-CPU allowance. No increased ceiling.",
+  "driverOnlyCommand": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-jobs-command.json",
+    "sha256": "10861d8ccd13d37eff4ada97e626fe01f53fdfca1e5a5388891b729b9b049bb5",
+    "bytes": 2207
+  },
+  "actualCodegenExecutions": 0,
+  "driverObservation": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-layout.json",
+    "sha256": "06b061053830f0112ef184bf2b0325315ff33a52d1b7e346b7bd4faeb560ed3a",
+    "bytes": 2461
+  },
+  "diagnostics": [
+    {
+      "finding": "Preparation filter removed -g from the forwarded pair -Xcc -g, causing -package-name to be forwarded to Clang. It was a distinct preparation defect; restoring -g did not resolve the single-output driver refusal.",
+      "fixedCommands": [
+        "geometry-object",
+        "geometry-module"
+      ]
+    },
+    {
+      "finding": "Single -o was rejected after the forwarded argument was fixed. Existing M6 output map with private paths is accepted by the driver. Actual final job has all1651 inputs and1651 outputs with original threads14.",
+      "fixedCommands": [
+        "geometry-object",
+        "geometry-archive"
+      ]
+    },
+    {
+      "finding": "Darwin ar does not provide the required Wasm archive index in the independently observed normal-WASM path; fixed Swift6.4 llvm-ar is selected without executing it here.",
+      "fixedCommands": [
+        "geometry-archive"
+      ]
+    }
+  ],
+  "geometryBudgetCarry": {
+    "originalWallSeconds": 1200,
+    "originalOwnedCPUSeconds": 1200,
+    "originalResidentSumBytes": 8589934592,
+    "priorStages": [
+      {
+        "stage": "v1-driver-object",
+        "receipt": {
+          "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/receipt.json",
+          "sha256": "7bdd3f33ed8fac5feb1e779c95a60777ea5968a544ba395cacd456d80951bb47",
+          "bytes": 383970
+        },
+        "wallSeconds": 1.0026544580468908,
+        "ownedCPUSeconds": 0.16
+      },
+      {
+        "stage": "driver-jobs-receipt.json",
+        "receipt": {
+          "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-jobs-receipt.json",
+          "sha256": "7da25818c19f3b05413e6629a28d75f300695488286a2c0e5f122a5a4f515d43",
+          "bytes": 380261
+        },
+        "wallSeconds": 0.4000976250972599,
+        "ownedCPUSeconds": 0.16
+      },
+      {
+        "stage": "driver-partition-jobs-receipt.json",
+        "receipt": {
+          "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-partition-jobs-receipt.json",
+          "sha256": "da76b71229d85bc676f262eb4932bc0784ba6491afc3ccc30487d92d27dc38f7",
+          "bytes": 380659
+        },
+        "wallSeconds": 0.3815224999561906,
+        "ownedCPUSeconds": 0.13
+      },
+      {
+        "stage": "driver-final-jobs-receipt.json",
+        "receipt": {
+          "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-final-jobs-receipt.json",
+          "sha256": "01e3b893df5ff6d44210ba7154da900c569ae261b8c04ddcdecce6b40f613b97",
+          "bytes": 380638
+        },
+        "wallSeconds": 0.37067620910238475,
+        "ownedCPUSeconds": 0.13
+      }
+    ],
+    "alreadyUsedWallSeconds": 2.154950792202726,
+    "alreadyUsedOwnedCPUSeconds": 0.5800000000000001,
+    "remainingWallSeconds": 1197.8450492077973,
+    "remainingOwnedCPUSeconds": 1199.42,
+    "rule": "Seed the next shared Geometry sequence clock/CPU with these debits; do not reset or increase the original allowance."
+  },
+  "actualSelectedInputs": {
+    "geometryInputCount": 1651,
+    "changed3Count": 3,
+    "unchangedHistoricalSourceCount": 1648,
+    "sourceAuthority": "Unchanged M6 Embedded hashes plus the same three selected current body hashes",
+    "responseFile": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/geometry/inputs.txt"
+  }
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "flag": "-filelist",
+    "original": "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.DpYT0L/sources-1",
+    "retained": ".build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-partition-sources-1.txt",
+    "sha256": "65294e8cb842ceccc8d2f11205d527d416f1caf498f345c3dff01bff8940efdb",
+    "lines": 1651
+  },
+  {
+    "flag": "-supplementary-output-file-map",
+    "original": "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.DpYT0L/supplementaryOutputs-1",
+    "retained": ".build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-partition-supplementaryOutputs-1.txt",
+    "sha256": "82df9483cd1a97bc4a73e94e052800d59457c7c793cf37d9df6fb7922fea5884",
+    "lines": 5
+  },
+  {
+    "flag": "-output-filelist",
+    "original": "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.DpYT0L/outputs-1",
+    "retained": ".build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-partition-outputs-1.txt",
+    "sha256": "9ad57f6748956eb8871253166694e5dc3d218b3b82008828df2a80b9179f6787",
+    "lines": 1651
+  }
+]

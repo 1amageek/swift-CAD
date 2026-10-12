@@ -1460,3 +1460,24 @@ observation evidence alone does not establish the new implementation. Changed
 ordinary success, full-domain empty, host witnesses, incidence, failure, resource,
 cancellation and retained-owner behavior must be verified through these entries.
 Other implicit cell/branch families remain explicit incomplete capability.
+
+## Closed implicit host-plane exclusion dispatch
+
+The existing implicit producer first tries the source-owned whole-host/plane
+separation capability. This single connection serves all four existing ordinary
+bare/rich and callback entries. Unsupported capability keeps the positive or
+legacy dispatch available; any failure after selection propagates without retry.
+The [source theorem](../OriginalSourceIssuance/DESIGN.md) and
+[DI/publication owners](../NativeExactGeometricRelations/DESIGN.md#implicit-host-plane-empty-publication)
+retain the actual implicit snapshot, both Native parents, exact plane and complete
+requested/effective domains. No positive parameterization is required for empty
+exclusion, and no L5/L6 relation is fabricated.
+
+`CurveSurfaceIntersectionResult.originalImplicitHostPlaneExclusion` is additive
+and defaults to nil. Selected complete-empty results retain this reader together
+with empty points/overlaps; existing representation, legacy fields and positive
+implicit receipts keep their behavior. The source theorem proves complete tuple,
+incident, image and fiber exclusion over the effective request. One original
+caller admission remains active through final empty publication and cancellation.
+Verification belongs to the finite closed implicit empty cell and its affected
+ordinary entry/selection/failure/resource/lifetime boundaries.

@@ -790,3 +790,41 @@ capabilities remain outside this limited admission.
 owns the ordinary selector and certified numerical compatibility. Verification
 must inspect complete reduced raw/lifted cells, retained full source graphs,
 checked forward bijections and complete empty exclusion, not only witness samples, and must exercise owner/depth/resource/cancel/lifetime boundaries.
+
+## Implicit host-plane empty pair binding
+
+`OriginalImplicitHostPlaneExclusion` owns complete empty CS authority from the
+[sealed whole-host separation receipt](../OriginalSourceIssuance/DESIGN.md)
+and the exact original requests. Its field is `OriginalExactScalarDomain` and
+its source is the actual `OriginalImplicitCurveSnapshot`; it requires no positive
+implicit parameterization, graph reduction or L5 decomposition.
+
+```text
+actual implicit source + sealed whole Native-host/plane separation
+    -> authored T frame -> requested/effective T
+    -> existing plane domain issuer -> requested/effective original UV
+    -> immutable complete-empty pair owner
+```
+
+The internal checked factory retains the receipt's exact source, field, closed
+support and plane basis. It uses the existing parameter transporter and plane
+domain issuer, including their owner/arity/semantics checks. A missing public T
+range selects the authored full support; explicit outside, empty or singleton
+requests retain their actual requested and effective domains. Whole-host
+separation excludes every original common-root position, hence all requested
+tuples, incidents, images and fibers. This is no assertion of a positive host UV
+parameterization or nonempty implicit graph.
+
+The same caller admission reads the source theorem and every retained selection.
+`maximumCharts` must cover the actual stored cell count both at issuance and
+readmission; source, transport, plane chart and integer-family limits remain
+active. The owner retains the entire attained proof depth, including discarded
+selection arithmetic, and later reads admit that history before any empty return.
+Scratch/output/owner storage, work, exact arithmetic, overflow and cancellation
+remain charged and failures propagate. All retained state is immutable Sendable;
+mutable counters and depth maxima are invocation-local on all targets.
+
+[Geometric publication](../NativeExactGeometricRelations/DESIGN.md#implicit-host-plane-empty-publication)
+consumes this authority. Verification must use the actual closed implicit source,
+whole/requested domains, source/host/plane ownership, complete exclusion theorem,
+cell/depth/resource boundaries, cancellation and detached independent readmission.

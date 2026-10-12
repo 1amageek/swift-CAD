@@ -1,0 +1,350 @@
+[
+  {
+    "isFramework" : false,
+    "moduleName" : "CADCore",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/Products\/Debug\/CADCore.swiftmodule\/arm64-apple-macos.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "Combine",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/Combine-3CW868397PU2J.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "CoreFoundation",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/CoreFoundation-7TDA5029XVO1.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Darwin",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/Darwin-YXMM4F6B5HYY.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Dispatch",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/Dispatch-Q2O1Q0ND2Z50.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "Foundation",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/Foundation-2OEOT6PUL8KQI.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "HashTreeCollections",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/Products\/Debug\/HashTreeCollections.swiftmodule\/arm64-apple-macos.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "IOKit",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/IOKit-223D771S9JUWI.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "InternalCollectionsUtilities",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/Products\/Debug\/InternalCollectionsUtilities.swiftmodule\/arm64-apple-macos.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "ObjectiveC",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/ObjectiveC-1EX1X8FX6C1M1.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Observation",
+    "modulePath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/macosx\/Observation.swiftmodule\/arm64-apple-macos.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Swift",
+    "modulePath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/macosx\/Swift.swiftmodule\/arm64-apple-macos.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "SwiftOnoneSupport",
+    "modulePath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/macosx\/SwiftOnoneSupport.swiftmodule\/arm64-apple-macos.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Synchronization",
+    "modulePath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/macosx\/Synchronization.swiftmodule\/arm64-apple-macos.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "System",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/System-16AH0Q0OGL22H.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "XPC",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/XPC-2UP1XXMEL1STH.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_Builtin_float",
+    "modulePath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/macosx\/_Builtin_float.swiftmodule\/arm64-apple-macos.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_Concurrency",
+    "modulePath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/macosx\/_Concurrency.swiftmodule\/arm64-apple-macos.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation1",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_DarwinFoundation1-20XX0IEOILVMB.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation2",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_DarwinFoundation2-T3E4S14BKOS3.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation3",
+    "modulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_DarwinFoundation3-GSPKVYIBN1SS.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_StringProcessing",
+    "modulePath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/macosx\/_StringProcessing.swiftmodule\/arm64-apple-macos.swiftmodule"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CFNetwork.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/CFNetwork-2UZXA0GY33ETAIAAXYLIZE3BT.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CFNetwork"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CoreFoundation.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/CoreFoundation-7662FDDJTME2BHY4T7UEHY1A5.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreFoundation"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CoreServices.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/CoreServices-DR813K7I7CRFGZENS1OBSNIPO.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreServices"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/Darwin.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/Darwin-TZ72K5FAQ0M73EPT22BJN17G.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Darwin"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/DiskArbitration.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/DiskArbitration-B663TNOX7RHPGMQ1DP2TVJ07M.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "DiskArbitration"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/dispatch.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/Dispatch-62B6DEIBL5T85KKBHPYM8HOKT.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Dispatch"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/Foundation.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/Foundation-7C8H5P6D060I8NCHHZ4D7YG2.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Foundation"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/IOKit.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/IOKit-E5YACSZB5NW2R0754LCTCC9WU.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "IOKit"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinBasic.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/MachO-9D7A6ZGVVIWEWZUCRUA0V9LZE.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "MachO"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/ObjectiveC.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/ObjectiveC-9G51QVSZ86PY9NQ4JX2TECJ94.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "ObjectiveC"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/Security.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/Security-CBGIPY13K4NCM5BBE1OZUCU60.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Security"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/shims\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/SwiftShims-9WSXUBI3UU62XOLC5U69HH9WP.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "SwiftShims"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/xpc.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/XPC-DUVO613BBC05ORXX41ZBNSHWD.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "XPC"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinFoundation1.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_AvailabilityInternal-AMB80D6SR3EJTO60BAS8QFZF6.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_AvailabilityInternal"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_Builtin_float-CC91HFNAVLYJG9CTQJPDHA5JB.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_float"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_Builtin_inttypes-ECRSS1PS3H2XWHM2YEC04WGFG.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_inttypes"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_Builtin_limits-399X7XJWLFK76QD3NTL2KXR85.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_limits"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_Builtin_stdarg-3MVM0EXWR1ZE45M5S04B2SMJG.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_stdarg"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_Builtin_stdbool-9VF7OARXIQ6YC5C81Y4M85YIJ.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_stdbool"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_Builtin_stddef-3PPXSZWMJL21XNH2BOK6C9QN.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_stddef"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_Builtin_stdint-C5GWVYRY4KBZ7DW9Y0XPHPGQS.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_stdint"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinFoundation1.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_DarwinFoundation1-1M86Z51A8E44H59AO6CQQDHC0.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation1"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinFoundation2.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_DarwinFoundation2-6IDJOKSHR6VJZHVFK180BDUBD.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation2"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinFoundation3.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_DarwinFoundation3-248TTADN0Z3HFFPVQZ1TCKPGV.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation3"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/shims\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/_SwiftConcurrencyShims-37LS5RRZQZY4L3FHZR1U6INKU.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_SwiftConcurrencyShims"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/launch.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/launch-6CYRI9TF4JRQDR64FO89SKYMK.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "launch"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/libDER\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/libDER-AYT2P27YGUP3K22ZI7GN0VMAW.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "libDER"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/libkern.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/libkern-3R6MILM3G9I7DY0ZYWJLZ64RH.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "libkern"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/os.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/os_object-9FZU2NNIEUTAGBBXC4YXLCNRK.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "os_object"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/os.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/os_workgroup-2GPULDSSGQPWH0OUUKHXU22EW.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "os_workgroup"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/ptrauth-3COSSUIXV1711TOHWTRYLRNYJ.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "ptrauth"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/ptrcheck-ABYJAI4UALW9PD9KGKYG0FHKX.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "ptrcheck"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/c_standard_library.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/string_h-ELPHW66YXJBTBLQYLRRVVJ7X2.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "string_h"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinFoundation2.modulemap",
+    "clangModulePath" : "\/private\/tmp\/cad-di-m6-consumers-20261009\/.build\/m6-native-production\/out\/SDKExplicitPrecompiledModules\/sys_types-11OXGO6CW3X5Q6WCPNYA5MS4C.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "sys_types"
+  }
+]

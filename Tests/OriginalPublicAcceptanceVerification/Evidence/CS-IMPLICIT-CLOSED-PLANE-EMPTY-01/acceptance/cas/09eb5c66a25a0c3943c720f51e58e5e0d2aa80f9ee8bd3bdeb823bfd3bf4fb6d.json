@@ -1,0 +1,581 @@
+[
+  {
+    "label": "fixture1-link",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-embedded-20261011",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88",
+      "-I",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/Modules",
+      "-parse-as-library",
+      "-whole-module-optimization",
+      "-num-threads",
+      "2",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/embedded/6d59e84f98e64683853647c47c17213b/build/wasm32-unknown-wasip1/debug/Modules",
+      "-target",
+      "wasm32-unknown-wasip1",
+      "-whole-module-optimization",
+      "-num-threads",
+      "2",
+      "-Onone",
+      "-enable-testing",
+      "-j2",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-resource-dir",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift",
+      "-parse-as-library",
+      "-swift-version",
+      "6",
+      "-plugin-path",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+      "-static-stdlib",
+      "-enable-experimental-feature",
+      "Embedded",
+      "-wmo",
+      "-Xlinker",
+      "-lc++",
+      "-Xlinker",
+      "-lswift_Concurrency",
+      "-tools-directory",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/bin",
+      "-sdk",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+      "-g",
+      "-whole-module-optimization",
+      "-Onone",
+      "-Xcc",
+      "--sysroot",
+      "-Xcc",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+      "-Xcc",
+      "-D__EMBEDDED_SWIFT__",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "nativeexactrelationverification",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/embedded/fa832f6f91da4d338cd85c8b6ebc3fc0",
+      "-enable-testing",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/embedded/53986d7a60e24398a6f8c0b2a9db04fe",
+      "-parse-as-library",
+      "-Xlinker",
+      "-lc++",
+      "-Xlinker",
+      "-lswift_Concurrency",
+      "-Xlinker",
+      "-lc++",
+      "-Xlinker",
+      "-lswift_Concurrency",
+      "-Xlinker",
+      "-lc++",
+      "-Xlinker",
+      "-lswift_Concurrency",
+      "-Xlinker",
+      "-lc++",
+      "-Xlinker",
+      "-lswift_Concurrency",
+      "-Xlinker",
+      "-z",
+      "-Xlinker",
+      "stack-size=67108864",
+      "-Xlinker",
+      "-lc++",
+      "-Xlinker",
+      "-lswift_Concurrency",
+      "-Xclang-linker",
+      "-resource-dir",
+      "-Xclang-linker",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/clang",
+      "-Xlinker",
+      "-lc++abi",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled",
+      "-DGUIDE_SEAM_COMBINED_ACCEPTANCE",
+      "-num-threads",
+      "2",
+      "-module-cache-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/module-cache",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper",
+      "-emit-executable",
+      "-module-name",
+      "ImplicitClosedPlaneEmptyAcceptance",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Proof.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/libGuideSeamPort.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries/libPublicLiftPlane.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedCADCore.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedHashTreeCollections.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedInternalCollectionsUtilities.a",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libRetainedHostAdapters.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libDerivativePayloadAccess.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c/libCallerAdapters.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled/libRuledObservationAdapters.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/libDraftZeroRuledPort.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source/libAngularSourcePhase.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source/libCertifiedApexSourcePhase.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source/libImplicitSourcePhase.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry/libCADGeometryClosedWMO.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source/libImplicitHostPlaneSourcePhase.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper/libImplicitClosedAcceptanceUpper.a",
+      "-o",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm"
+    ],
+    "commandSHA256": "2971834d34f53cb5586e66cc57e5a491ad0b026817affe01a2cec48148c6ff83",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 188.34603216603864,
+    "totalElapsedSeconds": 191.5405121250078,
+    "rootPID": 18589,
+    "ownedDescendants": [
+      18594,
+      18595,
+      19420,
+      19421
+    ],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 205.99999999999997,
+    "peakOwnedProcessResidentSumKiB": 4962976,
+    "observedOwnedCommands": {
+      "18589": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1 -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617 -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5 -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-embedded-20261011 -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617 -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88 -I /private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/Modules -parse-as-library -whole-module-optimization -num-threads 2 -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/embedded/6d59e84f98e64683853647c47c17213b/build/wasm32-unknown-wasip1/debug/Modules -target wasm32-unknown-wasip1 -whole-module-optimization -num-threads 2 -Onone -enable-testing -j2 -DSWIFT_PACKAGE -DDEBUG -DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -resource-dir /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift -parse-as-library -swift-version 6 -plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins/testing -sdk /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk -static-stdlib -enable-experimental-feature Embedded -wmo -Xlinker -lc++ -Xlinker -lswift_Concurrency -tools-directory /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/bin -sdk /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk -g -whole-module-optimization -Onone -Xcc --sysroot -Xcc /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk -Xcc -D__EMBEDDED_SWIFT__ -Xcc -g -package-name nativeexactrelationverification -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/embedded/fa832f6f91da4d338cd85c8b6ebc3fc0 -enable-testing -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/embedded/53986d7a60e24398a6f8c0b2a9db04fe -parse-as-library -Xlinker -lc++ -Xlinker -lswift_Concurrency -Xlinker -lc++ -Xlinker -lswift_Concurrency -Xlinker -lc++ -Xlinker -lswift_Concurrency -Xlinker -lc++ -Xlinker -lswift_Concurrency -Xlinker -z -Xlinker stack-size=67108864 -Xlinker -lc++ -Xlinker -lswift_Concurrency -Xclang-linker -resource-dir -Xclang-linker /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/clang -Xlinker -lc++abi -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c -I /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1 -I /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled -DGUIDE_SEAM_COMBINED_ACCEPTANCE -num-threads 2 -module-cache-path /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/module-cache -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper -emit-executable -module-name ImplicitClosedPlaneEmptyAcceptance /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Proof.swift /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/libGuideSeamPort.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries/libPublicLiftPlane.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedCADCore.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedHashTreeCollections.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedInternalCollectionsUtilities.a /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libRetainedHostAdapters.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libDerivativePayloadAccess.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c/libCallerAdapters.a /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled/libRuledObservationAdapters.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/libDraftZeroRuledPort.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source/libAngularSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source/libCertifiedApexSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source/libImplicitSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry/libCADGeometryClosedWMO.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source/libImplicitHostPlaneSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper/libImplicitClosedAcceptanceUpper.a -o /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "18594": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend -frontend -emit-module -experimental-skip-non-inlinable-function-bodies-without-types /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Proof.swift -target wasm32-unknown-wasip1 -disable-objc-interop -sdk /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1 -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617 -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5 -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-embedded-20261011 -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617 -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88 -I /private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/Modules -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/embedded/6d59e84f98e64683853647c47c17213b/build/wasm32-unknown-wasip1/debug/Modules -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/embedded/fa832f6f91da4d338cd85c8b6ebc3fc0 -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/embedded/53986d7a60e24398a6f8c0b2a9db04fe -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c -I /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1 -I /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper -module-cache-path /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/module-cache -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format=dwarf -dwarf-version=4 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -D GUIDE_SEAM_COMBINED_ACCEPTANCE -enable-experimental-feature Embedded -empty-abi-descriptor -plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins/testing -resource-dir /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift -use-static-resource-dir -enable-anonymous-context-mangled-names -file-compilation-dir /private/tmp/cad-m4-m8-completion-20261010 -Xcc --sysroot -Xcc /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk -Xcc -D__EMBEDDED_SWIFT__ -Xcc -g -no-auto-bridging-header-chaining -module-name ImplicitClosedPlaneEmptyAcceptance -package-name nativeexactrelationverification -in-process-plugin-server-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/local/lib/swift/host/plugins -emit-module-doc-path /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0jWhge/ImplicitClosedPlaneEmptyAcceptance-1.swiftdoc -emit-module-source-info-path /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0jWhge/ImplicitClosedPlaneEmptyAcceptance-1.swiftsourceinfo -parse-as-library -o /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0jWhge/ImplicitClosedPlaneEmptyAcceptance-1.swiftmodule",
+      "18595": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend -frontend -c /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Proof.swift -target wasm32-unknown-wasip1 -disable-objc-interop -sdk /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1 -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617 -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5 -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-embedded-20261011 -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617 -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88 -I /private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/Modules -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/embedded/6d59e84f98e64683853647c47c17213b/build/wasm32-unknown-wasip1/debug/Modules -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/embedded/fa832f6f91da4d338cd85c8b6ebc3fc0 -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/embedded/53986d7a60e24398a6f8c0b2a9db04fe -I /private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c -I /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1 -I /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source -I /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper -module-cache-path /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/module-cache -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format=dwarf -dwarf-version=4 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -D GUIDE_SEAM_COMBINED_ACCEPTANCE -enable-experimental-feature Embedded -empty-abi-descriptor -plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins/testing -resource-dir /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift -use-static-resource-dir -enable-anonymous-context-mangled-names -file-compilation-dir /private/tmp/cad-m4-m8-completion-20261010 -Xcc --sysroot -Xcc /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk -Xcc -D__EMBEDDED_SWIFT__ -Xcc -g -no-auto-bridging-header-chaining -module-name ImplicitClosedPlaneEmptyAcceptance -package-name nativeexactrelationverification -in-process-plugin-server-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/local/lib/swift/host/plugins -parse-as-library -num-threads 2 -o /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0jWhge/Proof-1.o",
+      "19420": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/clang -target wasm32-unknown-wasip1 -B /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/bin /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0jWhge/Proof-1.o /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0jWhge/ImplicitClosedPlaneEmptyAcceptance-1.o /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/libGuideSeamPort.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries/libPublicLiftPlane.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedCADCore.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedHashTreeCollections.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedInternalCollectionsUtilities.a /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libRetainedHostAdapters.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libDerivativePayloadAccess.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c/libCallerAdapters.a /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled/libRuledObservationAdapters.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/libDraftZeroRuledPort.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source/libAngularSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source/libCertifiedApexSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source/libImplicitSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry/libCADGeometryClosedWMO.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source/libImplicitHostPlaneSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper/libImplicitClosedAcceptanceUpper.a --sysroot /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk -L /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/wasi -Xlinker -L/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1 -O0 --target=wasm32-unknown-wasip1 -Xlinker --global-base=4096 -Xlinker --table-base=4096 -Xlinker -z -Xlinker stack-size=131072 -Xlinker -lc++ -Xlinker -lswift_Concurrency -Xlinker -lc++ -Xlinker -lswift_Concurrency -Xlinker -lc++ -Xlinker -lswift_Concurrency -Xlinker -lc++ -Xlinker -lswift_Concurrency -Xlinker -lc++ -Xlinker -lswift_Concurrency -Xlinker -z -Xlinker stack-size=67108864 -Xlinker -lc++ -Xlinker -lswift_Concurrency -Xlinker -lc++abi -resource-dir /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/clang -o /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "19421": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/wasm-ld -m wasm32 -L/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/wasi -L/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1 /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/lib/wasm32-wasip1/crt1-command.o /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0jWhge/Proof-1.o /var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.0jWhge/ImplicitClosedPlaneEmptyAcceptance-1.o /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/libGuideSeamPort.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries/libPublicLiftPlane.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedCADCore.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedHashTreeCollections.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedInternalCollectionsUtilities.a /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libRetainedHostAdapters.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libDerivativePayloadAccess.a /private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c/libCallerAdapters.a /private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled/libRuledObservationAdapters.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/libDraftZeroRuledPort.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source/libAngularSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source/libCertifiedApexSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source/libImplicitSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry/libCADGeometryClosedWMO.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source/libImplicitHostPlaneSourcePhase.a /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper/libImplicitClosedAcceptanceUpper.a -L/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1 --global-base=4096 --table-base=4096 -z stack-size=131072 -lc++ -lswift_Concurrency -lc++ -lswift_Concurrency -lc++ -lswift_Concurrency -lc++ -lswift_Concurrency -lc++ -lswift_Concurrency -z stack-size=67108864 -lc++ -lswift_Concurrency -lc++abi -lc /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/clang/lib/wasip1/libclang_rt.builtins-wasm32.a -o /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm --keep-section=target_features"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/fixture1-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "limits": {
+      "wallSeconds": 240,
+      "perProcessCPUSeconds": 360,
+      "ownedCPUSeconds": 360
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  },
+  {
+    "label": "runtime-complete",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "complete"
+    ],
+    "commandSHA256": "131007553df6ca0a35de38d0e33d9909a4710f5712de24e7d9c0c6a372109151",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 1.0636115829693154,
+    "totalElapsedSeconds": 196.28316804207861,
+    "rootPID": 19443,
+    "ownedDescendants": [],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 0.63,
+    "peakOwnedProcessResidentSumKiB": 304064,
+    "observedOwnedCommands": {
+      "19443": "/usr/local/bin/node /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm complete"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-complete.log",
+      "sha256": "f76ebe0cc07e428512c9313074cbae04be66bf20291808f8bd9af9d976e34a7a",
+      "bytes": 268
+    },
+    "limits": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  },
+  {
+    "label": "runtime-dispatch",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "dispatch"
+    ],
+    "commandSHA256": "681d4b36f9d4cab24e838ee342b8f9392c7a622ac3fffb4669a3bcd5086837ca",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.7334876250242814,
+    "totalElapsedSeconds": 200.59111691697035,
+    "rootPID": 19461,
+    "ownedDescendants": [],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 0.83,
+    "peakOwnedProcessResidentSumKiB": 302064,
+    "observedOwnedCommands": {
+      "19461": "/usr/local/bin/node /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm dispatch"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-dispatch.log",
+      "sha256": "62ecc43b772306e1cb2e998b85523b731c03397d52a40b84b3b20c41b19723dd",
+      "bytes": 271
+    },
+    "limits": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  },
+  {
+    "label": "runtime-source",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "source"
+    ],
+    "commandSHA256": "1bf370954836a7f8cec23d4982f174d79cf9fa140cc8d169b09e2169fe204eeb",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.7533168330555782,
+    "totalElapsedSeconds": 205.25412870803848,
+    "rootPID": 19471,
+    "ownedDescendants": [],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 0.89,
+    "peakOwnedProcessResidentSumKiB": 300992,
+    "observedOwnedCommands": {
+      "19471": "/usr/local/bin/node /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm source"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-source.log",
+      "sha256": "cab01172a0e1757b9c5cbefd266497ac8dbbf1cba7d18b75879930e1a5f20f13",
+      "bytes": 274
+    },
+    "limits": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  },
+  {
+    "label": "runtime-requests",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "requests"
+    ],
+    "commandSHA256": "6902ac4b86603cdaafd65a802b42a380c8c9a1922a1a7a6752001f182d846b24",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.7157342919381335,
+    "totalElapsedSeconds": 209.57755395804998,
+    "rootPID": 19481,
+    "ownedDescendants": [],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 0.84,
+    "peakOwnedProcessResidentSumKiB": 305088,
+    "observedOwnedCommands": {
+      "19481": "/usr/local/bin/node /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm requests"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-requests.log",
+      "sha256": "f0af3042bc6f2d82da8feeb967e803f7ad1509cfb0a77c373ea513f25765493b",
+      "bytes": 283
+    },
+    "limits": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  },
+  {
+    "label": "runtime-resources",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "resources"
+    ],
+    "commandSHA256": "76c2167845c80ca83a835f0c77145c80343d9978a4a220a7e0cf98e825e8197f",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.6281963749788702,
+    "totalElapsedSeconds": 213.390024082968,
+    "rootPID": 19495,
+    "ownedDescendants": [],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 0.51,
+    "peakOwnedProcessResidentSumKiB": 297632,
+    "observedOwnedCommands": {
+      "19495": "/usr/local/bin/node /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm resources"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-resources.log",
+      "sha256": "3cd75f3ce99faf875564550c3980e403591deada21cd77fd5cf4e108a63ee6ac",
+      "bytes": 414
+    },
+    "limits": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  },
+  {
+    "label": "runtime-readmission",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "readmission"
+    ],
+    "commandSHA256": "2c58b28a604efc5567a84dc227ebeb5722d05ef34cd8250a8ea094567dbc814f",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.6191563329193741,
+    "totalElapsedSeconds": 216.58158137497958,
+    "rootPID": 19506,
+    "ownedDescendants": [],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 0.49,
+    "peakOwnedProcessResidentSumKiB": 297824,
+    "observedOwnedCommands": {
+      "19506": "/usr/local/bin/node /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm readmission"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-readmission.log",
+      "sha256": "e5379e8ea5b57f9279501dd765de2e5ab3adca55430ac973e2bf688951cbfb3e",
+      "bytes": 415
+    },
+    "limits": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  },
+  {
+    "label": "runtime-cancel-entry",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "cancel-entry"
+    ],
+    "commandSHA256": "ea72f3efc6c7b9a2868992d0d7ade0414910c17892042e269418ed9cde05bbde",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.5742522500222549,
+    "totalElapsedSeconds": 220.15607129200362,
+    "rootPID": 19521,
+    "ownedDescendants": [],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 0.51,
+    "peakOwnedProcessResidentSumKiB": 297840,
+    "observedOwnedCommands": {
+      "19521": "/usr/local/bin/node /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm cancel-entry"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-cancel-entry.log",
+      "sha256": "d62e2f87413eca96a81ebc48ec4dbfb697686c5501d8f0ff59b0e00b713bb7db",
+      "bytes": 224
+    },
+    "limits": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  },
+  {
+    "label": "runtime-cancel-final",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "cancel-final"
+    ],
+    "commandSHA256": "b0bc1c027f8992f3c932c2c661ce896fe5a915a4b30b74075df51112b3ea11df",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.6316614999668673,
+    "totalElapsedSeconds": 223.69466391706374,
+    "rootPID": 19530,
+    "ownedDescendants": [],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 0.51,
+    "peakOwnedProcessResidentSumKiB": 298464,
+    "observedOwnedCommands": {
+      "19530": "/usr/local/bin/node /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm cancel-final"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-cancel-final.log",
+      "sha256": "b7171a5ec2be106464bec95ffaefdbc841312fc003b43a1acc6749fd41b5b462",
+      "bytes": 231
+    },
+    "limits": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  },
+  {
+    "label": "runtime-cancel-reader",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "cancel-reader"
+    ],
+    "commandSHA256": "54903de219ea8918e44fd6c8daeee3f939e1962fb795185b9b7582a474604311",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.5540461669443175,
+    "totalElapsedSeconds": 226.77080141706392,
+    "rootPID": 19538,
+    "ownedDescendants": [],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 0.47,
+    "peakOwnedProcessResidentSumKiB": 297872,
+    "observedOwnedCommands": {
+      "19538": "/usr/local/bin/node /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm cancel-reader"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-cancel-reader.log",
+      "sha256": "bf3455617870baed6eff4cd32f3b56a373a578800698982aeef92fcda8082c45",
+      "bytes": 244
+    },
+    "limits": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  },
+  {
+    "label": "runtime-lifetime",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "lifetime"
+    ],
+    "commandSHA256": "94adce754bb036b27f09567c7871fe7b2e55913d1f3b8824f0ed655ccef2eec9",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.7816829999210313,
+    "totalElapsedSeconds": 229.9598799169762,
+    "rootPID": 19546,
+    "ownedDescendants": [],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 0.76,
+    "peakOwnedProcessResidentSumKiB": 298416,
+    "observedOwnedCommands": {
+      "19546": "/usr/local/bin/node /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm lifetime"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-lifetime.log",
+      "sha256": "233f319bf38372bceafaf39799db6020cf0b688c543cc2ce067f9d4498d2b6f0",
+      "bytes": 260
+    },
+    "limits": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  },
+  {
+    "label": "runtime-changed-controls",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm",
+      "changed-controls"
+    ],
+    "commandSHA256": "fb85c3e1d8fe027fa71b3a5a2a988003978aabe18d71b17f68106ca03da4e284",
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 1.2656805410515517,
+    "totalElapsedSeconds": 234.0544028750155,
+    "rootPID": 19561,
+    "ownedDescendants": [],
+    "ownedDescendantsRemaining": [],
+    "sampledOwnedCPUSeconds": 1.43,
+    "peakOwnedProcessResidentSumKiB": 297952,
+    "observedOwnedCommands": {
+      "19561": "/usr/local/bin/node /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/run.mjs /private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm changed-controls"
+    },
+    "log": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-changed-controls.log",
+      "sha256": "d043cdf4a0873e6bc340f46f0f3ed015f396eff2b025318ecd6a3dbdf089db04",
+      "bytes": 277
+    },
+    "limits": {
+      "wallSeconds": 120,
+      "perProcessCPUSeconds": 120,
+      "ownedCPUSeconds": 120
+    },
+    "sharedGeometryElapsedSeconds": null,
+    "sharedGeometryOwnedCPUSeconds": null,
+    "reuseNativeControlsEnvironment": false
+  }
+]

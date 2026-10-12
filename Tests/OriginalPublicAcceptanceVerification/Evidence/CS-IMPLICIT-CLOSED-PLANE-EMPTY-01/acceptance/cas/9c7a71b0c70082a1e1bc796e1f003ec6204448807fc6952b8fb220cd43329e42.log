@@ -1,0 +1,577 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:691:42: error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+ 689 |     static func admitted(_ curve: Curve3D, _ plane: Surface3D, _ options: CurveSurfaceIntersectionOptions,
+ 690 |         _ counter: Counter, sourceDepth: Int = 8, algebraicDepth: Int = 32,
+ 691 |         charts: Int = 262_144) throws -> CurveSurfaceIntersectionResult {
+     |                                          `- error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+ 692 |         try DefaultCurveSurfaceIntersector().intersectionResult(curve: curve, surface: plane,
+ 693 |             options: options, tolerance: .standard, maximumSpanCount: charts,
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift:2:15: note: found this candidate
+ 1 | /// A complete result in the requested domains, separating points from continuous regions.
+ 2 | public struct CurveSurfaceIntersectionResult: Sendable {
+   |               `- note: found this candidate
+ 3 |     public let points: [CurveSurfaceIntersection]
+ 4 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/CurveSurfaceIntersectionResult.swift:446:15: note: found this candidate
+444 | import struct PublicLiftPlane.ExactXYZ
+445 | /// A complete result in the requested domains, separating points from continuous regions.
+446 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+447 |     public let points: [CurveSurfaceIntersection]
+448 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/CurveSurfaceIntersectionResult.swift:494:15: note: found this candidate
+492 | @testable import ImplicitHostPlaneSourcePhase
+493 | /// A complete result in the requested domains, separating points from continuous regions.
+494 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+495 |     public let points: [CurveSurfaceIntersection]
+496 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:710:34: error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+ 708 |         try equal(hi, f.binary64(exactly: upper, using: &a), field: f, using: &a)
+ 709 |     }
+ 710 |     static func verify(_ result: CurveSurfaceIntersectionResult, options: CurveSurfaceIntersectionOptions) throws {
+     |                                  `- error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+ 711 |         guard let reading = result.originalImplicitHostPlaneExclusion else { throw Failure(line: #line) }
+ 712 |         let owner = reading.original, proof = owner.exclusion, f = proof.field
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift:2:15: note: found this candidate
+ 1 | /// A complete result in the requested domains, separating points from continuous regions.
+ 2 | public struct CurveSurfaceIntersectionResult: Sendable {
+   |               `- note: found this candidate
+ 3 |     public let points: [CurveSurfaceIntersection]
+ 4 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/CurveSurfaceIntersectionResult.swift:446:15: note: found this candidate
+444 | import struct PublicLiftPlane.ExactXYZ
+445 | /// A complete result in the requested domains, separating points from continuous regions.
+446 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+447 |     public let points: [CurveSurfaceIntersection]
+448 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/CurveSurfaceIntersectionResult.swift:494:15: note: found this candidate
+492 | @testable import ImplicitHostPlaneSourcePhase
+493 | /// A complete result in the requested domains, separating points from continuous regions.
+494 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+495 |     public let points: [CurveSurfaceIntersection]
+496 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:734:48: error: cannot infer contextual base in reference to member 'firstU'
+ 732 |         try require(original.cells[0].startAnchor.first.u == 0 && original.cells[3].endAnchor.first.u == 4)
+ 733 |         for (index, cell) in original.cells.enumerated() {
+ 734 |             try require(cell.freeParameter == .firstU && cell.direction == .forward)
+     |                                                `- error: cannot infer contextual base in reference to member 'firstU'
+ 735 |             try require(cell.parameterBox.firstU.lower == Double(index)
+ 736 |                 && cell.parameterBox.firstU.upper == Double(index + 1))
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:734:77: error: cannot infer contextual base in reference to member 'forward'
+ 732 |         try require(original.cells[0].startAnchor.first.u == 0 && original.cells[3].endAnchor.first.u == 4)
+ 733 |         for (index, cell) in original.cells.enumerated() {
+ 734 |             try require(cell.freeParameter == .firstU && cell.direction == .forward)
+     |                                                                             `- error: cannot infer contextual base in reference to member 'forward'
+ 735 |             try require(cell.parameterBox.firstU.lower == Double(index)
+ 736 |                 && cell.parameterBox.firstU.upper == Double(index + 1))
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:777:13: error: generic parameter 'S' could not be inferred
+ 696 |             maximumAlgebraicDepth: algebraicDepth)
+ 697 |     }
+ 698 |     static func closed<S: Sendable>(_ selection: OriginalParameterSelection<S, Base>, axis: Int,
+     |                 `- note: in call to function 'closed(_:axis:lower:upper:using:)'
+ 699 |         lower: Double, upper: Double, using a: inout ExactScalarLedger) throws {
+ 700 |         try require(selection.axes[axis].intervalCount == 1)
+     :
+ 775 |             _ = try f.importing(candidate.integer(0, using: &a), using: &a)
+ 776 |         }
+ 777 |         try closed(owner.support, axis: 0, lower: 0, upper: 1, using: &a)
+     |             `- error: generic parameter 'S' could not be inferred
+ 778 |         let range = try options.curveRange ?? ScalarInterval(lower: 0, upper: 1)
+ 779 |         try closed(owner.request, axis: 0, lower: range.lower, upper: range.upper, using: &a)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:779:13: error: generic parameter 'S' could not be inferred
+ 696 |             maximumAlgebraicDepth: algebraicDepth)
+ 697 |     }
+ 698 |     static func closed<S: Sendable>(_ selection: OriginalParameterSelection<S, Base>, axis: Int,
+     |                 `- note: in call to function 'closed(_:axis:lower:upper:using:)'
+ 699 |         lower: Double, upper: Double, using a: inout ExactScalarLedger) throws {
+ 700 |         try require(selection.axes[axis].intervalCount == 1)
+     :
+ 777 |         try closed(owner.support, axis: 0, lower: 0, upper: 1, using: &a)
+ 778 |         let range = try options.curveRange ?? ScalarInterval(lower: 0, upper: 1)
+ 779 |         try closed(owner.request, axis: 0, lower: range.lower, upper: range.upper, using: &a)
+     |             `- error: generic parameter 'S' could not be inferred
+ 780 |         let lower = max(0, range.lower), upper = min(1, range.upper)
+ 781 |         if lower > upper { try require(owner.effective.isEmpty) }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:782:20: error: generic parameter 'S' could not be inferred
+ 696 |             maximumAlgebraicDepth: algebraicDepth)
+ 697 |     }
+ 698 |     static func closed<S: Sendable>(_ selection: OriginalParameterSelection<S, Base>, axis: Int,
+     |                 `- note: in call to function 'closed(_:axis:lower:upper:using:)'
+ 699 |         lower: Double, upper: Double, using a: inout ExactScalarLedger) throws {
+ 700 |         try require(selection.axes[axis].intervalCount == 1)
+     :
+ 780 |         let lower = max(0, range.lower), upper = min(1, range.upper)
+ 781 |         if lower > upper { try require(owner.effective.isEmpty) }
+ 782 |         else { try closed(owner.effective, axis: 0, lower: lower, upper: upper, using: &a) }
+     |                    `- error: generic parameter 'S' could not be inferred
+ 783 |         for axis in 0..<2 {
+ 784 |             try require(owner.plane.support.axes[axis].intervalCount == 1)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:791:21: error: generic parameter 'S' could not be inferred
+ 696 |             maximumAlgebraicDepth: algebraicDepth)
+ 697 |     }
+ 698 |     static func closed<S: Sendable>(_ selection: OriginalParameterSelection<S, Base>, axis: Int,
+     |                 `- note: in call to function 'closed(_:axis:lower:upper:using:)'
+ 699 |         lower: Double, upper: Double, using a: inout ExactScalarLedger) throws {
+ 700 |         try require(selection.axes[axis].intervalCount == 1)
+     :
+ 789 |             try require(!whole.isEmpty && !whole.includesLower && !whole.includesUpper)
+ 790 |             if let range = axis == 0 ? options.surfaceURange : options.surfaceVRange {
+ 791 |                 try closed(owner.plane.request, axis: axis, lower: range.lower, upper: range.upper, using: &a)
+     |                     `- error: generic parameter 'S' could not be inferred
+ 792 |                 try closed(owner.plane.effective, axis: axis, lower: range.lower, upper: range.upper, using: &a)
+ 793 |             } else {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:792:21: error: generic parameter 'S' could not be inferred
+ 696 |             maximumAlgebraicDepth: algebraicDepth)
+ 697 |     }
+ 698 |     static func closed<S: Sendable>(_ selection: OriginalParameterSelection<S, Base>, axis: Int,
+     |                 `- note: in call to function 'closed(_:axis:lower:upper:using:)'
+ 699 |         lower: Double, upper: Double, using a: inout ExactScalarLedger) throws {
+ 700 |         try require(selection.axes[axis].intervalCount == 1)
+     :
+ 790 |             if let range = axis == 0 ? options.surfaceURange : options.surfaceVRange {
+ 791 |                 try closed(owner.plane.request, axis: axis, lower: range.lower, upper: range.upper, using: &a)
+ 792 |                 try closed(owner.plane.effective, axis: axis, lower: range.lower, upper: range.upper, using: &a)
+     |                     `- error: generic parameter 'S' could not be inferred
+ 793 |             } else {
+ 794 |                 for selection in [owner.plane.request, owner.plane.effective] {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:1008:75: error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+1006 |         let group = CommandLine.arguments[1]
+1007 | #endif
+1008 |         func query(_ selected: CurveSurfaceIntersectionOptions) throws -> CurveSurfaceIntersectionResult {
+     |                                                                           `- error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+1009 |             try DefaultCurveSurfaceIntersector().intersectionResult(curve: curve, surface: plane,
+1010 |                 options: selected, tolerance: .standard)
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift:2:15: note: found this candidate
+ 1 | /// A complete result in the requested domains, separating points from continuous regions.
+ 2 | public struct CurveSurfaceIntersectionResult: Sendable {
+   |               `- note: found this candidate
+ 3 |     public let points: [CurveSurfaceIntersection]
+ 4 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/CurveSurfaceIntersectionResult.swift:446:15: note: found this candidate
+444 | import struct PublicLiftPlane.ExactXYZ
+445 | /// A complete result in the requested domains, separating points from continuous regions.
+446 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+447 |     public let points: [CurveSurfaceIntersection]
+448 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/CurveSurfaceIntersectionResult.swift:494:15: note: found this candidate
+492 | @testable import ImplicitHostPlaneSourcePhase
+493 | /// A complete result in the requested domains, separating points from continuous regions.
+494 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+495 |     public let points: [CurveSurfaceIntersection]
+496 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:1027:25: error: ambiguous use of 'DefaultCurveSurfaceIntersector'
+1025 |             print("PASS complete actual closed4 ordinary rich CS: whole positive-weight Native host Z0 excludes planeZ2")
+1026 |         } else if group == "dispatch" {
+1027 |             try require(DefaultCurveSurfaceIntersector().intersections(curve: curve, surface: plane,
+     |                         `- error: ambiguous use of 'DefaultCurveSurfaceIntersector'
+1028 |                 options: options, tolerance: .standard).isEmpty)
+1029 |             try verify(admitted(curve, plane, options, Counter()), options: options)
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift:14:15: note: found this candidate in module 'CADGeometry'
+  12 | #endif
+  13 | 
+  14 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'CADGeometry'
+  15 |   private let invocation: CurveSurfaceQueryInvocation?
+  16 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/DefaultCurveSurfaceIntersector.swift:458:15: note: found this candidate in module 'DraftZeroRuledPort'
+ 456 | #endif
+ 457 | 
+ 458 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'DraftZeroRuledPort'
+ 459 |   private let invocation: CurveSurfaceQueryInvocation?
+ 460 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/DefaultCurveSurfaceIntersector.swift:506:15: note: found this candidate in module 'ImplicitClosedAcceptanceUpper'
+ 504 | #endif
+ 505 | 
+ 506 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'ImplicitClosedAcceptanceUpper'
+ 507 |   private let invocation: CurveSurfaceQueryInvocation?
+ 508 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:1031:28: error: ambiguous use of 'DefaultCurveSurfaceIntersector'
+1029 |             try verify(admitted(curve, plane, options, Counter()), options: options)
+1030 |             let counter = Counter()
+1031 |             let bare = try DefaultCurveSurfaceIntersector().intersections(curve: curve, surface: plane,
+     |                            `- error: ambiguous use of 'DefaultCurveSurfaceIntersector'
+1032 |                 options: options, tolerance: .standard, maximumSpanCount: 262_144,
+1033 |                 maximumSubdivisionDepth: 8, remainingSourceDepth: 8,
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift:14:15: note: found this candidate in module 'CADGeometry'
+  12 | #endif
+  13 | 
+  14 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'CADGeometry'
+  15 |   private let invocation: CurveSurfaceQueryInvocation?
+  16 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/DefaultCurveSurfaceIntersector.swift:458:15: note: found this candidate in module 'DraftZeroRuledPort'
+ 456 | #endif
+ 457 | 
+ 458 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'DraftZeroRuledPort'
+ 459 |   private let invocation: CurveSurfaceQueryInvocation?
+ 460 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/DefaultCurveSurfaceIntersector.swift:506:15: note: found this candidate in module 'ImplicitClosedAcceptanceUpper'
+ 504 | #endif
+ 505 | 
+ 506 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'ImplicitClosedAcceptanceUpper'
+ 507 |   private let invocation: CurveSurfaceQueryInvocation?
+ 508 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:1179:27: error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+1177 |             print("PASS subsequent independent proof-query cancellation without partial success")
+1178 |         } else if group == "lifetime" {
+1179 |             let retained: CurveSurfaceIntersectionResult
+     |                           `- error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+1180 |             do {
+1181 |                 var (localCurve, localPlane, localOptions) = try input()
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift:2:15: note: found this candidate
+ 1 | /// A complete result in the requested domains, separating points from continuous regions.
+ 2 | public struct CurveSurfaceIntersectionResult: Sendable {
+   |               `- note: found this candidate
+ 3 |     public let points: [CurveSurfaceIntersection]
+ 4 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/CurveSurfaceIntersectionResult.swift:446:15: note: found this candidate
+444 | import struct PublicLiftPlane.ExactXYZ
+445 | /// A complete result in the requested domains, separating points from continuous regions.
+446 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+447 |     public let points: [CurveSurfaceIntersection]
+448 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/CurveSurfaceIntersectionResult.swift:494:15: note: found this candidate
+492 | @testable import ImplicitHostPlaneSourcePhase
+493 | /// A complete result in the requested domains, separating points from continuous regions.
+494 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+495 |     public let points: [CurveSurfaceIntersection]
+496 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:1052:25: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1050 |                 try verify(query(selected), options: selected)
+1051 |             }
+1052 |             let owner = try query(options).originalImplicitHostPlaneExclusion!.original
+     |                         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1053 |             var a = try ledger()
+1054 |             let f = owner.exclusion.field, l = try limits()
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:691:42: error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+ 689 |     static func admitted(_ curve: Curve3D, _ plane: Surface3D, _ options: CurveSurfaceIntersectionOptions,
+ 690 |         _ counter: Counter, sourceDepth: Int = 8, algebraicDepth: Int = 32,
+ 691 |         charts: Int = 262_144) throws -> CurveSurfaceIntersectionResult {
+     |                                          `- error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+ 692 |         try DefaultCurveSurfaceIntersector().intersectionResult(curve: curve, surface: plane,
+ 693 |             options: options, tolerance: .standard, maximumSpanCount: charts,
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift:2:15: note: found this candidate
+ 1 | /// A complete result in the requested domains, separating points from continuous regions.
+ 2 | public struct CurveSurfaceIntersectionResult: Sendable {
+   |               `- note: found this candidate
+ 3 |     public let points: [CurveSurfaceIntersection]
+ 4 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/CurveSurfaceIntersectionResult.swift:446:15: note: found this candidate
+444 | import struct PublicLiftPlane.ExactXYZ
+445 | /// A complete result in the requested domains, separating points from continuous regions.
+446 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+447 |     public let points: [CurveSurfaceIntersection]
+448 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/CurveSurfaceIntersectionResult.swift:494:15: note: found this candidate
+492 | @testable import ImplicitHostPlaneSourcePhase
+493 | /// A complete result in the requested domains, separating points from continuous regions.
+494 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+495 |     public let points: [CurveSurfaceIntersection]
+496 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:710:34: error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+ 708 |         try equal(hi, f.binary64(exactly: upper, using: &a), field: f, using: &a)
+ 709 |     }
+ 710 |     static func verify(_ result: CurveSurfaceIntersectionResult, options: CurveSurfaceIntersectionOptions) throws {
+     |                                  `- error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+ 711 |         guard let reading = result.originalImplicitHostPlaneExclusion else { throw Failure(line: #line) }
+ 712 |         let owner = reading.original, proof = owner.exclusion, f = proof.field
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift:2:15: note: found this candidate
+ 1 | /// A complete result in the requested domains, separating points from continuous regions.
+ 2 | public struct CurveSurfaceIntersectionResult: Sendable {
+   |               `- note: found this candidate
+ 3 |     public let points: [CurveSurfaceIntersection]
+ 4 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/CurveSurfaceIntersectionResult.swift:446:15: note: found this candidate
+444 | import struct PublicLiftPlane.ExactXYZ
+445 | /// A complete result in the requested domains, separating points from continuous regions.
+446 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+447 |     public let points: [CurveSurfaceIntersection]
+448 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/CurveSurfaceIntersectionResult.swift:494:15: note: found this candidate
+492 | @testable import ImplicitHostPlaneSourcePhase
+493 | /// A complete result in the requested domains, separating points from continuous regions.
+494 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+495 |     public let points: [CurveSurfaceIntersection]
+496 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:734:48: error: cannot infer contextual base in reference to member 'firstU'
+ 732 |         try require(original.cells[0].startAnchor.first.u == 0 && original.cells[3].endAnchor.first.u == 4)
+ 733 |         for (index, cell) in original.cells.enumerated() {
+ 734 |             try require(cell.freeParameter == .firstU && cell.direction == .forward)
+     |                                                `- error: cannot infer contextual base in reference to member 'firstU'
+ 735 |             try require(cell.parameterBox.firstU.lower == Double(index)
+ 736 |                 && cell.parameterBox.firstU.upper == Double(index + 1))
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:734:77: error: cannot infer contextual base in reference to member 'forward'
+ 732 |         try require(original.cells[0].startAnchor.first.u == 0 && original.cells[3].endAnchor.first.u == 4)
+ 733 |         for (index, cell) in original.cells.enumerated() {
+ 734 |             try require(cell.freeParameter == .firstU && cell.direction == .forward)
+     |                                                                             `- error: cannot infer contextual base in reference to member 'forward'
+ 735 |             try require(cell.parameterBox.firstU.lower == Double(index)
+ 736 |                 && cell.parameterBox.firstU.upper == Double(index + 1))
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:777:13: error: generic parameter 'S' could not be inferred
+ 696 |             maximumAlgebraicDepth: algebraicDepth)
+ 697 |     }
+ 698 |     static func closed<S: Sendable>(_ selection: OriginalParameterSelection<S, Base>, axis: Int,
+     |                 `- note: in call to function 'closed(_:axis:lower:upper:using:)'
+ 699 |         lower: Double, upper: Double, using a: inout ExactScalarLedger) throws {
+ 700 |         try require(selection.axes[axis].intervalCount == 1)
+     :
+ 775 |             _ = try f.importing(candidate.integer(0, using: &a), using: &a)
+ 776 |         }
+ 777 |         try closed(owner.support, axis: 0, lower: 0, upper: 1, using: &a)
+     |             `- error: generic parameter 'S' could not be inferred
+ 778 |         let range = try options.curveRange ?? ScalarInterval(lower: 0, upper: 1)
+ 779 |         try closed(owner.request, axis: 0, lower: range.lower, upper: range.upper, using: &a)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:779:13: error: generic parameter 'S' could not be inferred
+ 696 |             maximumAlgebraicDepth: algebraicDepth)
+ 697 |     }
+ 698 |     static func closed<S: Sendable>(_ selection: OriginalParameterSelection<S, Base>, axis: Int,
+     |                 `- note: in call to function 'closed(_:axis:lower:upper:using:)'
+ 699 |         lower: Double, upper: Double, using a: inout ExactScalarLedger) throws {
+ 700 |         try require(selection.axes[axis].intervalCount == 1)
+     :
+ 777 |         try closed(owner.support, axis: 0, lower: 0, upper: 1, using: &a)
+ 778 |         let range = try options.curveRange ?? ScalarInterval(lower: 0, upper: 1)
+ 779 |         try closed(owner.request, axis: 0, lower: range.lower, upper: range.upper, using: &a)
+     |             `- error: generic parameter 'S' could not be inferred
+ 780 |         let lower = max(0, range.lower), upper = min(1, range.upper)
+ 781 |         if lower > upper { try require(owner.effective.isEmpty) }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:782:20: error: generic parameter 'S' could not be inferred
+ 696 |             maximumAlgebraicDepth: algebraicDepth)
+ 697 |     }
+ 698 |     static func closed<S: Sendable>(_ selection: OriginalParameterSelection<S, Base>, axis: Int,
+     |                 `- note: in call to function 'closed(_:axis:lower:upper:using:)'
+ 699 |         lower: Double, upper: Double, using a: inout ExactScalarLedger) throws {
+ 700 |         try require(selection.axes[axis].intervalCount == 1)
+     :
+ 780 |         let lower = max(0, range.lower), upper = min(1, range.upper)
+ 781 |         if lower > upper { try require(owner.effective.isEmpty) }
+ 782 |         else { try closed(owner.effective, axis: 0, lower: lower, upper: upper, using: &a) }
+     |                    `- error: generic parameter 'S' could not be inferred
+ 783 |         for axis in 0..<2 {
+ 784 |             try require(owner.plane.support.axes[axis].intervalCount == 1)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:791:21: error: generic parameter 'S' could not be inferred
+ 696 |             maximumAlgebraicDepth: algebraicDepth)
+ 697 |     }
+ 698 |     static func closed<S: Sendable>(_ selection: OriginalParameterSelection<S, Base>, axis: Int,
+     |                 `- note: in call to function 'closed(_:axis:lower:upper:using:)'
+ 699 |         lower: Double, upper: Double, using a: inout ExactScalarLedger) throws {
+ 700 |         try require(selection.axes[axis].intervalCount == 1)
+     :
+ 789 |             try require(!whole.isEmpty && !whole.includesLower && !whole.includesUpper)
+ 790 |             if let range = axis == 0 ? options.surfaceURange : options.surfaceVRange {
+ 791 |                 try closed(owner.plane.request, axis: axis, lower: range.lower, upper: range.upper, using: &a)
+     |                     `- error: generic parameter 'S' could not be inferred
+ 792 |                 try closed(owner.plane.effective, axis: axis, lower: range.lower, upper: range.upper, using: &a)
+ 793 |             } else {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:792:21: error: generic parameter 'S' could not be inferred
+ 696 |             maximumAlgebraicDepth: algebraicDepth)
+ 697 |     }
+ 698 |     static func closed<S: Sendable>(_ selection: OriginalParameterSelection<S, Base>, axis: Int,
+     |                 `- note: in call to function 'closed(_:axis:lower:upper:using:)'
+ 699 |         lower: Double, upper: Double, using a: inout ExactScalarLedger) throws {
+ 700 |         try require(selection.axes[axis].intervalCount == 1)
+     :
+ 790 |             if let range = axis == 0 ? options.surfaceURange : options.surfaceVRange {
+ 791 |                 try closed(owner.plane.request, axis: axis, lower: range.lower, upper: range.upper, using: &a)
+ 792 |                 try closed(owner.plane.effective, axis: axis, lower: range.lower, upper: range.upper, using: &a)
+     |                     `- error: generic parameter 'S' could not be inferred
+ 793 |             } else {
+ 794 |                 for selection in [owner.plane.request, owner.plane.effective] {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:1008:75: error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+1006 |         let group = CommandLine.arguments[1]
+1007 | #endif
+1008 |         func query(_ selected: CurveSurfaceIntersectionOptions) throws -> CurveSurfaceIntersectionResult {
+     |                                                                           `- error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+1009 |             try DefaultCurveSurfaceIntersector().intersectionResult(curve: curve, surface: plane,
+1010 |                 options: selected, tolerance: .standard)
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift:2:15: note: found this candidate
+ 1 | /// A complete result in the requested domains, separating points from continuous regions.
+ 2 | public struct CurveSurfaceIntersectionResult: Sendable {
+   |               `- note: found this candidate
+ 3 |     public let points: [CurveSurfaceIntersection]
+ 4 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/CurveSurfaceIntersectionResult.swift:446:15: note: found this candidate
+444 | import struct PublicLiftPlane.ExactXYZ
+445 | /// A complete result in the requested domains, separating points from continuous regions.
+446 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+447 |     public let points: [CurveSurfaceIntersection]
+448 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/CurveSurfaceIntersectionResult.swift:494:15: note: found this candidate
+492 | @testable import ImplicitHostPlaneSourcePhase
+493 | /// A complete result in the requested domains, separating points from continuous regions.
+494 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+495 |     public let points: [CurveSurfaceIntersection]
+496 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:1027:25: error: ambiguous use of 'DefaultCurveSurfaceIntersector'
+1025 |             print("PASS complete actual closed4 ordinary rich CS: whole positive-weight Native host Z0 excludes planeZ2")
+1026 |         } else if group == "dispatch" {
+1027 |             try require(DefaultCurveSurfaceIntersector().intersections(curve: curve, surface: plane,
+     |                         `- error: ambiguous use of 'DefaultCurveSurfaceIntersector'
+1028 |                 options: options, tolerance: .standard).isEmpty)
+1029 |             try verify(admitted(curve, plane, options, Counter()), options: options)
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift:14:15: note: found this candidate in module 'CADGeometry'
+  12 | #endif
+  13 | 
+  14 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'CADGeometry'
+  15 |   private let invocation: CurveSurfaceQueryInvocation?
+  16 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/DefaultCurveSurfaceIntersector.swift:458:15: note: found this candidate in module 'DraftZeroRuledPort'
+ 456 | #endif
+ 457 | 
+ 458 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'DraftZeroRuledPort'
+ 459 |   private let invocation: CurveSurfaceQueryInvocation?
+ 460 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/DefaultCurveSurfaceIntersector.swift:506:15: note: found this candidate in module 'ImplicitClosedAcceptanceUpper'
+ 504 | #endif
+ 505 | 
+ 506 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'ImplicitClosedAcceptanceUpper'
+ 507 |   private let invocation: CurveSurfaceQueryInvocation?
+ 508 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:1031:28: error: ambiguous use of 'DefaultCurveSurfaceIntersector'
+1029 |             try verify(admitted(curve, plane, options, Counter()), options: options)
+1030 |             let counter = Counter()
+1031 |             let bare = try DefaultCurveSurfaceIntersector().intersections(curve: curve, surface: plane,
+     |                            `- error: ambiguous use of 'DefaultCurveSurfaceIntersector'
+1032 |                 options: options, tolerance: .standard, maximumSpanCount: 262_144,
+1033 |                 maximumSubdivisionDepth: 8, remainingSourceDepth: 8,
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift:14:15: note: found this candidate in module 'CADGeometry'
+  12 | #endif
+  13 | 
+  14 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'CADGeometry'
+  15 |   private let invocation: CurveSurfaceQueryInvocation?
+  16 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/DefaultCurveSurfaceIntersector.swift:458:15: note: found this candidate in module 'DraftZeroRuledPort'
+ 456 | #endif
+ 457 | 
+ 458 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'DraftZeroRuledPort'
+ 459 |   private let invocation: CurveSurfaceQueryInvocation?
+ 460 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/DefaultCurveSurfaceIntersector.swift:506:15: note: found this candidate in module 'ImplicitClosedAcceptanceUpper'
+ 504 | #endif
+ 505 | 
+ 506 | public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+     |               `- note: found this candidate in module 'ImplicitClosedAcceptanceUpper'
+ 507 |   private let invocation: CurveSurfaceQueryInvocation?
+ 508 |   private let certifiedIntersectionCoincidenceResolver:
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:1179:27: error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+1177 |             print("PASS subsequent independent proof-query cancellation without partial success")
+1178 |         } else if group == "lifetime" {
+1179 |             let retained: CurveSurfaceIntersectionResult
+     |                           `- error: 'CurveSurfaceIntersectionResult' is ambiguous for type lookup in this context
+1180 |             do {
+1181 |                 var (localCurve, localPlane, localOptions) = try input()
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift:2:15: note: found this candidate
+ 1 | /// A complete result in the requested domains, separating points from continuous regions.
+ 2 | public struct CurveSurfaceIntersectionResult: Sendable {
+   |               `- note: found this candidate
+ 3 |     public let points: [CurveSurfaceIntersection]
+ 4 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/generated/CurveSurfaceIntersectionResult.swift:446:15: note: found this candidate
+444 | import struct PublicLiftPlane.ExactXYZ
+445 | /// A complete result in the requested domains, separating points from continuous regions.
+446 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+447 |     public let points: [CurveSurfaceIntersection]
+448 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/upper/CurveSurfaceIntersectionResult.swift:494:15: note: found this candidate
+492 | @testable import ImplicitHostPlaneSourcePhase
+493 | /// A complete result in the requested domains, separating points from continuous regions.
+494 | public struct CurveSurfaceIntersectionResult: Sendable {
+    |               `- note: found this candidate
+495 |     public let points: [CurveSurfaceIntersection]
+496 |     public let overlaps: [CurveSurfaceOverlap]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/fixture/Proof.swift:1052:25: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1050 |                 try verify(query(selected), options: selected)
+1051 |             }
+1052 |             let owner = try query(options).originalImplicitHostPlaneExclusion!.original
+     |                         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1053 |             var a = try ledger()
+1054 |             let f = owner.exclusion.field, l = try limits()
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>

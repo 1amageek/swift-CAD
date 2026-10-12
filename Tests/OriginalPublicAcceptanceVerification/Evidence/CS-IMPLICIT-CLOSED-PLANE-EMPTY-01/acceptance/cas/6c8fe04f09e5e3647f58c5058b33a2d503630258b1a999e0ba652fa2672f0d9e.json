@@ -1,0 +1,6 @@
+[
+  "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/llvm-ar",
+  "-rcs",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry/libCADGeometryClosedWMO.a",
+  "@/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry/archive-inputs.txt"
+]

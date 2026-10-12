@@ -1,0 +1,112 @@
+{
+  "cell": "CS-IMPLICIT-CLOSED-PLANE-EMPTY-01",
+  "scope": "Two synthetic Swift files establish a compiler option-contract rejection only. This is not Geometry or public-cell acceptance.",
+  "state": "compiler-option-rejection-observed",
+  "cellComplete": false,
+  "geometryAcceptance": false,
+  "executionCount": 1,
+  "syntheticInputs": 2,
+  "projectSourceInputs": 0,
+  "moduleEmit": 0,
+  "link": 0,
+  "diagnostic": "<unknown>:0: error: Whole module optimization (wmo) must be enabled with embedded Swift.",
+  "commandSHA256": "9cf96709bcd9faf6f560ce3e8d2b0d071e520ea2c4c523fb0ce42182d00fca08",
+  "receiptSHA256": "3b5233c0e74e8f9b17cf98bdfd58d1699ca110bfb28fed0886a7e97033a3a566",
+  "exitCode": 1,
+  "elapsedSeconds": 0.22659537510480732,
+  "cpuSeconds": 0.082424,
+  "wait4MaximumRSSBytes": 28295168,
+  "actualObjectOutputCount": 0,
+  "preAndPostAdmissionPassed": true,
+  "checkedPremises": 7,
+  "remainingOwnedProcesses": [],
+  "files": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/Primary.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/embedded-option-probe/sources/Primary.swift",
+      "sha256": "347e7e82de858b7a6239d0c34ca0aa6f81cd9e81ccc7f564d1d1d7c466f0d627",
+      "bytes": 76,
+      "preservedExactBytes": true
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/Secondary.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/embedded-option-probe/sources/Secondary.swift",
+      "sha256": "ea13bab3eca131ddde9447698c8a302e304a174530e9783e877b7c655005d669",
+      "bytes": 60,
+      "preservedExactBytes": true
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/probe-command.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/embedded-option-probe/command.json",
+      "sha256": "9cf96709bcd9faf6f560ce3e8d2b0d071e520ea2c4c523fb0ce42182d00fca08",
+      "bytes": 1621,
+      "preservedExactBytes": true
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/premises.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/embedded-option-probe/premises.json",
+      "sha256": "08ac6f33c78fe7cb4cfb36d040ea83280e039a78a79cef86d8fe703d5dc57318",
+      "bytes": 3233,
+      "preservedExactBytes": true
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/probe-receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/embedded-option-probe/receipt.json",
+      "sha256": "3b5233c0e74e8f9b17cf98bdfd58d1699ca110bfb28fed0886a7e97033a3a566",
+      "bytes": 7639,
+      "preservedExactBytes": true
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/probe.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/embedded-option-probe/probe.log",
+      "sha256": "98d7e3e6680a354936399dcb4762f4196c7fe0dbc50b0538e0c928b457290d5d",
+      "bytes": 89,
+      "preservedExactBytes": true
+    }
+  },
+  "historicalResourceFacts": {
+    "authority": [
+      {
+        "path": "Tests/OriginalDomainConsumerVerification/Evidence/M6/embedded/receipt.json",
+        "sha256": "1a21419b1a677e75f99cf636cd863632dd87712db75e7aab5613cb40e459a754"
+      },
+      {
+        "path": "Tests/OriginalDomainConsumerVerification/Evidence/M6/embedded/codegen-observations.json",
+        "sha256": "e52e6b8b40091c903af48e43986b0156e627ade146b2a945372eda7560de69c9"
+      },
+      {
+        "path": "Tests/OriginalDomainConsumerVerification/Evidence/M6/embedded/NativeExactBoundaryProof-build.log",
+        "sha256": "20677e36e1ba1397b6e775f0e80c6cb18762a5a538bdb5246c8fc4e4f170a65b"
+      }
+    ],
+    "fullCADGeometryWMO1651": {
+      "wallSeconds": null,
+      "cpuSeconds": null,
+      "peakRSSBytes": null,
+      "reason": "Existing receipt does not isolate CADGeometry frontend duration or CPU/RSS. Final successful build log contains CADTopology/CADKernel/fixtures/proof work and no CADGeometry frontend stage."
+    },
+    "recordedBoundaryProductBuild": {
+      "receiptElapsedSeconds": 919.5973349169944,
+      "buildLogElapsedSeconds": 917.76,
+      "timeoutSeconds": 1200,
+      "scope": "Historical BoundaryProof product build; not isolated Geometry WMO timing"
+    },
+    "recordedFinalProofFrontendSample": {
+      "observations": [
+        {
+          "stage": "Final Proof frontend after module emission",
+          "elapsed_seconds": 335,
+          "cpu_seconds": 155.67,
+          "cpu_percent": 48.1,
+          "rss_bytes": 1222131712
+        }
+      ],
+      "peakRSS": "unavailable; sampled RSS is not peak",
+      "scope": "Completed owned BoundaryProof frontend; limited ps observations, no postmortem stack sample available",
+      "usableAsGeometryPeak": false
+    },
+    "possibleFutureGeometryOnlyProfile": {
+      "generationDeclarationInputs": 1651,
+      "replacementBodies": 3,
+      "unchangedHistoricalBodies": 1648,
+      "cachedLowerRetained": true,
+      "currentMainBroadPackageBuild": false,
+      "executionAuthorizedByThisEvidence": false
+    }
+  },
+  "furtherCompilerExecution": 0
+}

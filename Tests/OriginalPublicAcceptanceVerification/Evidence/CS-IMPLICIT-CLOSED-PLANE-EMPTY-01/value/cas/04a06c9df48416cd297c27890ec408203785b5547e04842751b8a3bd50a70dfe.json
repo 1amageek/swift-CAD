@@ -1,0 +1,536 @@
+{
+  "schemaVersion": 1,
+  "cell": "CS-IMPLICIT-CLOSED-PLANE-EMPTY-01",
+  "status": "native-value-controls-green-public-runtime-wall-stop-observed",
+  "observationComplete": true,
+  "cellComplete": false,
+  "sourceContractComplete": false,
+  "recordingCompleted": true,
+  "publicQuerySuccessful": false,
+  "sourceAtCompile": "db25eebec9b323d502faddb38232f26fff84460c",
+  "headAfter": "db25eebec9b323d502faddb38232f26fff84460c",
+  "fixture": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/cas/61303646e6c49cf0191f455c5e989243e381fdb3641d05e730931f4277f8afe8.swift",
+    "sha256": "61303646e6c49cf0191f455c5e989243e381fdb3641d05e730931f4277f8afe8",
+    "bytes": 13204,
+    "kind": "actual-value-source-command-receipt-log"
+  },
+  "runner": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/cas/a342c9c8249728e32cccdeba56f334685c313576859f85408bd2ead2a4ad91c9.py",
+    "sha256": "a342c9c8249728e32cccdeba56f334685c313576859f85408bd2ead2a4ad91c9",
+    "bytes": 12903,
+    "kind": "actual-value-source-command-receipt-log"
+  },
+  "rawReceipt": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/cas/18ab20da3b2e2f16fdc299050669519f3bbbaf42fd80bd3462f649570c694e72.json",
+    "sha256": "18ab20da3b2e2f16fdc299050669519f3bbbaf42fd80bd3462f649570c694e72",
+    "bytes": 1318153,
+    "kind": "actual-value-source-command-receipt-log"
+  },
+  "runtimeLog": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/cas/76192e7bdcbb89031708b623365159e762827ba3816ad7576e35e3c2534052b5.log",
+    "sha256": "76192e7bdcbb89031708b623365159e762827ba3816ad7576e35e3c2534052b5",
+    "bytes": 3654,
+    "kind": "actual-value-source-command-receipt-log"
+  },
+  "bindings": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/cas/22bb5b9436761969e9ef545ed0e1427dc882cf3c311b5ceb865624ec99d7eac8.json",
+    "sha256": "22bb5b9436761969e9ef545ed0e1427dc882cf3c311b5ceb865624ec99d7eac8",
+    "bytes": 1043819,
+    "kind": "actual-value-source-command-receipt-log"
+  },
+  "originalObservation": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/observation/cas/a4b9dc11b6c54ea4da95fbf054201792735ae2368056694437d6c943c800a16d.json",
+    "sha256": "a4b9dc11b6c54ea4da95fbf054201792735ae2368056694437d6c943c800a16d",
+    "bytes": 12026,
+    "kind": "frozen-native-constructor-observation"
+  },
+  "priorConnectionObservation": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/connection/cas/53935493088f2cde3b6a8305cd30930126de1f3c5d911335bd031614609f6841.json",
+    "sha256": "53935493088f2cde3b6a8305cd30930126de1f3c5d911335bd031614609f6841",
+    "bytes": 17605,
+    "kind": "actual-connection-source-command-receipt-log"
+  },
+  "scope": {
+    "lane": "native",
+    "sameModuleProductionPrimaries": 3,
+    "generationDeclarationInputs": 1651,
+    "reusedObjectBodies": 1648,
+    "upperBodies": 56,
+    "selectorBodies": 1,
+    "upperSwiftInputs": 58,
+    "linkArchives": 14,
+    "moduleEmit": 0,
+    "source6Recompile": 0,
+    "lowerCodegen": 0,
+    "ordinaryPublicCalls": 1,
+    "originalClosedConstructorCalls": 1,
+    "oldConstructorControlsReplayed": 0,
+    "additionalCompileRuntimeForPackaging": 0,
+    "completeCellAcceptance": false
+  },
+  "directControls": {
+    "scaledParameter": [
+      {
+        "constantLowerBits": "0",
+        "constantUpperBits": "3ff0000000000000",
+        "derivativesFollowPreviousOutwardPowerLaw": true,
+        "gain": 1,
+        "stage": "scaled-parameter-control",
+        "storageBytes": 64,
+        "work": 8
+      },
+      {
+        "constantLowerBits": "0",
+        "constantUpperBits": "3ff0000000000000",
+        "derivativesFollowPreviousOutwardPowerLaw": true,
+        "gain": -2,
+        "stage": "scaled-parameter-control",
+        "storageBytes": 64,
+        "work": 8
+      },
+      {
+        "constantLowerBits": "0",
+        "constantUpperBits": "3ff0000000000000",
+        "derivativesFollowPreviousOutwardPowerLaw": true,
+        "gain": 0,
+        "stage": "scaled-parameter-control",
+        "storageBytes": 64,
+        "work": 8
+      },
+      {
+        "constantLowerBits": "4010000000000000",
+        "constantUpperBits": "4010000000000000",
+        "derivativesFollowPreviousOutwardPowerLaw": true,
+        "gain": 1,
+        "stage": "scaled-parameter-control",
+        "storageBytes": 64,
+        "work": 8
+      },
+      {
+        "constantLowerBits": "4010000000000000",
+        "constantUpperBits": "4010000000000000",
+        "derivativesFollowPreviousOutwardPowerLaw": true,
+        "gain": -2,
+        "stage": "scaled-parameter-control",
+        "storageBytes": 64,
+        "work": 8
+      },
+      {
+        "constantLowerBits": "4010000000000000",
+        "constantUpperBits": "4010000000000000",
+        "derivativesFollowPreviousOutwardPowerLaw": true,
+        "gain": 0,
+        "stage": "scaled-parameter-control",
+        "storageBytes": 64,
+        "work": 8
+      }
+    ],
+    "constantValues": [
+      "[0,1]",
+      "singleton4"
+    ],
+    "gains": [
+      1,
+      -2,
+      0
+    ],
+    "order": 3,
+    "constantOracle": "Both binary64 endpoint bits equal authored coefficient bits for every gain.",
+    "derivativeOracle": "For k>=1 compare exact endpoint bits against the prior outward coefficient-times-power operation sequence, starting power exact1 and multiplying scale once per coefficient.",
+    "outsideSupport": {
+      "category": "invalidInput",
+      "cellComplete": false,
+      "code": "invalidInput",
+      "error": "KernelError(phase: geometry, code: invalidInput, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Original closed surface bounds extend beyond their retained support.)",
+      "message": "Original closed surface bounds extend beyond their retained support.",
+      "phase": "geometry",
+      "stage": "strict-outside-support-control"
+    }
+  },
+  "originalClosedConstructor": {
+    "cellCount": 4,
+    "cells": [
+      {
+        "anchors": [
+          [
+            0,
+            1,
+            0.32193100795774776,
+            0.840231481082425
+          ],
+          [
+            0.5,
+            1,
+            0.15976851891757493,
+            0.6780689920422521
+          ],
+          [
+            1,
+            1,
+            0.159768518917575,
+            0.4258937267671545
+          ]
+        ],
+        "box": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "direction": "forward",
+        "freeParameter": "firstU"
+      },
+      {
+        "anchors": [
+          [
+            1,
+            1,
+            0.159768518917575,
+            0.4258937267671545
+          ],
+          [
+            1.5,
+            1,
+            0.321931007957748,
+            0.22905333523882704
+          ],
+          [
+            2,
+            1,
+            0.5741062732328455,
+            0.22905333523882712
+          ]
+        ],
+        "box": [
+          [
+            1,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "direction": "forward",
+        "freeParameter": "firstU"
+      },
+      {
+        "anchors": [
+          [
+            2,
+            1,
+            0.5741062732328455,
+            0.22905333523882712
+          ],
+          [
+            2.5,
+            1,
+            0.770946664761173,
+            0.42589372676715465
+          ],
+          [
+            3,
+            1,
+            0.770946664761173,
+            0.6780689920422522
+          ]
+        ],
+        "box": [
+          [
+            2,
+            3
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "direction": "forward",
+        "freeParameter": "firstU"
+      },
+      {
+        "anchors": [
+          [
+            3,
+            1,
+            0.770946664761173,
+            0.6780689920422522
+          ],
+          [
+            3.5,
+            1,
+            0.5741062732328455,
+            0.8402314810824251
+          ],
+          [
+            4,
+            1,
+            0.32193100795774776,
+            0.840231481082425
+          ]
+        ],
+        "box": [
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "direction": "forward",
+        "freeParameter": "firstU"
+      }
+    ],
+    "firstUSeamParameters": [
+      0,
+      4
+    ],
+    "isClosed": true,
+    "secondHostControlXYZ": [
+      [
+        [
+          -1.5,
+          -1.5,
+          0
+        ],
+        [
+          1.5,
+          -1.5,
+          0
+        ]
+      ],
+      [
+        [
+          -1.5,
+          1.5,
+          0
+        ],
+        [
+          1.5,
+          1.5,
+          0
+        ]
+      ]
+    ],
+    "secondHostWeightBinary64Bits": [
+      [
+        "3ff0000000000000",
+        "3ff4000000000000"
+      ],
+      [
+        "3fe999999999999a",
+        "3ff0000000000000"
+      ]
+    ],
+    "secondHostWeights": [
+      [
+        1,
+        1.25
+      ],
+      [
+        0.8,
+        1
+      ]
+    ],
+    "stage": "constructor-result",
+    "target": "analytic plane Z=2"
+  },
+  "independentOracle": {
+    "completeTupleImageFiber": "empty",
+    "proof": "Every rational second-host control has homogeneous Z=w*0=0. Its degree(1,1) closed-support nonnegative partition-of-unity basis and strictly positive actual weights give W>=min(weights)>0, hence source Z=0 over all UV and all intended stored cells. The target plane has Z=2 for every requested UV. Equality is impossible for every closed T, independently of first-host sphere membership and any physical pi identity.",
+    "actualWeights": [
+      "1",
+      "5/4",
+      "3602879701896397/4503599627370496",
+      "1"
+    ],
+    "weightMinimum": "3602879701896397/4503599627370496",
+    "wholeOriginalSupport": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "firstHostUV": "No identification of distinct firstU0/4 is needed or performed by this exclusion oracle.",
+    "limitation": "The intended constructor recipe was attempted unchanged except #require-to-guard; it did not produce the actual closed curve, so no public intersection or original UV publication was observed."
+  },
+  "publicObservation": {
+    "resultDTOProduced": false,
+    "receiptFields": {
+      "originalImplicitCurveRelation": "unavailable_no_result_DTO",
+      "originalNativePoints": "unavailable_no_result_DTO",
+      "originalNativeRelations": "unavailable_no_result_DTO",
+      "originalPolynomialPoints": "unavailable_no_result_DTO",
+      "originalAffinePoints": "unavailable_no_result_DTO",
+      "originalCoonsPoints": "unavailable_no_result_DTO",
+      "originalExactGeometricRelation": "unavailable_no_result_DTO",
+      "originalIssuedGeometricRelation": "unavailable_no_result_DTO",
+      "originalIssuedNumericalPoints": "unavailable_no_result_DTO",
+      "originalContainedLiftPlaneFamily": "unavailable_no_result_DTO",
+      "originalRevolutionAxisRelation": "unavailable_no_result_DTO",
+      "originalAngularPlaneRelation": "unavailable_no_result_DTO",
+      "originalCertifiedApexPlaneExclusion": "unavailable_no_result_DTO"
+    },
+    "typedPublicFailureReturned": false,
+    "stop": {
+      "kind": "external-runner-runtime-wall-guard",
+      "configuredWallSeconds": 120,
+      "actualElapsedSeconds": 121.05488220893312,
+      "signal": "SIGKILL",
+      "exitCode": -9,
+      "ownedCPUSeconds": 65.92,
+      "internalPhase": "not observed; no stack or public error returned"
+    },
+    "cancelInjected": false,
+    "cancellationObserved": false
+  },
+  "compilerAuthority": {
+    "module": "CADGeometry",
+    "package": "nativeexactrelationverification",
+    "cachedModuleUnchanged": true,
+    "publicLayoutSignatureConformanceUnchanged": true,
+    "inlinableBodyChanges": false,
+    "rawPrimaryCommand": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/cas/63196e30a9ecb5f7ff86d46b555f197fe39ae93768cfe97e2dd27d313e8224a8.json",
+      "sha256": "63196e30a9ecb5f7ff86d46b555f197fe39ae93768cfe97e2dd27d313e8224a8",
+      "bytes": 5933,
+      "kind": "actual-value-source-command-receipt-log"
+    },
+    "rawArchiveCommand": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/cas/59b28861d16d23578b56cd8bd8b058f9a9e877a5906c0ab120dd9f6cc1b4044d.json",
+      "sha256": "59b28861d16d23578b56cd8bd8b058f9a9e877a5906c0ab120dd9f6cc1b4044d",
+      "bytes": 364988,
+      "kind": "actual-value-source-command-receipt-log"
+    },
+    "rawUpperCommand": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/cas/6ced55c368fca85153d12a3efd892d00a225ba673dd601c6c40d6f8ff581327a.json",
+      "sha256": "6ced55c368fca85153d12a3efd892d00a225ba673dd601c6c40d6f8ff581327a",
+      "bytes": 14755,
+      "kind": "actual-value-source-command-receipt-log"
+    },
+    "generationInputAuthority": "Exact v1 frozen generation inventory reused; only selected3 source substitutions and object replacements; old protected checkout remains unchanged."
+  },
+  "remainingGap": "The actual closed input and direct value-preservation controls succeed. The sole ordinary rich query entered but returned neither DTO nor typed error before its independent 120-second runtime wall guard. Whole-domain empty acceptance and exact receipt issuance remain unobserved; the internal time-consuming phase is not inferred from this stop.",
+  "integrity": {
+    "prePostHashesMatch": true,
+    "fixedChecks": 3662,
+    "finalChecks": 3667,
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-value-native-20261013-v2/CertifiedImplicitIntersectionGraphCell.o": "931cc28d27db7b387280da8bc3e5f4261dd3d326dd9530f5e14ed6904c2c5acb",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-value-native-20261013-v2/ExactIsoparametricPlanarIntersectionGraph.o": "d7205d6a05ca008881b7702148588c47a42b6ef95b9728af46e29005f13ad45c",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-value-native-20261013-v2/OriginalCurveTaylorComposition.o": "e1cf37e7c638b8ec37c89369aa30fc841b53749c70f607603c68203fc8456020",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-value-native-20261013-v2/libCachedCADGeometryValue.a": "e3990f41aa07ec80bbb49bd92c953e9a829b24d3598f03bdd89b1427f9822c68",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-value-native-20261013-v2/ValueObservation": "d4b6f450665fab21cec5f585fb1317d7f790aea3285fdc11c171e2834327fb57"
+    },
+    "cleanup": [
+      [],
+      [],
+      [],
+      []
+    ],
+    "originalObservationAndConnectionUnchanged": true,
+    "binaryCopies": 0
+  },
+  "resources": [
+    {
+      "label": "primary3",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 1.549738832982257,
+      "cumulativeElapsedSeconds": 2.0978815000271425,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 1.3,
+      "peakOwnedProcessResidentSumKiB": 228752,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "archive",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 1.246509457938373,
+      "cumulativeElapsedSeconds": 4.177609708043747,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 0.72,
+      "peakOwnedProcessResidentSumKiB": 180752,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "compile-link",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 57.27331233397126,
+      "cumulativeElapsedSeconds": 62.5593086250592,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 53.63,
+      "peakOwnedProcessResidentSumKiB": 670480,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "runtime",
+      "exitCode": -9,
+      "boundedStop": "stage-wall-limit",
+      "elapsedSeconds": 121.05488220893312,
+      "cumulativeElapsedSeconds": 185.687968458049,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 65.92,
+      "peakOwnedProcessResidentSumKiB": 16368,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "76192e7bdcbb89031708b623365159e762827ba3816ad7576e35e3c2534052b5"
+    }
+  ],
+  "guardPolicy": "Each primary3/archive/uppercompile/runtime independently wall120/perProcessCPU120/ownedCPU120; public query default caps unchanged. Runtime elapsed includes bounded sampling/cleanup overshoot; final owned descendants empty."
+}

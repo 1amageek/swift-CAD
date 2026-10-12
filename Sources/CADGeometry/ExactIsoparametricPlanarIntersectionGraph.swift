@@ -79,6 +79,40 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     return nil
   }
 
+  /// Establishes the original closed domain for this factory's surface pair.
+  /// Tolerated box or anchor matches do not authorize inherited root existence.
+  func certifiesExactDomain(
+    parameterBox: SurfaceIntersectionParameterBox,
+    freeParameter: SurfaceIntersectionParameterCoordinate,
+    first: BSplineSurface3D,
+    second: BSplineSurface3D
+  ) -> Bool {
+    let sourceU = sourceIsFirst ? parameterBox.firstU : parameterBox.secondU
+    let sourceV = sourceIsFirst ? parameterBox.firstV : parameterBox.secondV
+    let planeU = sourceIsFirst ? parameterBox.secondU : parameterBox.firstU
+    let planeV = sourceIsFirst ? parameterBox.secondV : parameterBox.firstV
+    let planeSurface = sourceIsFirst ? second : first
+    guard case .closed(let planeULower, let planeUUpper) = planeSurface.uDomain,
+      case .closed(let planeVLower, let planeVUpper) = planeSurface.vDomain,
+      sourceV.lower == source.lowerV,
+      sourceV.upper == source.fixedV,
+      planeU.lower == planeULower,
+      planeU.upper == planeUUpper,
+      planeV.lower == planeVLower,
+      planeV.upper == planeVUpper
+    else {
+      return false
+    }
+    for cell in cells where cell.freeParameter == freeParameter {
+      if sourceU.lower == cell.sourceULower,
+        sourceU.upper == cell.sourceUUpper
+      {
+        return true
+      }
+    }
+    return false
+  }
+
   func normalizedParameterPair(
     in cell: Cell,
     at fraction: Double,

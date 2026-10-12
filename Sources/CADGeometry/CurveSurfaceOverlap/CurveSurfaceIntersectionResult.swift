@@ -39,6 +39,9 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Complete original certified-apex separation with exact requested/effective domains.
     public let originalCertifiedApexPlaneExclusion: (any OriginalCertifiedApexPlaneExclusionReading)?
 
+    /// Complete original implicit-host separation with exact requested/effective domains.
+    public let originalImplicitHostPlaneExclusion: (any OriginalImplicitHostPlaneExclusionReading)?
+
     /// Complete original implicit curve, both host UV correspondences and retained projected lifts.
     public let originalImplicitCurveRelation: (any OriginalImplicitCurveRelationReading)?
 
@@ -58,6 +61,7 @@ public struct CurveSurfaceIntersectionResult: Sendable {
             || originalContainedLiftPlaneFamily?.hasPositiveDimensionalSolutions == true
             || originalAngularPlaneRelation?.hasPositiveDimensionalSolutions == true
             || originalCertifiedApexPlaneExclusion?.hasPositiveDimensionalSolutions == true
+            || originalImplicitHostPlaneExclusion?.hasPositiveDimensionalSolutions == true
     }
 
     init(points: [CurveSurfaceIntersection], overlaps: [CurveSurfaceOverlap],
@@ -73,7 +77,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalRevolutionAxisRelation: (any OriginalRevolutionAxisGeometricRelationReading)? = nil,
         originalAngularPlaneRelation: (any OriginalAngularPlaneRelationReading)? = nil,
         originalCertifiedApexPlaneExclusion: (any OriginalCertifiedApexPlaneExclusionReading)? = nil,
-        originalImplicitCurveRelation: (any OriginalImplicitCurveRelationReading)? = nil) {
+        originalImplicitCurveRelation: (any OriginalImplicitCurveRelationReading)? = nil,
+        originalImplicitHostPlaneExclusion: (any OriginalImplicitHostPlaneExclusionReading)? = nil) {
         self.points = points
         self.overlaps = overlaps
         self.originalNativePoints = originalNativePoints
@@ -89,5 +94,6 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         self.originalAngularPlaneRelation = originalAngularPlaneRelation
         self.originalCertifiedApexPlaneExclusion = originalCertifiedApexPlaneExclusion
         self.originalImplicitCurveRelation = originalImplicitCurveRelation
+        self.originalImplicitHostPlaneExclusion = originalImplicitHostPlaneExclusion
     }
 }

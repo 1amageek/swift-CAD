@@ -1,0 +1,50 @@
+[
+  {
+    "priorGenerated": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/OriginalImplicitHostExclusionSnapshotProvider.swift",
+      "sha256": "8639f5f9de1b8e81eade1c29ae3170ac59e63b01b9570737775f44e3fd0a1eee",
+      "bytes": 36529
+    },
+    "generated": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/source/OriginalImplicitHostExclusionSnapshotProvider.swift",
+      "sha256": "8639f5f9de1b8e81eade1c29ae3170ac59e63b01b9570737775f44e3fd0a1eee",
+      "bytes": 36529
+    }
+  },
+  {
+    "priorGenerated": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/OriginalImplicitHostPlaneSeparationIssuing.swift",
+      "sha256": "8d564d2c697740743786fa7b4f0e5855cccacda75954669a6302fe277409f8ad",
+      "bytes": 31912
+    },
+    "generated": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/source/OriginalImplicitHostPlaneSeparationIssuing.swift",
+      "sha256": "8d564d2c697740743786fa7b4f0e5855cccacda75954669a6302fe277409f8ad",
+      "bytes": 31912
+    }
+  },
+  {
+    "priorGenerated": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/OriginalImplicitHostPlaneSeparationReceipt.swift",
+      "sha256": "a91700446c5bba07a2063b6a483d5c1b4565dfc56fb04ec50b9254beddb1bbae",
+      "bytes": 35274
+    },
+    "generated": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/source/OriginalImplicitHostPlaneSeparationReceipt.swift",
+      "sha256": "a91700446c5bba07a2063b6a483d5c1b4565dfc56fb04ec50b9254beddb1bbae",
+      "bytes": 35274
+    }
+  },
+  {
+    "priorGenerated": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/DefaultOriginalImplicitHostPlaneSeparationIssuer.swift",
+      "sha256": "e906fa23f14e275d399476f16b7e409fc5aa938c776a88852ce7f86c8396ad51",
+      "bytes": 38197
+    },
+    "generated": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/source/DefaultOriginalImplicitHostPlaneSeparationIssuer.swift",
+      "sha256": "e906fa23f14e275d399476f16b7e409fc5aa938c776a88852ce7f86c8396ad51",
+      "bytes": 38197
+    }
+  }
+]

@@ -42,6 +42,16 @@ Jacobian. The free coordinate has no derivatives above order one. Surface-lift
 coefficients compose the original UV law with original surface coefficients.
 A coefficient of order k equals derivative/k!, with exact integer scaling.
 
+Parameter reparametrization preserves the original zeroth coefficient by direct
+copy for every gain: exponent zero is exactly the identity. Only derivative
+coefficients carry gain powers. Multiplying the value interval by an outward
+representation of one must not extend a certified original parameter range
+beyond its retained support. This rule preserves existing coefficient-loop work,
+storage and cancellation admission; the receiving surface's strict closed-domain
+validator remains unchanged. Verification checks exact zero and upper support
+boundaries under positive, negative and zero gains, derivative gain powers, and
+continued rejection of an actually out-of-support caller box.
+
 Lift composition passes the requested order unchanged into the shared surface
 Taylor provider, including zero through three. The surface owner supplies those
 actual original coefficients; requesting a value does not impose C4 continuity.

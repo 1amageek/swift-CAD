@@ -1,0 +1,483 @@
+{
+  "cell": "CS-IMPLICIT-CLOSED-PLANE-EMPTY-01",
+  "lane": "embedded",
+  "success": true,
+  "formalPacketComplete": false,
+  "originalFixture": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitClosedPlaneEmptyAcceptance.swift",
+    "sha256": "abc7c5921fd75f5336d142856591c3ee75c65139c89e4b42e7987a28adf95a51",
+    "bytes": 42467
+  },
+  "suffixUnchanged": true,
+  "wrapper": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Proof.swift",
+    "sha256": "863a4d82926d5cc679ec84d8f41d5fa0e0487cafa769bda2b646255a3fb1a9c3",
+    "bytes": 74739
+  },
+  "initialFailureReceipt": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/receipt.json",
+    "sha256": "8aa18d72c2cdd3654748e47a9c913eff750f4392c7dee38099455251e5a3438c",
+    "bytes": 922941
+  },
+  "finalReceipt": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/receipt.json",
+    "sha256": "505ae12ebffdae8dc8b84fb69fd83e58721cf19cbd64645843bd22a790c30c47",
+    "bytes": 2014344
+  },
+  "finalFreeze": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/execution-freeze.json",
+    "sha256": "170604fb9db8d4dc6a121258a02d39bbbcaf2bfb7db2f7254d13158e9550a522",
+    "bytes": 1167460
+  },
+  "originalProfile": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/profile.json",
+    "sha256": "2999f8e69af18d7942e159db54c0a84fad1886625dfe01603f64a0cfcca45e3f",
+    "bytes": 20878
+  },
+  "driverLayout": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-layout.json",
+    "sha256": "06b061053830f0112ef184bf2b0325315ff33a52d1b7e346b7bd4faeb560ed3a",
+    "bytes": 2461
+  },
+  "compilerStagesReceipt": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/runs.json",
+    "sha256": "9e0d80ab018d7b5764f6b129f46cad2700c3703842fd6fbc15fd801b75d504d0",
+    "bytes": 143597
+  },
+  "runtimeStagesReceipt": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runs.json",
+    "sha256": "09eb5c66a25a0c3943c720f51e58e5e0d2aa80f9ee8bd3bdeb823bfd3bf4fb6d",
+    "bytes": 53792
+  },
+  "products": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry/CADGeometry.swiftmodule": "1cc46a8842dd750762a5c66fc888350af3d7f0b2f8f75145320fb58e184f2aa9",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry/libCADGeometryClosedWMO.a": "1793c57810a5886b53d204e79c52ee677670c890cffcc392cc958cba491725ac",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source/ImplicitHostPlaneSourcePhase.swiftmodule": "4462321b3f435bb717917349eb925feca66a3c601023cbf6532a2f08f6eb1046",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source/libImplicitHostPlaneSourcePhase.a": "0f4bfd272eb5580e61026864340ef22d197baf1d4a5de2c1b583f43ebcc36fe8",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper/ImplicitClosedAcceptanceUpper.swiftmodule": "93bba692e93f18a5855eb11563339b8e546294c31d90177b63563f898115a50d",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper/libImplicitClosedAcceptanceUpper.a": "1b958a001dd9ab9707717e7494b3562e96121332e9e767f0590c60ac14a6dd4f",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/Acceptance.wasm": "83bd937a7c89ac1c2d7b1335d3031dab2c3287ad0d2404907f3e9c114d01d5d6"
+  },
+  "codegenCounts": {
+    "geometrySourceInputs": 1651,
+    "changedGeometrySources": 3,
+    "historicalGeometrySources": 1648,
+    "freshGeometryObjects": 1651,
+    "freshGeometryWrap": 1,
+    "freshSource4": 4,
+    "freshUpper59": 59,
+    "freshSelector": 1,
+    "resumeGeometry": 0,
+    "resumeSource4": 0,
+    "resumeUpper": 0,
+    "fixture": 1,
+    "lower": 0,
+    "reusedSource6": 6
+  },
+  "acceptedParts": [
+    {
+      "scope": "geometry/source4/upper60",
+      "receipt": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/receipt.json",
+        "sha256": "8aa18d72c2cdd3654748e47a9c913eff750f4392c7dee38099455251e5a3438c",
+        "bytes": 922941
+      },
+      "acceptedStages": [
+        "geometry-object",
+        "geometry-module",
+        "geometry-modulewrap",
+        "geometry-archive",
+        "source4",
+        "upper60"
+      ]
+    },
+    {
+      "scope": "fixture-link/all11groups",
+      "receipt": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/receipt.json",
+        "sha256": "505ae12ebffdae8dc8b84fb69fd83e58721cf19cbd64645843bd22a790c30c47",
+        "bytes": 2014344
+      },
+      "acceptedStages": [
+        "fixture1-link",
+        "runtime-complete",
+        "runtime-dispatch",
+        "runtime-source",
+        "runtime-requests",
+        "runtime-resources",
+        "runtime-readmission",
+        "runtime-cancel-entry",
+        "runtime-cancel-final",
+        "runtime-cancel-reader",
+        "runtime-lifetime",
+        "runtime-changed-controls"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "name": "fixture1-link",
+      "elapsedSeconds": 188.34603216603864,
+      "sampledOwnedCPUSeconds": 205.99999999999997,
+      "peakOwnedResidentSumKiB": 4962976,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/fixture1-link.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "name": "runtime-complete",
+      "elapsedSeconds": 1.0636115829693154,
+      "sampledOwnedCPUSeconds": 0.63,
+      "peakOwnedResidentSumKiB": 304064,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-complete.log",
+        "sha256": "f76ebe0cc07e428512c9313074cbae04be66bf20291808f8bd9af9d976e34a7a",
+        "bytes": 268
+      }
+    },
+    {
+      "name": "runtime-dispatch",
+      "elapsedSeconds": 0.7334876250242814,
+      "sampledOwnedCPUSeconds": 0.83,
+      "peakOwnedResidentSumKiB": 302064,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-dispatch.log",
+        "sha256": "62ecc43b772306e1cb2e998b85523b731c03397d52a40b84b3b20c41b19723dd",
+        "bytes": 271
+      }
+    },
+    {
+      "name": "runtime-source",
+      "elapsedSeconds": 0.7533168330555782,
+      "sampledOwnedCPUSeconds": 0.89,
+      "peakOwnedResidentSumKiB": 300992,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-source.log",
+        "sha256": "cab01172a0e1757b9c5cbefd266497ac8dbbf1cba7d18b75879930e1a5f20f13",
+        "bytes": 274
+      }
+    },
+    {
+      "name": "runtime-requests",
+      "elapsedSeconds": 0.7157342919381335,
+      "sampledOwnedCPUSeconds": 0.84,
+      "peakOwnedResidentSumKiB": 305088,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-requests.log",
+        "sha256": "f0af3042bc6f2d82da8feeb967e803f7ad1509cfb0a77c373ea513f25765493b",
+        "bytes": 283
+      }
+    },
+    {
+      "name": "runtime-resources",
+      "elapsedSeconds": 0.6281963749788702,
+      "sampledOwnedCPUSeconds": 0.51,
+      "peakOwnedResidentSumKiB": 297632,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-resources.log",
+        "sha256": "3cd75f3ce99faf875564550c3980e403591deada21cd77fd5cf4e108a63ee6ac",
+        "bytes": 414
+      }
+    },
+    {
+      "name": "runtime-readmission",
+      "elapsedSeconds": 0.6191563329193741,
+      "sampledOwnedCPUSeconds": 0.49,
+      "peakOwnedResidentSumKiB": 297824,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-readmission.log",
+        "sha256": "e5379e8ea5b57f9279501dd765de2e5ab3adca55430ac973e2bf688951cbfb3e",
+        "bytes": 415
+      }
+    },
+    {
+      "name": "runtime-cancel-entry",
+      "elapsedSeconds": 0.5742522500222549,
+      "sampledOwnedCPUSeconds": 0.51,
+      "peakOwnedResidentSumKiB": 297840,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-cancel-entry.log",
+        "sha256": "d62e2f87413eca96a81ebc48ec4dbfb697686c5501d8f0ff59b0e00b713bb7db",
+        "bytes": 224
+      }
+    },
+    {
+      "name": "runtime-cancel-final",
+      "elapsedSeconds": 0.6316614999668673,
+      "sampledOwnedCPUSeconds": 0.51,
+      "peakOwnedResidentSumKiB": 298464,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-cancel-final.log",
+        "sha256": "b7171a5ec2be106464bec95ffaefdbc841312fc003b43a1acc6749fd41b5b462",
+        "bytes": 231
+      }
+    },
+    {
+      "name": "runtime-cancel-reader",
+      "elapsedSeconds": 0.5540461669443175,
+      "sampledOwnedCPUSeconds": 0.47,
+      "peakOwnedResidentSumKiB": 297872,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-cancel-reader.log",
+        "sha256": "bf3455617870baed6eff4cd32f3b56a373a578800698982aeef92fcda8082c45",
+        "bytes": 244
+      }
+    },
+    {
+      "name": "runtime-lifetime",
+      "elapsedSeconds": 0.7816829999210313,
+      "sampledOwnedCPUSeconds": 0.76,
+      "peakOwnedResidentSumKiB": 298416,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-lifetime.log",
+        "sha256": "233f319bf38372bceafaf39799db6020cf0b688c543cc2ce067f9d4498d2b6f0",
+        "bytes": 260
+      }
+    },
+    {
+      "name": "runtime-changed-controls",
+      "elapsedSeconds": 1.2656805410515517,
+      "sampledOwnedCPUSeconds": 1.43,
+      "peakOwnedResidentSumKiB": 297952,
+      "log": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-changed-controls.log",
+        "sha256": "d043cdf4a0873e6bc340f46f0f3ed015f396eff2b025318ecd6a3dbdf089db04",
+        "bytes": 277
+      }
+    }
+  ],
+  "imports": {
+    "source4I": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-embedded-20261011",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/Modules",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/embedded/6d59e84f98e64683853647c47c17213b/build/wasm32-unknown-wasip1/debug/Modules",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/embedded/fa832f6f91da4d338cd85c8b6ebc3fc0",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/embedded/53986d7a60e24398a6f8c0b2a9db04fe",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source"
+    ],
+    "upper60I": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-embedded-20261011",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/Modules",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/embedded/6d59e84f98e64683853647c47c17213b/build/wasm32-unknown-wasip1/debug/Modules",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/embedded/fa832f6f91da4d338cd85c8b6ebc3fc0",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/embedded/53986d7a60e24398a6f8c0b2a9db04fe",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source"
+    ],
+    "fixtureI": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-correction-embedded-20261011-v5",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-embedded-20261011",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/Modules",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/embedded/6d59e84f98e64683853647c47c17213b/build/wasm32-unknown-wasip1/debug/Modules",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/embedded/fa832f6f91da4d338cd85c8b6ebc3fc0",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/embedded/53986d7a60e24398a6f8c0b2a9db04fe",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper"
+    ]
+  },
+  "linkedArchives": [
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/libGuideSeamPort.a",
+      "sha256": "cca6d83fecde872371592ded02e104e55d26f4a60222fa0be74907f60ad7b5c1",
+      "bytes": 1450162
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries/libPublicLiftPlane.a",
+      "sha256": "91b42f29c259e79b768627e8f1ced246ae4ffb131d966e6cdb4f7ef32a0a2507",
+      "bytes": 6553088
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedCADCore.a",
+      "sha256": "19d48eec452ec9caa7e98ab6407e62e5d89da1b3f81388d62eca82af69755089",
+      "bytes": 4028326
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedHashTreeCollections.a",
+      "sha256": "ea8ff0a25ceafc0b606684c9eb485d51302061f77deb597187728a8635e22a8f",
+      "bytes": 2992070
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedInternalCollectionsUtilities.a",
+      "sha256": "54d51fc605941beb8e8b0637fd57da41accf81c4c057054bbe05970bd1680eb9",
+      "bytes": 988308
+    },
+    {
+      "path": "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a",
+      "sha256": "3abc2dd90a84bf165dbfad4ba2f3ae2470ef5cb27472cb18a9c1632e0ff719d9",
+      "bytes": 743480
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libRetainedHostAdapters.a",
+      "sha256": "4bd70dfddc224411d0d584f3a1739ed1c18540a218e8afbcdeb36ab72bee56e6",
+      "bytes": 10741716
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libDerivativePayloadAccess.a",
+      "sha256": "5c7625e677e5add71f53c734689f5b7646fe34339819cae4c9405dfb17c4ee85",
+      "bytes": 287266
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c/libCallerAdapters.a",
+      "sha256": "6a610f16d9f850d3dc26d9e28c77eb837db09484e62bf4dfabb5415b02330803",
+      "bytes": 91043046
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled/libRuledObservationAdapters.a",
+      "sha256": "cdfbaab026ba0e877d53a472a1b0be56d192f86afe1d128880d167a584a6deb7",
+      "bytes": 254682
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/libDraftZeroRuledPort.a",
+      "sha256": "f2a83c4638536140dbc2ac4d412710bbdcc9d1703bf8d7edff754f863415426c",
+      "bytes": 147127414
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source/libAngularSourcePhase.a",
+      "sha256": "7d744478124880033b5cfe147b513e4d3d37f776c0c3531e73a07c2475485eb4",
+      "bytes": 1552554
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source/libCertifiedApexSourcePhase.a",
+      "sha256": "68b7e1fe9515dd7ac4174223ddbfb5aed6eb1369ef89f1faffeb82677a75668b",
+      "bytes": 89190974
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source/libImplicitSourcePhase.a",
+      "sha256": "4c6a3f72b9978e4bb97180182291171e11475a4c427bb945171695a171a68079",
+      "bytes": 2242626
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/geometry/libCADGeometryClosedWMO.a",
+      "sha256": "1793c57810a5886b53d204e79c52ee677670c890cffcc392cc958cba491725ac",
+      "bytes": 334523634
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source/libImplicitHostPlaneSourcePhase.a",
+      "sha256": "0f4bfd272eb5580e61026864340ef22d197baf1d4a5de2c1b583f43ebcc36fe8",
+      "bytes": 663684
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper/libImplicitClosedAcceptanceUpper.a",
+      "sha256": "1b958a001dd9ab9707717e7494b3562e96121332e9e767f0590c60ac14a6dd4f",
+      "bytes": 211490408
+    }
+  ],
+  "commands": {
+    "source4": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/source4-command.json",
+      "sha256": "8510cea6e4120f4e9dcb5d978994ad4a4adc2aed105df65692c0ba212f70b128",
+      "bytes": 6279
+    },
+    "upper60": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/upper60-command.json",
+      "sha256": "bf78834d4364bfd062589955fd172386b7207033d2d98674982a1bc84f17dab9",
+      "bytes": 15205
+    },
+    "fixture": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/fixture1-link-command.json",
+      "sha256": "2971834d34f53cb5586e66cc57e5a491ad0b026817affe01a2cec48148c6ff83",
+      "bytes": 8331
+    },
+    "runtime": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/fixture-resume-v1/runtime-complete-command.json",
+      "sha256": "131007553df6ca0a35de38d0e33d9909a4710f5712de24e7d9c0c6a372109151",
+      "bytes": 299
+    }
+  },
+  "allPrePostMatch": true,
+  "allOwnedDescendantsRemaining": [],
+  "reuseNativeControlsEnvironment": false,
+  "warningLines": [
+    {
+      "stage": "runtime-complete",
+      "text": "(node:19443) ExperimentalWarning: WASI is an experimental feature and might change at any time"
+    },
+    {
+      "stage": "runtime-dispatch",
+      "text": "(node:19461) ExperimentalWarning: WASI is an experimental feature and might change at any time"
+    },
+    {
+      "stage": "runtime-source",
+      "text": "(node:19471) ExperimentalWarning: WASI is an experimental feature and might change at any time"
+    },
+    {
+      "stage": "runtime-requests",
+      "text": "(node:19481) ExperimentalWarning: WASI is an experimental feature and might change at any time"
+    },
+    {
+      "stage": "runtime-resources",
+      "text": "(node:19495) ExperimentalWarning: WASI is an experimental feature and might change at any time"
+    },
+    {
+      "stage": "runtime-readmission",
+      "text": "(node:19506) ExperimentalWarning: WASI is an experimental feature and might change at any time"
+    },
+    {
+      "stage": "runtime-cancel-entry",
+      "text": "(node:19521) ExperimentalWarning: WASI is an experimental feature and might change at any time"
+    },
+    {
+      "stage": "runtime-cancel-final",
+      "text": "(node:19530) ExperimentalWarning: WASI is an experimental feature and might change at any time"
+    },
+    {
+      "stage": "runtime-cancel-reader",
+      "text": "(node:19538) ExperimentalWarning: WASI is an experimental feature and might change at any time"
+    },
+    {
+      "stage": "runtime-lifetime",
+      "text": "(node:19546) ExperimentalWarning: WASI is an experimental feature and might change at any time"
+    },
+    {
+      "stage": "runtime-changed-controls",
+      "text": "(node:19561) ExperimentalWarning: WASI is an experimental feature and might change at any time"
+    }
+  ],
+  "geometryWallSecondsIncludingPrior": 283.3930348751601,
+  "geometryOwnedCPUSecondsIncludingPrior": 346.57,
+  "geometryPeakObservedRSSKiB": 4094528
+}

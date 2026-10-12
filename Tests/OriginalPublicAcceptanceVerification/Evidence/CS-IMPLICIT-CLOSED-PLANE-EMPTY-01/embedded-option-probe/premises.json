@@ -1,0 +1,49 @@
+{
+  "cell": "CS-IMPLICIT-CLOSED-PLANE-EMPTY-01",
+  "scope": "Independent compiler option-contract probe only; not geometry acceptance",
+  "state": "prepared-pending-root-GO",
+  "checks": {
+    "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend": "32d565dc81f4e714f91da71cc1a501a335c20347c15d5ab522f9cacf9d225caf",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/Primary.swift": "347e7e82de858b7a6239d0c34ca0aa6f81cd9e81ccc7f564d1d1d7c466f0d627",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/Secondary.swift": "ea13bab3eca131ddde9447698c8a302e304a174530e9783e877b7c655005d669",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/probe-command.json": "9cf96709bcd9faf6f560ce3e8d2b0d071e520ea2c4c523fb0ce42182d00fca08",
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDomainConsumerVerification/Evidence/M6/embedded/receipt.json": "1a21419b1a677e75f99cf636cd863632dd87712db75e7aab5613cb40e459a754",
+    "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/info.json": "64a5553ce039aa78f142c9db5876cc7b8e81c4b952ef5d17859bb5a3f94530e9",
+    "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/Swift.swiftmodule/wasm32-unknown-wasip1.swiftmodule": "d3daf787f7234af6c02fa4e9c4295cbc5597fc98a6eda273bbafead62f3df0dd"
+  },
+  "command": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/probe-command.json",
+  "toolchain": "swift-6.4.0-RELEASE",
+  "swiftSDK": "swift-6.4.0-RELEASE_wasm-embedded",
+  "target": "wasm32-unknown-wasip1",
+  "packageName": "nativeexactrelationverification",
+  "primarySyntheticBodies": 1,
+  "secondarySyntheticBodies": 1,
+  "geometrySourceInputs": 0,
+  "lowerCodegen": 0,
+  "moduleEmit": 0,
+  "archiveOrLink": 0,
+  "expectedOutputs": [
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/Primary.o"
+  ],
+  "logPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/probe.log",
+  "receiptPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-primary3-20261013-v1/probe-receipt.json",
+  "guards": {
+    "wallSeconds": 30,
+    "perProcessCPUSeconds": 30,
+    "ownedCPUSeconds": 30,
+    "rssBytes": 2147483648,
+    "ownedDescendantsCleanup": true
+  },
+  "acceptedOrRejectedMode": "UNOBSERVED",
+  "compilerContractReferences": [
+    {
+      "url": "https://github.com/swiftlang/swift/blob/swift-6.4.0-RELEASE/include/swift/Frontend/FrontendInputsAndOutputs.h#L58-L68",
+      "fact": "Whole-module mode has no primary inputs; multithreaded WMO produces a main output per input."
+    },
+    {
+      "url": "https://github.com/swiftlang/swift/blob/swift-6.4.0-RELEASE/include/swift/Option/Options.td#L1389-L1405",
+      "fact": "whole-module-optimization and wmo are accepted frontend options."
+    }
+  ],
+  "compilerExecution": 0
+}

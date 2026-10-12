@@ -1,0 +1,1214 @@
+{
+  "cell": "CS-IMPLICIT-CLOSED-PLANE-EMPTY-01",
+  "state": "ASAN-AND-NORMAL-WASM-FOCUSED-GREEN",
+  "cellComplete": false,
+  "formalFourLaneManifestPending": true,
+  "nativeAdoption": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/native-adoption.json",
+    "sha256": "8d109d8a0465cf36862ed17f551de72e55b4cee504ece610d9899789444595bc"
+  },
+  "accepted": [
+    {
+      "lane": "asan",
+      "stages": [
+        {
+          "label": "primary3",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9df0fb9b036832cadefc12786e70b49c9878ffcdda1ad7d50f7eadcd06655b39.json",
+            "sha256": "9df0fb9b036832cadefc12786e70b49c9878ffcdda1ad7d50f7eadcd06655b39",
+            "bytes": 428865,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/primary3-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/primary3.log"
+          },
+          "command": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/86a29620c0162057f4c830332d60928a671c87ca0c9133d3cb645c78e77b9df4.json",
+            "sha256": "86a29620c0162057f4c830332d60928a671c87ca0c9133d3cb645c78e77b9df4",
+            "bytes": 5960,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/primary3-command.json"
+          }
+        },
+        {
+          "label": "archive",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/296200389ff17986fe612657d195406a869a93e7d16b97d73b5554bf101a7b43.json",
+            "sha256": "296200389ff17986fe612657d195406a869a93e7d16b97d73b5554bf101a7b43",
+            "bytes": 942221,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/archive-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/archive.log"
+          },
+          "command": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/15281adda6c5ea836ed4f344f0a2365d6ffdf94c8386b4370fe52a56a0598f91.json",
+            "sha256": "15281adda6c5ea836ed4f344f0a2365d6ffdf94c8386b4370fe52a56a0598f91",
+            "bytes": 365004,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/archive-command.json"
+          }
+        },
+        {
+          "label": "source-compile",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/bba1a5162c5d7773748a25f8b24622e5c4efb40554396a60e81120f1c91b1199.json",
+            "sha256": "bba1a5162c5d7773748a25f8b24622e5c4efb40554396a60e81120f1c91b1199",
+            "bytes": 100944,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/source-compile-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/source-compile.log"
+          },
+          "command": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6dc2061cc304e7bbaea164377db3613c488ad33a7407c8d1ad5b2dc9735b3199.json",
+            "sha256": "6dc2061cc304e7bbaea164377db3613c488ad33a7407c8d1ad5b2dc9735b3199",
+            "bytes": 4994,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/source4-command.json"
+          }
+        },
+        {
+          "label": "upper-compile",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/69ff04d42e8018af18e677752960d9023bfe86b74e2e374da553e0b8ac081495.json",
+            "sha256": "69ff04d42e8018af18e677752960d9023bfe86b74e2e374da553e0b8ac081495",
+            "bytes": 125476,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/upper-compile-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/upper-compile.log"
+          },
+          "command": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2465658eea17841be2f9b4fa74a17000be008732c42c26030531016a7b48c23d.json",
+            "sha256": "2465658eea17841be2f9b4fa74a17000be008732c42c26030531016a7b48c23d",
+            "bytes": 15294,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/upper-command.json"
+          }
+        }
+      ],
+      "runs": [
+        {
+          "group": "complete",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e6c960992cabeac2f1d520f4cef7be7f6080ddad1f56394690c14cf2c2d5496a.json",
+            "sha256": "e6c960992cabeac2f1d520f4cef7be7f6080ddad1f56394690c14cf2c2d5496a",
+            "bytes": 110157,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-complete-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/73d8027261c3a3dbe22c8ed774a14ea8c2bdda758cf5c0c4cfad6b396d7c0ca4.log",
+            "sha256": "73d8027261c3a3dbe22c8ed774a14ea8c2bdda758cf5c0c4cfad6b396d7c0ca4",
+            "bytes": 101,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-complete.log"
+          }
+        },
+        {
+          "group": "dispatch",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/7cab7613037a661919640f3c31269cba78ddd86573e7f6a88500894b7b4e7593.json",
+            "sha256": "7cab7613037a661919640f3c31269cba78ddd86573e7f6a88500894b7b4e7593",
+            "bytes": 110157,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-dispatch-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/240d8561de854e04dfde72c347ef99fbe2e13f2be3368561e03e3638136a2630.log",
+            "sha256": "240d8561de854e04dfde72c347ef99fbe2e13f2be3368561e03e3638136a2630",
+            "bytes": 104,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-dispatch.log"
+          }
+        },
+        {
+          "group": "source",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f550486cbc334e398af4a71724802b91085eaac4bbe998fa8794a1343ea2ce5f.json",
+            "sha256": "f550486cbc334e398af4a71724802b91085eaac4bbe998fa8794a1343ea2ce5f",
+            "bytes": 110153,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-source-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8bbde67834f19e27924a3151fb44d300447db39b1e2094ee1a7b8a60d56a6261.log",
+            "sha256": "8bbde67834f19e27924a3151fb44d300447db39b1e2094ee1a7b8a60d56a6261",
+            "bytes": 107,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-source.log"
+          }
+        },
+        {
+          "group": "requests",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1c120878d745d5eb975a68eae5b6b636a8de84fafbd0549785f13112762dd241.json",
+            "sha256": "1c120878d745d5eb975a68eae5b6b636a8de84fafbd0549785f13112762dd241",
+            "bytes": 110156,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-requests-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9951284c5ff7c5f7f6fb4a38c4db74538b6abe547da03aaf5d9e1c33b049a11f.log",
+            "sha256": "9951284c5ff7c5f7f6fb4a38c4db74538b6abe547da03aaf5d9e1c33b049a11f",
+            "bytes": 116,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-requests.log"
+          }
+        },
+        {
+          "group": "resources",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/bc48293e9b6441571e80dfd966b12d1db0e9a772c36891157a651a9ed4d3fd8a.json",
+            "sha256": "bc48293e9b6441571e80dfd966b12d1db0e9a772c36891157a651a9ed4d3fd8a",
+            "bytes": 110159,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-resources-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4421889d8c68e3da22d872e56d6558f57bf2f865bf8c302e01b6bc172e9df987.log",
+            "sha256": "4421889d8c68e3da22d872e56d6558f57bf2f865bf8c302e01b6bc172e9df987",
+            "bytes": 248,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-resources.log"
+          }
+        },
+        {
+          "group": "readmission",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/390f9ac48767a086eb1e85e8c89c4e8410c4f1c757703c5791bcf7e443d0f310.json",
+            "sha256": "390f9ac48767a086eb1e85e8c89c4e8410c4f1c757703c5791bcf7e443d0f310",
+            "bytes": 110162,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-readmission-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0cbf54888c378bb7438787d1f57353e32525ffce20e86bbbe90f5c38cd4a5902.log",
+            "sha256": "0cbf54888c378bb7438787d1f57353e32525ffce20e86bbbe90f5c38cd4a5902",
+            "bytes": 248,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-readmission.log"
+          }
+        },
+        {
+          "group": "cancel-entry",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/bfb188343b4e303ec9af9ce01f3380b65b6d41ced7a5cfb0f962384f7e799280.json",
+            "sha256": "bfb188343b4e303ec9af9ce01f3380b65b6d41ced7a5cfb0f962384f7e799280",
+            "bytes": 110165,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-entry-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/053dc81d1e62aaa920aff06b8c41010e8fa1c697dd9f8d29d6ea7bd5b3e88440.log",
+            "sha256": "053dc81d1e62aaa920aff06b8c41010e8fa1c697dd9f8d29d6ea7bd5b3e88440",
+            "bytes": 57,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-entry.log"
+          }
+        },
+        {
+          "group": "cancel-final",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1bc1ec5ab025cae04010b3ef434d77489f056ff4b10b29d28aee33dc9c22d613.json",
+            "sha256": "1bc1ec5ab025cae04010b3ef434d77489f056ff4b10b29d28aee33dc9c22d613",
+            "bytes": 110165,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-final-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/167e871a081e1a17c62684e3be3ca593a3c106c235efa01794f515422d39b5b3.log",
+            "sha256": "167e871a081e1a17c62684e3be3ca593a3c106c235efa01794f515422d39b5b3",
+            "bytes": 64,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-final.log"
+          }
+        },
+        {
+          "group": "cancel-reader",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/89b4e8e03e110ab3b2ff0090bba176459e1bc60bd613e2eeb09022839ff42211.json",
+            "sha256": "89b4e8e03e110ab3b2ff0090bba176459e1bc60bd613e2eeb09022839ff42211",
+            "bytes": 110167,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-reader-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/cc8fdbaf721370be5c2e3b9491c22e79ec1dcffe38e68409aa3639c6d8ba260f.log",
+            "sha256": "cc8fdbaf721370be5c2e3b9491c22e79ec1dcffe38e68409aa3639c6d8ba260f",
+            "bytes": 77,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-reader.log"
+          }
+        },
+        {
+          "group": "lifetime",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1bded0fe5367c5a0534e8642a5b400597317b594c2b32ddb466f0e281e678838.json",
+            "sha256": "1bded0fe5367c5a0534e8642a5b400597317b594c2b32ddb466f0e281e678838",
+            "bytes": 110157,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-lifetime-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/45765eba92bb30e7d74c56a86d41f26f31f4958d8b340854462accda67b824e1.log",
+            "sha256": "45765eba92bb30e7d74c56a86d41f26f31f4958d8b340854462accda67b824e1",
+            "bytes": 93,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-lifetime.log"
+          }
+        },
+        {
+          "group": "changed-controls",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1a7f0e039194c1f9fc347978b3f2528cb8137c836ca35e066447fd15684bb9e3.json",
+            "sha256": "1a7f0e039194c1f9fc347978b3f2528cb8137c836ca35e066447fd15684bb9e3",
+            "bytes": 110172,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-changed-controls-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8da55f757fccc1d6c49b9821b4d7aff67fb1265b822b5e2e757417c3dd4152d7.log",
+            "sha256": "8da55f757fccc1d6c49b9821b4d7aff67fb1265b822b5e2e757417c3dd4152d7",
+            "bytes": 110,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-changed-controls.log"
+          }
+        }
+      ],
+      "groups": [
+        "complete",
+        "dispatch",
+        "source",
+        "requests",
+        "resources",
+        "readmission",
+        "cancel-entry",
+        "cancel-final",
+        "cancel-reader",
+        "lifetime",
+        "changed-controls"
+      ],
+      "source6Codegen": 0,
+      "lowerCodegen": 0,
+      "changed3Controls": "Executed fresh constructor/value controls on this lane; Native reuse flag absent.",
+      "instrumentation": "Fresh changed3/source4/upper/fixture ASAN only; cached lower artifacts preserve original uninstrumented accepted generation scope."
+    },
+    {
+      "lane": "wasm",
+      "stages": [
+        {
+          "label": "primary3",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/12451d1e77c2e602fb2a64e1d42dbba87857e4e7bc9b3f4c8a09bd06fe410ec0.json",
+            "sha256": "12451d1e77c2e602fb2a64e1d42dbba87857e4e7bc9b3f4c8a09bd06fe410ec0",
+            "bytes": 428743,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/primary3-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/primary3.log"
+          },
+          "command": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c5eae7a548abe3814b6dfdd14f0457b8365dcd90d0fe8d9764e2d42a6943415a.json",
+            "sha256": "c5eae7a548abe3814b6dfdd14f0457b8365dcd90d0fe8d9764e2d42a6943415a",
+            "bytes": 3272,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/primary3-command.json"
+          }
+        },
+        {
+          "label": "archive",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/568b5acc4386f0b643698e13f3558c90a70668fc3fdca7a08067b51db112e976.json",
+            "sha256": "568b5acc4386f0b643698e13f3558c90a70668fc3fdca7a08067b51db112e976",
+            "bytes": 745936,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/archive-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/archive.log"
+          },
+          "command": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/7d64ff2cadcdfab125cd4781066968bef333a690143c8adcb700c15ccc40f1d1.json",
+            "sha256": "7d64ff2cadcdfab125cd4781066968bef333a690143c8adcb700c15ccc40f1d1",
+            "bytes": 264703,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/archive-command.json"
+          }
+        },
+        {
+          "label": "source-compile",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a6415b110f33bc8d4fb0d17c0929d7828800cc42e820daa3e1ec3219809be971.json",
+            "sha256": "a6415b110f33bc8d4fb0d17c0929d7828800cc42e820daa3e1ec3219809be971",
+            "bytes": 103886,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/source-compile-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/source-compile.log"
+          },
+          "command": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/eb99a29bc13e59e04c3fd858bfa215626b005a54fc2e1f0924f4f023b1c28375.json",
+            "sha256": "eb99a29bc13e59e04c3fd858bfa215626b005a54fc2e1f0924f4f023b1c28375",
+            "bytes": 5270,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/source4-command.json"
+          }
+        },
+        {
+          "label": "upper-compile",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/57ba85c1e1f2ce404581a9780b28774e937f448649042032dd424a3bc8faae8a.json",
+            "sha256": "57ba85c1e1f2ce404581a9780b28774e937f448649042032dd424a3bc8faae8a",
+            "bytes": 130074,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/upper-compile-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/upper-compile.log"
+          },
+          "command": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f55cd26407d709dd73a3850ffa61d32862eff38cdbc3e919c4041af65dd2e03e.json",
+            "sha256": "f55cd26407d709dd73a3850ffa61d32862eff38cdbc3e919c4041af65dd2e03e",
+            "bytes": 15570,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/upper-command.json"
+          }
+        }
+      ],
+      "runs": [
+        {
+          "group": "complete",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/43ed5f1721dfcf8ecf2d7b6367241cc667b643255b5a3fc4356eda1ded7586b5.json",
+            "sha256": "43ed5f1721dfcf8ecf2d7b6367241cc667b643255b5a3fc4356eda1ded7586b5",
+            "bytes": 114799,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-complete-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a9967f02dedb016d1cd68176f90ff6162a340f49e61bfd5b9786d3be44b3e937.log",
+            "sha256": "a9967f02dedb016d1cd68176f90ff6162a340f49e61bfd5b9786d3be44b3e937",
+            "bytes": 268,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-complete.log"
+          }
+        },
+        {
+          "group": "dispatch",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4c30f8d30cf2078881a47b266a4612018be76adaece7b5ea220a7123c1cf0ee8.json",
+            "sha256": "4c30f8d30cf2078881a47b266a4612018be76adaece7b5ea220a7123c1cf0ee8",
+            "bytes": 114799,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-dispatch-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/7753ab45e46d055c68c94f1caac27dfe7523bed89b6d5bed352e0ccf8ef21a28.log",
+            "sha256": "7753ab45e46d055c68c94f1caac27dfe7523bed89b6d5bed352e0ccf8ef21a28",
+            "bytes": 271,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-dispatch.log"
+          }
+        },
+        {
+          "group": "source",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e864ff13d842407b037e47ddf1dd4b9043950557b0c206cd87e41a9afc805de1.json",
+            "sha256": "e864ff13d842407b037e47ddf1dd4b9043950557b0c206cd87e41a9afc805de1",
+            "bytes": 114795,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-source-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1a4301261dc83c86b48f655d4d0ec97ca388f3732c0db171de29003207e0b583.log",
+            "sha256": "1a4301261dc83c86b48f655d4d0ec97ca388f3732c0db171de29003207e0b583",
+            "bytes": 274,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-source.log"
+          }
+        },
+        {
+          "group": "requests",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/94d788d1e32811cfc647484dfe0446f29b4d4d3db9d52a948210d6c09f23a5c0.json",
+            "sha256": "94d788d1e32811cfc647484dfe0446f29b4d4d3db9d52a948210d6c09f23a5c0",
+            "bytes": 114799,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-requests-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b9aec99bc70d2b9b09fb6308b306d4b213c16255337ef3eb2c2b4b01f209de4d.log",
+            "sha256": "b9aec99bc70d2b9b09fb6308b306d4b213c16255337ef3eb2c2b4b01f209de4d",
+            "bytes": 283,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-requests.log"
+          }
+        },
+        {
+          "group": "resources",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6c50bfe720d35955fed644ae1b6c207fc0dd027457df0a46cb06c9379bbafd4e.json",
+            "sha256": "6c50bfe720d35955fed644ae1b6c207fc0dd027457df0a46cb06c9379bbafd4e",
+            "bytes": 114801,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-resources-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4e680997de523162e6bf639b6edaa4237c701d5be7377133c6da3de1ba26abd4.log",
+            "sha256": "4e680997de523162e6bf639b6edaa4237c701d5be7377133c6da3de1ba26abd4",
+            "bytes": 414,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-resources.log"
+          }
+        },
+        {
+          "group": "readmission",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c05c8785b04d8ee40797a8ee1b642c0bdf8bf7f2d66f5acbc7a99a4556f5c1b0.json",
+            "sha256": "c05c8785b04d8ee40797a8ee1b642c0bdf8bf7f2d66f5acbc7a99a4556f5c1b0",
+            "bytes": 114805,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-readmission-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/5c9debb51411bc021ae85cf384b99c3612fd1799162cc0e430329b2a6a6dfccd.log",
+            "sha256": "5c9debb51411bc021ae85cf384b99c3612fd1799162cc0e430329b2a6a6dfccd",
+            "bytes": 415,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-readmission.log"
+          }
+        },
+        {
+          "group": "cancel-entry",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/cd9fd9728d3f9f9de8997d8669957b3147f55522b55edd95abec3b6619fea51c.json",
+            "sha256": "cd9fd9728d3f9f9de8997d8669957b3147f55522b55edd95abec3b6619fea51c",
+            "bytes": 114805,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-entry-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/497cb70d024d69640f34040ccbe535d534bb2d7a049d6f7855c057b32faffc17.log",
+            "sha256": "497cb70d024d69640f34040ccbe535d534bb2d7a049d6f7855c057b32faffc17",
+            "bytes": 224,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-entry.log"
+          }
+        },
+        {
+          "group": "cancel-final",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1b788dceb2bd204f49c6515f7936e752fb023aeca4a8a1e1569ec14f63c348e6.json",
+            "sha256": "1b788dceb2bd204f49c6515f7936e752fb023aeca4a8a1e1569ec14f63c348e6",
+            "bytes": 114806,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-final-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9537e26146fb9d6e294edbf17c80be5f54cd4d0316d537166603cd49911d8de9.log",
+            "sha256": "9537e26146fb9d6e294edbf17c80be5f54cd4d0316d537166603cd49911d8de9",
+            "bytes": 231,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-final.log"
+          }
+        },
+        {
+          "group": "cancel-reader",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2db34c4fa945464029a9f6cf14d3a7d33d04630a2ec9701eda0adefc1162a90a.json",
+            "sha256": "2db34c4fa945464029a9f6cf14d3a7d33d04630a2ec9701eda0adefc1162a90a",
+            "bytes": 114809,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-reader-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b066eb6483e722826c4c91948dfac38c1e23c26b0995ff19b9895643229a8da8.log",
+            "sha256": "b066eb6483e722826c4c91948dfac38c1e23c26b0995ff19b9895643229a8da8",
+            "bytes": 244,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-reader.log"
+          }
+        },
+        {
+          "group": "lifetime",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ba90c8a15f757a9de2f3003876fbed00ea7296a31e5b6e2e63791260bb9a2f0e.json",
+            "sha256": "ba90c8a15f757a9de2f3003876fbed00ea7296a31e5b6e2e63791260bb9a2f0e",
+            "bytes": 114799,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-lifetime-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/17e900ca660db10a2c455bf2140a22b3d904b44c689d8da36d6458b9b12e2ee5.log",
+            "sha256": "17e900ca660db10a2c455bf2140a22b3d904b44c689d8da36d6458b9b12e2ee5",
+            "bytes": 260,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-lifetime.log"
+          }
+        },
+        {
+          "group": "changed-controls",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/073a3a6ab8413ca3ad2725d31b4b3f2dcafd05746b7c2e25c4ef16425ba457f8.json",
+            "sha256": "073a3a6ab8413ca3ad2725d31b4b3f2dcafd05746b7c2e25c4ef16425ba457f8",
+            "bytes": 114813,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-changed-controls-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c9976abdfe844343d84095c6060c164f7dc9437a576a70d1723706cdcd6cb8af.log",
+            "sha256": "c9976abdfe844343d84095c6060c164f7dc9437a576a70d1723706cdcd6cb8af",
+            "bytes": 277,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-changed-controls.log"
+          }
+        }
+      ],
+      "groups": [
+        "complete",
+        "dispatch",
+        "source",
+        "requests",
+        "resources",
+        "readmission",
+        "cancel-entry",
+        "cancel-final",
+        "cancel-reader",
+        "lifetime",
+        "changed-controls"
+      ],
+      "source6Codegen": 0,
+      "lowerCodegen": 0,
+      "changed3Controls": "Executed fresh constructor/value controls on this lane; Native reuse flag absent.",
+      "instrumentation": "Normal Wasm Swift6.4.0 matching WASI SDK/Node baseline, not Embedded."
+    }
+  ],
+  "diagnostics": [
+    {
+      "lane": "wasm",
+      "scope": "Wasm assembly tool selection error: Native Mac ar generated no usable Wasm symbol index. No public/runtime result. Corrected only archive tool/private output and reassembled same61 source inputs; source4/primary3 not repeated.",
+      "receipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0e7322bd3eb75fec474f4887b3cb451a43afab62ce1b6ab2a8cd836177a50766.json",
+        "sha256": "0e7322bd3eb75fec474f4887b3cb451a43afab62ce1b6ab2a8cd836177a50766",
+        "bytes": 128218,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/upper-compile-receipt.json"
+      },
+      "log": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4e2a31ac5f7473a50b88522c94f6040abe93664043db5f7f93211f34ba14101f.log",
+        "sha256": "4e2a31ac5f7473a50b88522c94f6040abe93664043db5f7f93211f34ba14101f",
+        "bytes": 3864333,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/upper-compile.log"
+      },
+      "archiveReceipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/758c7c79a82e63d893933be8d166b6a05044148eb613ceab8a0e7b581a4d88a4.json",
+        "sha256": "758c7c79a82e63d893933be8d166b6a05044148eb613ceab8a0e7b581a4d88a4",
+        "bytes": 744198,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/archive-receipt.json"
+      },
+      "archiveLog": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/31df007c4a62e4c05e55cb523078624b2fb54a6c5dab16241b137c2b9dfae55b.log",
+        "sha256": "31df007c4a62e4c05e55cb523078624b2fb54a6c5dab16241b137c2b9dfae55b",
+        "bytes": 93,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/archive.log"
+      },
+      "archiveCommand": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/21a349a4ae25aa3a9cc0f46454e05e55c635fa39e6790a8a1739e63d5582dd7a.json",
+        "sha256": "21a349a4ae25aa3a9cc0f46454e05e55c635fa39e6790a8a1739e63d5582dd7a",
+        "bytes": 264621,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/archive-command.json"
+      },
+      "upperCommand": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c7f10be2800424ffed472744e352c4461a775a810e3680199aa3337289da878f.json",
+        "sha256": "c7f10be2800424ffed472744e352c4461a775a810e3680199aa3337289da878f",
+        "bytes": 15570,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/upper-command.json"
+      }
+    }
+  ],
+  "actualPortableDriver": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+    "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+    "bytes": 7367,
+    "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/execute-closed-portable-profile-20261013.py"
+  },
+  "actualWasmRepairDriver": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50.py",
+    "sha256": "68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50",
+    "bytes": 5381,
+    "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/repair-closed-wasm-archive-20261013.py"
+  },
+  "files": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/primary3-receipt.json#9df0fb9b036832cadefc12786e70b49c9878ffcdda1ad7d50f7eadcd06655b39": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9df0fb9b036832cadefc12786e70b49c9878ffcdda1ad7d50f7eadcd06655b39.json",
+      "sha256": "9df0fb9b036832cadefc12786e70b49c9878ffcdda1ad7d50f7eadcd06655b39",
+      "bytes": 428865,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/primary3-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/primary3.log#e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/primary3.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/primary3-command.json#86a29620c0162057f4c830332d60928a671c87ca0c9133d3cb645c78e77b9df4": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/86a29620c0162057f4c830332d60928a671c87ca0c9133d3cb645c78e77b9df4.json",
+      "sha256": "86a29620c0162057f4c830332d60928a671c87ca0c9133d3cb645c78e77b9df4",
+      "bytes": 5960,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/primary3-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/archive-receipt.json#296200389ff17986fe612657d195406a869a93e7d16b97d73b5554bf101a7b43": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/296200389ff17986fe612657d195406a869a93e7d16b97d73b5554bf101a7b43.json",
+      "sha256": "296200389ff17986fe612657d195406a869a93e7d16b97d73b5554bf101a7b43",
+      "bytes": 942221,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/archive-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/archive.log#e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/archive.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/archive-command.json#15281adda6c5ea836ed4f344f0a2365d6ffdf94c8386b4370fe52a56a0598f91": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/15281adda6c5ea836ed4f344f0a2365d6ffdf94c8386b4370fe52a56a0598f91.json",
+      "sha256": "15281adda6c5ea836ed4f344f0a2365d6ffdf94c8386b4370fe52a56a0598f91",
+      "bytes": 365004,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/archive-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/source-compile-receipt.json#bba1a5162c5d7773748a25f8b24622e5c4efb40554396a60e81120f1c91b1199": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/bba1a5162c5d7773748a25f8b24622e5c4efb40554396a60e81120f1c91b1199.json",
+      "sha256": "bba1a5162c5d7773748a25f8b24622e5c4efb40554396a60e81120f1c91b1199",
+      "bytes": 100944,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/source-compile-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/source-compile.log#e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/source-compile.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/source4-command.json#6dc2061cc304e7bbaea164377db3613c488ad33a7407c8d1ad5b2dc9735b3199": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6dc2061cc304e7bbaea164377db3613c488ad33a7407c8d1ad5b2dc9735b3199.json",
+      "sha256": "6dc2061cc304e7bbaea164377db3613c488ad33a7407c8d1ad5b2dc9735b3199",
+      "bytes": 4994,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/source4-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/upper-compile-receipt.json#69ff04d42e8018af18e677752960d9023bfe86b74e2e374da553e0b8ac081495": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/69ff04d42e8018af18e677752960d9023bfe86b74e2e374da553e0b8ac081495.json",
+      "sha256": "69ff04d42e8018af18e677752960d9023bfe86b74e2e374da553e0b8ac081495",
+      "bytes": 125476,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/upper-compile-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/upper-compile.log#e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/upper-compile.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/upper-command.json#2465658eea17841be2f9b4fa74a17000be008732c42c26030531016a7b48c23d": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2465658eea17841be2f9b4fa74a17000be008732c42c26030531016a7b48c23d.json",
+      "sha256": "2465658eea17841be2f9b4fa74a17000be008732c42c26030531016a7b48c23d",
+      "bytes": 15294,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/upper-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/profile.json#55196ea84a7507d62a58bf3b2b9fe4c0443bb0961bee374eef826a3271bf0d70": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/55196ea84a7507d62a58bf3b2b9fe4c0443bb0961bee374eef826a3271bf0d70.json",
+      "sha256": "55196ea84a7507d62a58bf3b2b9fe4c0443bb0961bee374eef826a3271bf0d70",
+      "bytes": 41261,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/profile.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/execution-premises.json#0acc11ee23ce5f89101fdf325a5daaa387c159407788d73d84b4a5bfec23da41": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0acc11ee23ce5f89101fdf325a5daaa387c159407788d73d84b4a5bfec23da41.json",
+      "sha256": "0acc11ee23ce5f89101fdf325a5daaa387c159407788d73d84b4a5bfec23da41",
+      "bytes": 1195120,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/execution-premises.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-prepare.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-prepare.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-primary.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-primary.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-archive.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-archive.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-source.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-source.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-upper.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-upper.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-runtime.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/driver-at-runtime.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-complete-receipt.json#e6c960992cabeac2f1d520f4cef7be7f6080ddad1f56394690c14cf2c2d5496a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e6c960992cabeac2f1d520f4cef7be7f6080ddad1f56394690c14cf2c2d5496a.json",
+      "sha256": "e6c960992cabeac2f1d520f4cef7be7f6080ddad1f56394690c14cf2c2d5496a",
+      "bytes": 110157,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-complete-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-complete.log#73d8027261c3a3dbe22c8ed774a14ea8c2bdda758cf5c0c4cfad6b396d7c0ca4": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/73d8027261c3a3dbe22c8ed774a14ea8c2bdda758cf5c0c4cfad6b396d7c0ca4.log",
+      "sha256": "73d8027261c3a3dbe22c8ed774a14ea8c2bdda758cf5c0c4cfad6b396d7c0ca4",
+      "bytes": 101,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-complete.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-dispatch-receipt.json#7cab7613037a661919640f3c31269cba78ddd86573e7f6a88500894b7b4e7593": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/7cab7613037a661919640f3c31269cba78ddd86573e7f6a88500894b7b4e7593.json",
+      "sha256": "7cab7613037a661919640f3c31269cba78ddd86573e7f6a88500894b7b4e7593",
+      "bytes": 110157,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-dispatch-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-dispatch.log#240d8561de854e04dfde72c347ef99fbe2e13f2be3368561e03e3638136a2630": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/240d8561de854e04dfde72c347ef99fbe2e13f2be3368561e03e3638136a2630.log",
+      "sha256": "240d8561de854e04dfde72c347ef99fbe2e13f2be3368561e03e3638136a2630",
+      "bytes": 104,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-dispatch.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-source-receipt.json#f550486cbc334e398af4a71724802b91085eaac4bbe998fa8794a1343ea2ce5f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f550486cbc334e398af4a71724802b91085eaac4bbe998fa8794a1343ea2ce5f.json",
+      "sha256": "f550486cbc334e398af4a71724802b91085eaac4bbe998fa8794a1343ea2ce5f",
+      "bytes": 110153,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-source-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-source.log#8bbde67834f19e27924a3151fb44d300447db39b1e2094ee1a7b8a60d56a6261": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8bbde67834f19e27924a3151fb44d300447db39b1e2094ee1a7b8a60d56a6261.log",
+      "sha256": "8bbde67834f19e27924a3151fb44d300447db39b1e2094ee1a7b8a60d56a6261",
+      "bytes": 107,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-source.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-requests-receipt.json#1c120878d745d5eb975a68eae5b6b636a8de84fafbd0549785f13112762dd241": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1c120878d745d5eb975a68eae5b6b636a8de84fafbd0549785f13112762dd241.json",
+      "sha256": "1c120878d745d5eb975a68eae5b6b636a8de84fafbd0549785f13112762dd241",
+      "bytes": 110156,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-requests-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-requests.log#9951284c5ff7c5f7f6fb4a38c4db74538b6abe547da03aaf5d9e1c33b049a11f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9951284c5ff7c5f7f6fb4a38c4db74538b6abe547da03aaf5d9e1c33b049a11f.log",
+      "sha256": "9951284c5ff7c5f7f6fb4a38c4db74538b6abe547da03aaf5d9e1c33b049a11f",
+      "bytes": 116,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-requests.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-resources-receipt.json#bc48293e9b6441571e80dfd966b12d1db0e9a772c36891157a651a9ed4d3fd8a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/bc48293e9b6441571e80dfd966b12d1db0e9a772c36891157a651a9ed4d3fd8a.json",
+      "sha256": "bc48293e9b6441571e80dfd966b12d1db0e9a772c36891157a651a9ed4d3fd8a",
+      "bytes": 110159,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-resources-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-resources.log#4421889d8c68e3da22d872e56d6558f57bf2f865bf8c302e01b6bc172e9df987": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4421889d8c68e3da22d872e56d6558f57bf2f865bf8c302e01b6bc172e9df987.log",
+      "sha256": "4421889d8c68e3da22d872e56d6558f57bf2f865bf8c302e01b6bc172e9df987",
+      "bytes": 248,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-resources.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-readmission-receipt.json#390f9ac48767a086eb1e85e8c89c4e8410c4f1c757703c5791bcf7e443d0f310": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/390f9ac48767a086eb1e85e8c89c4e8410c4f1c757703c5791bcf7e443d0f310.json",
+      "sha256": "390f9ac48767a086eb1e85e8c89c4e8410c4f1c757703c5791bcf7e443d0f310",
+      "bytes": 110162,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-readmission-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-readmission.log#0cbf54888c378bb7438787d1f57353e32525ffce20e86bbbe90f5c38cd4a5902": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0cbf54888c378bb7438787d1f57353e32525ffce20e86bbbe90f5c38cd4a5902.log",
+      "sha256": "0cbf54888c378bb7438787d1f57353e32525ffce20e86bbbe90f5c38cd4a5902",
+      "bytes": 248,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-readmission.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-entry-receipt.json#bfb188343b4e303ec9af9ce01f3380b65b6d41ced7a5cfb0f962384f7e799280": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/bfb188343b4e303ec9af9ce01f3380b65b6d41ced7a5cfb0f962384f7e799280.json",
+      "sha256": "bfb188343b4e303ec9af9ce01f3380b65b6d41ced7a5cfb0f962384f7e799280",
+      "bytes": 110165,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-entry-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-entry.log#053dc81d1e62aaa920aff06b8c41010e8fa1c697dd9f8d29d6ea7bd5b3e88440": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/053dc81d1e62aaa920aff06b8c41010e8fa1c697dd9f8d29d6ea7bd5b3e88440.log",
+      "sha256": "053dc81d1e62aaa920aff06b8c41010e8fa1c697dd9f8d29d6ea7bd5b3e88440",
+      "bytes": 57,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-entry.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-final-receipt.json#1bc1ec5ab025cae04010b3ef434d77489f056ff4b10b29d28aee33dc9c22d613": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1bc1ec5ab025cae04010b3ef434d77489f056ff4b10b29d28aee33dc9c22d613.json",
+      "sha256": "1bc1ec5ab025cae04010b3ef434d77489f056ff4b10b29d28aee33dc9c22d613",
+      "bytes": 110165,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-final-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-final.log#167e871a081e1a17c62684e3be3ca593a3c106c235efa01794f515422d39b5b3": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/167e871a081e1a17c62684e3be3ca593a3c106c235efa01794f515422d39b5b3.log",
+      "sha256": "167e871a081e1a17c62684e3be3ca593a3c106c235efa01794f515422d39b5b3",
+      "bytes": 64,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-final.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-reader-receipt.json#89b4e8e03e110ab3b2ff0090bba176459e1bc60bd613e2eeb09022839ff42211": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/89b4e8e03e110ab3b2ff0090bba176459e1bc60bd613e2eeb09022839ff42211.json",
+      "sha256": "89b4e8e03e110ab3b2ff0090bba176459e1bc60bd613e2eeb09022839ff42211",
+      "bytes": 110167,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-reader-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-reader.log#cc8fdbaf721370be5c2e3b9491c22e79ec1dcffe38e68409aa3639c6d8ba260f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/cc8fdbaf721370be5c2e3b9491c22e79ec1dcffe38e68409aa3639c6d8ba260f.log",
+      "sha256": "cc8fdbaf721370be5c2e3b9491c22e79ec1dcffe38e68409aa3639c6d8ba260f",
+      "bytes": 77,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-cancel-reader.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-lifetime-receipt.json#1bded0fe5367c5a0534e8642a5b400597317b594c2b32ddb466f0e281e678838": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1bded0fe5367c5a0534e8642a5b400597317b594c2b32ddb466f0e281e678838.json",
+      "sha256": "1bded0fe5367c5a0534e8642a5b400597317b594c2b32ddb466f0e281e678838",
+      "bytes": 110157,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-lifetime-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-lifetime.log#45765eba92bb30e7d74c56a86d41f26f31f4958d8b340854462accda67b824e1": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/45765eba92bb30e7d74c56a86d41f26f31f4958d8b340854462accda67b824e1.log",
+      "sha256": "45765eba92bb30e7d74c56a86d41f26f31f4958d8b340854462accda67b824e1",
+      "bytes": 93,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-lifetime.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-changed-controls-receipt.json#1a7f0e039194c1f9fc347978b3f2528cb8137c836ca35e066447fd15684bb9e3": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1a7f0e039194c1f9fc347978b3f2528cb8137c836ca35e066447fd15684bb9e3.json",
+      "sha256": "1a7f0e039194c1f9fc347978b3f2528cb8137c836ca35e066447fd15684bb9e3",
+      "bytes": 110172,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-changed-controls-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-changed-controls.log#8da55f757fccc1d6c49b9821b4d7aff67fb1265b822b5e2e757417c3dd4152d7": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8da55f757fccc1d6c49b9821b4d7aff67fb1265b822b5e2e757417c3dd4152d7.log",
+      "sha256": "8da55f757fccc1d6c49b9821b4d7aff67fb1265b822b5e2e757417c3dd4152d7",
+      "bytes": 110,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-asan-prepared-20261013-v1/runtime-changed-controls.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/primary3-receipt.json#12451d1e77c2e602fb2a64e1d42dbba87857e4e7bc9b3f4c8a09bd06fe410ec0": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/12451d1e77c2e602fb2a64e1d42dbba87857e4e7bc9b3f4c8a09bd06fe410ec0.json",
+      "sha256": "12451d1e77c2e602fb2a64e1d42dbba87857e4e7bc9b3f4c8a09bd06fe410ec0",
+      "bytes": 428743,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/primary3-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/primary3.log#e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/primary3.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/primary3-command.json#c5eae7a548abe3814b6dfdd14f0457b8365dcd90d0fe8d9764e2d42a6943415a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c5eae7a548abe3814b6dfdd14f0457b8365dcd90d0fe8d9764e2d42a6943415a.json",
+      "sha256": "c5eae7a548abe3814b6dfdd14f0457b8365dcd90d0fe8d9764e2d42a6943415a",
+      "bytes": 3272,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/primary3-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/archive-receipt.json#568b5acc4386f0b643698e13f3558c90a70668fc3fdca7a08067b51db112e976": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/568b5acc4386f0b643698e13f3558c90a70668fc3fdca7a08067b51db112e976.json",
+      "sha256": "568b5acc4386f0b643698e13f3558c90a70668fc3fdca7a08067b51db112e976",
+      "bytes": 745936,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/archive-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/archive.log#e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/archive.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/archive-command.json#7d64ff2cadcdfab125cd4781066968bef333a690143c8adcb700c15ccc40f1d1": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/7d64ff2cadcdfab125cd4781066968bef333a690143c8adcb700c15ccc40f1d1.json",
+      "sha256": "7d64ff2cadcdfab125cd4781066968bef333a690143c8adcb700c15ccc40f1d1",
+      "bytes": 264703,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/archive-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/source-compile-receipt.json#a6415b110f33bc8d4fb0d17c0929d7828800cc42e820daa3e1ec3219809be971": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a6415b110f33bc8d4fb0d17c0929d7828800cc42e820daa3e1ec3219809be971.json",
+      "sha256": "a6415b110f33bc8d4fb0d17c0929d7828800cc42e820daa3e1ec3219809be971",
+      "bytes": 103886,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/source-compile-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/source-compile.log#e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/source-compile.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/source4-command.json#eb99a29bc13e59e04c3fd858bfa215626b005a54fc2e1f0924f4f023b1c28375": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/eb99a29bc13e59e04c3fd858bfa215626b005a54fc2e1f0924f4f023b1c28375.json",
+      "sha256": "eb99a29bc13e59e04c3fd858bfa215626b005a54fc2e1f0924f4f023b1c28375",
+      "bytes": 5270,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/source4-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/upper-compile-receipt.json#57ba85c1e1f2ce404581a9780b28774e937f448649042032dd424a3bc8faae8a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/57ba85c1e1f2ce404581a9780b28774e937f448649042032dd424a3bc8faae8a.json",
+      "sha256": "57ba85c1e1f2ce404581a9780b28774e937f448649042032dd424a3bc8faae8a",
+      "bytes": 130074,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/upper-compile-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/upper-compile.log#e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/upper-compile.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/upper-command.json#f55cd26407d709dd73a3850ffa61d32862eff38cdbc3e919c4041af65dd2e03e": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f55cd26407d709dd73a3850ffa61d32862eff38cdbc3e919c4041af65dd2e03e.json",
+      "sha256": "f55cd26407d709dd73a3850ffa61d32862eff38cdbc3e919c4041af65dd2e03e",
+      "bytes": 15570,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/upper-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/profile.json#58cae4bb76bcf54dc00d81382150ab3c31717e40e5310d20cbd23dd1209e2464": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/58cae4bb76bcf54dc00d81382150ab3c31717e40e5310d20cbd23dd1209e2464.json",
+      "sha256": "58cae4bb76bcf54dc00d81382150ab3c31717e40e5310d20cbd23dd1209e2464",
+      "bytes": 41612,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/profile.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/execution-premises.json#7690cf64528a22f18ee9d4dbdba64f2f1e5f743c86764a20aaf8204962b92110": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/7690cf64528a22f18ee9d4dbdba64f2f1e5f743c86764a20aaf8204962b92110.json",
+      "sha256": "7690cf64528a22f18ee9d4dbdba64f2f1e5f743c86764a20aaf8204962b92110",
+      "bytes": 1105330,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/execution-premises.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/driver-at-prepare.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/driver-at-prepare.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/driver-at-primary.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/driver-at-primary.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/driver-at-archive.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/driver-at-archive.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/driver-at-source.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/driver-at-source.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/driver-at-upper.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/driver-at-upper.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/repair-premises.json#244993d64d0dc3a6775e401e31b7c64def255cd6781a0408ffc13f21203aa72e": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/244993d64d0dc3a6775e401e31b7c64def255cd6781a0408ffc13f21203aa72e.json",
+      "sha256": "244993d64d0dc3a6775e401e31b7c64def255cd6781a0408ffc13f21203aa72e",
+      "bytes": 588461,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/repair-premises.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/driver-at-prepare.py#68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50.py",
+      "sha256": "68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50",
+      "bytes": 5381,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/driver-at-prepare.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/driver-at-archive.py#68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50.py",
+      "sha256": "68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50",
+      "bytes": 5381,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/driver-at-archive.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/driver-at-upper.py#68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50.py",
+      "sha256": "68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50",
+      "bytes": 5381,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/driver-at-upper.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/driver-at-runtime.py#68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50.py",
+      "sha256": "68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50",
+      "bytes": 5381,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/driver-at-runtime.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/run.mjs#9275bfaffc77529e8237384d38d05e3dbae184e061fe199abdf83e340548eade": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9275bfaffc77529e8237384d38d05e3dbae184e061fe199abdf83e340548eade.mjs",
+      "sha256": "9275bfaffc77529e8237384d38d05e3dbae184e061fe199abdf83e340548eade",
+      "bytes": 457,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/run.mjs"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/generation-driver-planning-command.json#3c3fcb2c48fbc5f07ffb17c9ca1518f3573fa7b872ff5399f131b9642d4aa452": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/3c3fcb2c48fbc5f07ffb17c9ca1518f3573fa7b872ff5399f131b9642d4aa452.json",
+      "sha256": "3c3fcb2c48fbc5f07ffb17c9ca1518f3573fa7b872ff5399f131b9642d4aa452",
+      "bytes": 2399,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/generation-driver-planning-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/generation-driver-printed-jobs.txt#0c1ae694f26d37561ed65f97e69d89f0160100a61b5da76014fe02295cbaf3d0": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0c1ae694f26d37561ed65f97e69d89f0160100a61b5da76014fe02295cbaf3d0.txt",
+      "sha256": "0c1ae694f26d37561ed65f97e69d89f0160100a61b5da76014fe02295cbaf3d0",
+      "bytes": 962245,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/generation-driver-printed-jobs.txt"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/generation-driver-printed-jobs.json#b2869bfb3dcaccad4614408db4d990b7c1952066fdb8d5506024b3a844543449": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b2869bfb3dcaccad4614408db4d990b7c1952066fdb8d5506024b3a844543449.json",
+      "sha256": "b2869bfb3dcaccad4614408db4d990b7c1952066fdb8d5506024b3a844543449",
+      "bytes": 766243,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/generation-driver-printed-jobs.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/upper-compile-receipt.json#0e7322bd3eb75fec474f4887b3cb451a43afab62ce1b6ab2a8cd836177a50766": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0e7322bd3eb75fec474f4887b3cb451a43afab62ce1b6ab2a8cd836177a50766.json",
+      "sha256": "0e7322bd3eb75fec474f4887b3cb451a43afab62ce1b6ab2a8cd836177a50766",
+      "bytes": 128218,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/upper-compile-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/upper-compile.log#4e2a31ac5f7473a50b88522c94f6040abe93664043db5f7f93211f34ba14101f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4e2a31ac5f7473a50b88522c94f6040abe93664043db5f7f93211f34ba14101f.log",
+      "sha256": "4e2a31ac5f7473a50b88522c94f6040abe93664043db5f7f93211f34ba14101f",
+      "bytes": 3864333,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/upper-compile.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/archive-receipt.json#758c7c79a82e63d893933be8d166b6a05044148eb613ceab8a0e7b581a4d88a4": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/758c7c79a82e63d893933be8d166b6a05044148eb613ceab8a0e7b581a4d88a4.json",
+      "sha256": "758c7c79a82e63d893933be8d166b6a05044148eb613ceab8a0e7b581a4d88a4",
+      "bytes": 744198,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/archive-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/archive.log#31df007c4a62e4c05e55cb523078624b2fb54a6c5dab16241b137c2b9dfae55b": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/31df007c4a62e4c05e55cb523078624b2fb54a6c5dab16241b137c2b9dfae55b.log",
+      "sha256": "31df007c4a62e4c05e55cb523078624b2fb54a6c5dab16241b137c2b9dfae55b",
+      "bytes": 93,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/archive.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/archive-command.json#21a349a4ae25aa3a9cc0f46454e05e55c635fa39e6790a8a1739e63d5582dd7a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/21a349a4ae25aa3a9cc0f46454e05e55c635fa39e6790a8a1739e63d5582dd7a.json",
+      "sha256": "21a349a4ae25aa3a9cc0f46454e05e55c635fa39e6790a8a1739e63d5582dd7a",
+      "bytes": 264621,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/archive-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/upper-command.json#c7f10be2800424ffed472744e352c4461a775a810e3680199aa3337289da878f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c7f10be2800424ffed472744e352c4461a775a810e3680199aa3337289da878f.json",
+      "sha256": "c7f10be2800424ffed472744e352c4461a775a810e3680199aa3337289da878f",
+      "bytes": 15570,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v1/upper-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-complete-receipt.json#43ed5f1721dfcf8ecf2d7b6367241cc667b643255b5a3fc4356eda1ded7586b5": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/43ed5f1721dfcf8ecf2d7b6367241cc667b643255b5a3fc4356eda1ded7586b5.json",
+      "sha256": "43ed5f1721dfcf8ecf2d7b6367241cc667b643255b5a3fc4356eda1ded7586b5",
+      "bytes": 114799,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-complete-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-complete.log#a9967f02dedb016d1cd68176f90ff6162a340f49e61bfd5b9786d3be44b3e937": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a9967f02dedb016d1cd68176f90ff6162a340f49e61bfd5b9786d3be44b3e937.log",
+      "sha256": "a9967f02dedb016d1cd68176f90ff6162a340f49e61bfd5b9786d3be44b3e937",
+      "bytes": 268,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-complete.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-dispatch-receipt.json#4c30f8d30cf2078881a47b266a4612018be76adaece7b5ea220a7123c1cf0ee8": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4c30f8d30cf2078881a47b266a4612018be76adaece7b5ea220a7123c1cf0ee8.json",
+      "sha256": "4c30f8d30cf2078881a47b266a4612018be76adaece7b5ea220a7123c1cf0ee8",
+      "bytes": 114799,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-dispatch-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-dispatch.log#7753ab45e46d055c68c94f1caac27dfe7523bed89b6d5bed352e0ccf8ef21a28": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/7753ab45e46d055c68c94f1caac27dfe7523bed89b6d5bed352e0ccf8ef21a28.log",
+      "sha256": "7753ab45e46d055c68c94f1caac27dfe7523bed89b6d5bed352e0ccf8ef21a28",
+      "bytes": 271,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-dispatch.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-source-receipt.json#e864ff13d842407b037e47ddf1dd4b9043950557b0c206cd87e41a9afc805de1": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e864ff13d842407b037e47ddf1dd4b9043950557b0c206cd87e41a9afc805de1.json",
+      "sha256": "e864ff13d842407b037e47ddf1dd4b9043950557b0c206cd87e41a9afc805de1",
+      "bytes": 114795,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-source-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-source.log#1a4301261dc83c86b48f655d4d0ec97ca388f3732c0db171de29003207e0b583": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1a4301261dc83c86b48f655d4d0ec97ca388f3732c0db171de29003207e0b583.log",
+      "sha256": "1a4301261dc83c86b48f655d4d0ec97ca388f3732c0db171de29003207e0b583",
+      "bytes": 274,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-source.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-requests-receipt.json#94d788d1e32811cfc647484dfe0446f29b4d4d3db9d52a948210d6c09f23a5c0": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/94d788d1e32811cfc647484dfe0446f29b4d4d3db9d52a948210d6c09f23a5c0.json",
+      "sha256": "94d788d1e32811cfc647484dfe0446f29b4d4d3db9d52a948210d6c09f23a5c0",
+      "bytes": 114799,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-requests-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-requests.log#b9aec99bc70d2b9b09fb6308b306d4b213c16255337ef3eb2c2b4b01f209de4d": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b9aec99bc70d2b9b09fb6308b306d4b213c16255337ef3eb2c2b4b01f209de4d.log",
+      "sha256": "b9aec99bc70d2b9b09fb6308b306d4b213c16255337ef3eb2c2b4b01f209de4d",
+      "bytes": 283,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-requests.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-resources-receipt.json#6c50bfe720d35955fed644ae1b6c207fc0dd027457df0a46cb06c9379bbafd4e": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6c50bfe720d35955fed644ae1b6c207fc0dd027457df0a46cb06c9379bbafd4e.json",
+      "sha256": "6c50bfe720d35955fed644ae1b6c207fc0dd027457df0a46cb06c9379bbafd4e",
+      "bytes": 114801,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-resources-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-resources.log#4e680997de523162e6bf639b6edaa4237c701d5be7377133c6da3de1ba26abd4": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4e680997de523162e6bf639b6edaa4237c701d5be7377133c6da3de1ba26abd4.log",
+      "sha256": "4e680997de523162e6bf639b6edaa4237c701d5be7377133c6da3de1ba26abd4",
+      "bytes": 414,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-resources.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-readmission-receipt.json#c05c8785b04d8ee40797a8ee1b642c0bdf8bf7f2d66f5acbc7a99a4556f5c1b0": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c05c8785b04d8ee40797a8ee1b642c0bdf8bf7f2d66f5acbc7a99a4556f5c1b0.json",
+      "sha256": "c05c8785b04d8ee40797a8ee1b642c0bdf8bf7f2d66f5acbc7a99a4556f5c1b0",
+      "bytes": 114805,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-readmission-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-readmission.log#5c9debb51411bc021ae85cf384b99c3612fd1799162cc0e430329b2a6a6dfccd": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/5c9debb51411bc021ae85cf384b99c3612fd1799162cc0e430329b2a6a6dfccd.log",
+      "sha256": "5c9debb51411bc021ae85cf384b99c3612fd1799162cc0e430329b2a6a6dfccd",
+      "bytes": 415,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-readmission.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-entry-receipt.json#cd9fd9728d3f9f9de8997d8669957b3147f55522b55edd95abec3b6619fea51c": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/cd9fd9728d3f9f9de8997d8669957b3147f55522b55edd95abec3b6619fea51c.json",
+      "sha256": "cd9fd9728d3f9f9de8997d8669957b3147f55522b55edd95abec3b6619fea51c",
+      "bytes": 114805,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-entry-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-entry.log#497cb70d024d69640f34040ccbe535d534bb2d7a049d6f7855c057b32faffc17": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/497cb70d024d69640f34040ccbe535d534bb2d7a049d6f7855c057b32faffc17.log",
+      "sha256": "497cb70d024d69640f34040ccbe535d534bb2d7a049d6f7855c057b32faffc17",
+      "bytes": 224,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-entry.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-final-receipt.json#1b788dceb2bd204f49c6515f7936e752fb023aeca4a8a1e1569ec14f63c348e6": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1b788dceb2bd204f49c6515f7936e752fb023aeca4a8a1e1569ec14f63c348e6.json",
+      "sha256": "1b788dceb2bd204f49c6515f7936e752fb023aeca4a8a1e1569ec14f63c348e6",
+      "bytes": 114806,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-final-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-final.log#9537e26146fb9d6e294edbf17c80be5f54cd4d0316d537166603cd49911d8de9": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9537e26146fb9d6e294edbf17c80be5f54cd4d0316d537166603cd49911d8de9.log",
+      "sha256": "9537e26146fb9d6e294edbf17c80be5f54cd4d0316d537166603cd49911d8de9",
+      "bytes": 231,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-final.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-reader-receipt.json#2db34c4fa945464029a9f6cf14d3a7d33d04630a2ec9701eda0adefc1162a90a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2db34c4fa945464029a9f6cf14d3a7d33d04630a2ec9701eda0adefc1162a90a.json",
+      "sha256": "2db34c4fa945464029a9f6cf14d3a7d33d04630a2ec9701eda0adefc1162a90a",
+      "bytes": 114809,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-reader-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-reader.log#b066eb6483e722826c4c91948dfac38c1e23c26b0995ff19b9895643229a8da8": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b066eb6483e722826c4c91948dfac38c1e23c26b0995ff19b9895643229a8da8.log",
+      "sha256": "b066eb6483e722826c4c91948dfac38c1e23c26b0995ff19b9895643229a8da8",
+      "bytes": 244,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-cancel-reader.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-lifetime-receipt.json#ba90c8a15f757a9de2f3003876fbed00ea7296a31e5b6e2e63791260bb9a2f0e": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ba90c8a15f757a9de2f3003876fbed00ea7296a31e5b6e2e63791260bb9a2f0e.json",
+      "sha256": "ba90c8a15f757a9de2f3003876fbed00ea7296a31e5b6e2e63791260bb9a2f0e",
+      "bytes": 114799,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-lifetime-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-lifetime.log#17e900ca660db10a2c455bf2140a22b3d904b44c689d8da36d6458b9b12e2ee5": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/17e900ca660db10a2c455bf2140a22b3d904b44c689d8da36d6458b9b12e2ee5.log",
+      "sha256": "17e900ca660db10a2c455bf2140a22b3d904b44c689d8da36d6458b9b12e2ee5",
+      "bytes": 260,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-lifetime.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-changed-controls-receipt.json#073a3a6ab8413ca3ad2725d31b4b3f2dcafd05746b7c2e25c4ef16425ba457f8": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/073a3a6ab8413ca3ad2725d31b4b3f2dcafd05746b7c2e25c4ef16425ba457f8.json",
+      "sha256": "073a3a6ab8413ca3ad2725d31b4b3f2dcafd05746b7c2e25c4ef16425ba457f8",
+      "bytes": 114813,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-changed-controls-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-changed-controls.log#c9976abdfe844343d84095c6060c164f7dc9437a576a70d1723706cdcd6cb8af": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c9976abdfe844343d84095c6060c164f7dc9437a576a70d1723706cdcd6cb8af.log",
+      "sha256": "c9976abdfe844343d84095c6060c164f7dc9437a576a70d1723706cdcd6cb8af",
+      "bytes": 277,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-wasm-prepared-20261013-v2/runtime-changed-controls.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/execute-closed-portable-profile-20261013.py#76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96.py",
+      "sha256": "76d1486d7b6d7aa8c586fc6143ead3c835d681e95479e5eb4e2139ebf329cf96",
+      "bytes": 7367,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/execute-closed-portable-profile-20261013.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/repair-closed-wasm-archive-20261013.py#68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50.py",
+      "sha256": "68b34111fc4edd19aa16741a5ab0d6acc87d16050a74abb5fe771107c04e0c50",
+      "bytes": 5381,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/repair-closed-wasm-archive-20261013.py"
+    }
+  }
+}

@@ -424,6 +424,21 @@ original search-domain endpoint differences using outward arithmetic; rounded
 anchor values or rounded domain widths cannot certify a connection. The same
 gauge receipt supplies both source-surface position and tangent bounds under
 the composing caller's work and storage allowance.
+Legacy Native isoparametric-plane graph endpoints may inherit existence from
+`ExactIsoparametricPlanarIntersectionGraph` only when the original parameter box
+exactly matches an issued source U span, the original lower-V/middle-V interval,
+and the opposite Native plane's original U/V domains, with the issued free
+coordinate and source role. This comparison uses original endpoints directly;
+normalized-domain round trips and tolerated anchor agreement cannot establish
+the scope. The signed control layers and positive rational plane Jacobian then
+prove one root at every closed gauge, including the middle-V boundary. Existing
+root-preserving gauge contraction encloses that root. This inheritance is
+limited to the legacy structural branch; approximate boxes and other graph
+certificates retain independent gauge-root admission. Endpoint jets, traversal
+direction, four-coordinate continuity, and closed tangent admission are
+unchanged. Verification covers the actual four-cell closed Native recipe and
+an upper-V boundary moved below the exact middle knot, which must not inherit
+existence from the structural theorem.
 After initial unique-root admission, endpoint enclosures are contracted with
 the same fixed gauge and original normalization. Each Krawczyk iteration uses
 closed jets over the retained root box and intersects with that box, preserving

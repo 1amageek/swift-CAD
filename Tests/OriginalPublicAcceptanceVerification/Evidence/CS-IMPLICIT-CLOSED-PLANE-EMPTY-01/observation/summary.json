@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "cell": "CS-IMPLICIT-CLOSED-PLANE-EMPTY-01",
+  "status": "native-actual-constructor-typed-failure-observed",
+  "observationComplete": true,
+  "sourceContractComplete": false,
+  "cellComplete": false,
+  "sourceAtCompile": "db25eebec9b323d502faddb38232f26fff84460c",
+  "headAfter": "db25eebec9b323d502faddb38232f26fff84460c",
+  "fixture": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/observation/cas/542ebf308c1641642d8f448cd53ffcbc9451a677ea7a6ab9397671ecf0b66869.swift",
+    "sha256": "542ebf308c1641642d8f448cd53ffcbc9451a677ea7a6ab9397671ecf0b66869",
+    "bytes": 10130,
+    "kind": "frozen-native-constructor-observation"
+  },
+  "runner": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/observation/cas/b08f6fcfe2d3a00841083f2aa3954d093974cbc43b643b672ce1c9aaf73afbd9.py",
+    "sha256": "b08f6fcfe2d3a00841083f2aa3954d093974cbc43b643b672ce1c9aaf73afbd9",
+    "bytes": 12756,
+    "kind": "frozen-native-constructor-observation"
+  },
+  "rawReceipt": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/observation/cas/d0f6e569bc218e05e7a31b1eb6c91fed1da89a725ab9cbf0ec861ab45f951be3.json",
+    "sha256": "d0f6e569bc218e05e7a31b1eb6c91fed1da89a725ab9cbf0ec861ab45f951be3",
+    "bytes": 134033,
+    "kind": "frozen-native-constructor-observation"
+  },
+  "command": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/observation/cas/58b7efc569840c1caf333f4e51ac9a1b16347a05dfa490b6ee6865db4d6e74b1.json",
+    "sha256": "58b7efc569840c1caf333f4e51ac9a1b16347a05dfa490b6ee6865db4d6e74b1",
+    "bytes": 14778,
+    "kind": "frozen-native-constructor-observation"
+  },
+  "runtimeLog": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/observation/cas/da40d5279e0430e1caf1f48569854a9af18299d85bd47c667739300c8be552ca.log",
+    "sha256": "da40d5279e0430e1caf1f48569854a9af18299d85bd47c667739300c8be552ca",
+    "bytes": 725,
+    "kind": "frozen-native-constructor-observation"
+  },
+  "compilerLog": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "kind": "command-receipt-log-or-fixture"
+  },
+  "bindings": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/observation/cas/98d3087d6349aa25c653064c43a34984c858a7af34f213920415533fc6ea4286.json",
+    "sha256": "98d3087d6349aa25c653064c43a34984c858a7af34f213920415533fc6ea4286",
+    "bytes": 264168,
+    "kind": "frozen-native-constructor-observation"
+  },
+  "scope": {
+    "lane": "native",
+    "ordinaryCalls": 0,
+    "constructorCalls": 1,
+    "upperBodies": 56,
+    "selectorBodies": 1,
+    "swiftInputs": 58,
+    "cachedArchives": 13,
+    "totalArchivesIncludingImplicitSourcePhase": 14,
+    "compiledSourceBodies": 0,
+    "compiledLowerBodies": 0,
+    "compileRuntimeReplayForPackaging": 0
+  },
+  "plannedInput": {
+    "actualConstructor": {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/CADTopologyCertificationTests/CertifiedImplicitSeamTraversalTests.swift",
+      "helperSHA256": "1fae61f4d98f6986ff5a6383c1c156298a810839c4da201562d6502ed64925b0",
+      "adaptedHelperSHA256": "fbed38ef9fe7e464dc25d85c35f476c76897ca4fb76a6a8030f8fa78ce5289b7",
+      "assertionAdaptation": {
+        "original": "        let exact = try #require(try ExactIsoparametricPlanarIntersectionGraph\n            .certified(\n                first: sphere,\n                second: plane,\n                tolerance: tolerance\n            )\n        )",
+        "adapted": "        guard let exact = try ExactIsoparametricPlanarIntersectionGraph\n            .certified(\n                first: sphere,\n                second: plane,\n                tolerance: tolerance\n            ) else { throw ConstructorFailure.missingExactGraph }"
+      },
+      "cachedSources": {
+        "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/AnalyticSurfaceBSplineBuilder.swift": "f68dec4999e5b5652ad987f1a4b380b9e59737302cebc0c8f6faeeec4951dc28",
+        "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CanonicalAnalyticSurface.swift": "4c024fb7a2d66e3b709b1beec2ef30504c293272b615ab675f1ed1083b29f5ef",
+        "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/ExactIsoparametricPlanarIntersectionGraph.swift": "5a663f2487722087df5bc662e10898446a7523a7f5606cd56af2c8e07018e542"
+      },
+      "generationReceipt": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDomainConsumerVerification/Evidence/M6/receipt.json",
+        "sha256": "470c698fb6d497c2c8a9f4a7aa96352244418b49064bd42815dfbcab181c0dfd"
+      },
+      "cellCount": 4,
+      "freeParameter": "firstU",
+      "direction": "forward",
+      "isClosed": true,
+      "target": "analytic plane Z=2"
+    },
+    "firstHost": "Actual Native AnalyticSurfaceBSplineBuilder sphere output, seamOffset=Double.pi*0.125",
+    "secondHost": "degree(1,1), knots[0,0,1,1], exact authored control Z=0, actual positive binary64 weights",
+    "storedCells": "all4 original firstU forward cells, isClosed:true, distinct original firstU0/4 retained by unmodified helper; constructor did not return a curve",
+    "target": "Surface3D.analytic(.plane(origin:(0,0,2),normal:unitZ))",
+    "closedT": [
+      0,
+      1
+    ],
+    "targetUV": [
+      [
+        -2,
+        2
+      ],
+      [
+        -2,
+        2
+      ]
+    ],
+    "options": "standard/default; not reached because constructor threw"
+  },
+  "independentOracle": {
+    "completeTupleImageFiber": "empty",
+    "proof": "Every rational second-host control has homogeneous Z=w*0=0. Its degree(1,1) closed-support nonnegative partition-of-unity basis and strictly positive actual weights give W>=min(weights)>0, hence source Z=0 over all UV and all intended stored cells. The target plane has Z=2 for every requested UV. Equality is impossible for every closed T, independently of first-host sphere membership and any physical pi identity.",
+    "actualWeights": [
+      "1",
+      "5/4",
+      "3602879701896397/4503599627370496",
+      "1"
+    ],
+    "weightMinimum": "3602879701896397/4503599627370496",
+    "wholeOriginalSupport": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "firstHostUV": "No identification of distinct firstU0/4 is needed or performed by this exclusion oracle.",
+    "limitation": "The intended constructor recipe was attempted unchanged except #require-to-guard; it did not produce the actual closed curve, so no public intersection or original UV publication was observed."
+  },
+  "observed": {
+    "kind": "constructor-typed-failure",
+    "constructorReturned": false,
+    "resultDTOProduced": false,
+    "constructorRuntime": "OBSERVED",
+    "ordinaryCSRuntime": "UNOBSERVED",
+    "receiptFields": {
+      "originalImplicitCurveRelation": "unavailable_no_result_DTO",
+      "originalNativePoints": "unavailable_no_result_DTO",
+      "originalNativeRelations": "unavailable_no_result_DTO",
+      "originalPolynomialPoints": "unavailable_no_result_DTO",
+      "originalAffinePoints": "unavailable_no_result_DTO",
+      "originalCoonsPoints": "unavailable_no_result_DTO",
+      "originalExactGeometricRelation": "unavailable_no_result_DTO",
+      "originalIssuedGeometricRelation": "unavailable_no_result_DTO",
+      "originalIssuedNumericalPoints": "unavailable_no_result_DTO",
+      "originalContainedLiftPlaneFamily": "unavailable_no_result_DTO",
+      "originalRevolutionAxisRelation": "unavailable_no_result_DTO",
+      "originalAngularPlaneRelation": "unavailable_no_result_DTO",
+      "originalCertifiedApexPlaneExclusion": "unavailable_no_result_DTO"
+    },
+    "error": {
+      "category": "numericalIndeterminacy",
+      "cellComplete": false,
+      "code": "intersectionFailure",
+      "error": "KernelError(phase: geometry, code: intersectionFailure, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Original graph endpoint requires its unique closed gauge root enclosure.)",
+      "message": "Original graph endpoint requires its unique closed gauge root enclosure.",
+      "phase": "geometry",
+      "stage": "constructor-or-setup-failure"
+    },
+    "residualAvailability": "not supplied in actual KernelError",
+    "cancelInjected": false,
+    "cancellationObserved": false,
+    "cellAndEndpointOrdinal": "not recorded; no inference"
+  },
+  "actualStopContract": {
+    "throwSite": "Sources/CADGeometry/CertifiedImplicitIntersectionGraphCell.swift:1001-1010",
+    "condition": "connectionSource: ParametricSurfaceIntersectionGraphProver.gaugeParameterBounds returns nil for requested closed endpoint",
+    "caller": "CertifiedImplicitIntersectionCurve public init -> validate -> validateConnections -> validateConnection -> cell.connectionSource",
+    "sourcePath": "Sources/CADGeometry/CertifiedImplicitIntersectionCurve.swift:29,61,125,347",
+    "newCapabilityInference": false
+  },
+  "staticScope": {
+    "selector": "OriginalImplicitCurveSnapshotProvider.supports:8-16",
+    "restrictions": [
+      "!curve.isClosed",
+      "stored cells count1or2",
+      "freeParameter firstV",
+      "Native triangular host layout"
+    ],
+    "producerTarget": "OriginalImplicitCurvePublicProducer requires finite nonperiodic Native target; requested analytic target is outside this existing exact path",
+    "runtimeDisposition": "UNOBSERVED: constructor failed before selector/public call; static refusal is not runtime failure"
+  },
+  "remainingGap": "The actual closed constructor cannot supply its required unique closed endpoint gauge enclosure on the existing source representation. Source-owned endpoint/connection authority for the actual isoparametric graph must preserve both host parameters and distinct firstU0/4 before a public observation can be formed. No resource-cap relaxation, approximate seam merge, source-family implementation or new solver is inferred from this constructor stop.",
+  "integrity": {
+    "prePostHashesMatch": true,
+    "fixedChecks": 436,
+    "finalRecordedChecks": 439,
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-plane-empty-observation-20261013/Observation": "d1cd4913940d82ab89b58557dc140432e97ecf9c42d492a46bef69e56313f433"
+    },
+    "ownedDescendantsRemaining": [
+      [],
+      []
+    ]
+  },
+  "resources": [
+    {
+      "label": "compile-link",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 42.59181395894848,
+      "cumulativeElapsedSeconds": 42.59190879110247,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 44.22,
+      "peakOwnedProcessResidentSumKiB": 649360,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "runtime",
+      "exitCode": 2,
+      "boundedStop": null,
+      "elapsedSeconds": 1.1195529159158468,
+      "cumulativeElapsedSeconds": 44.68042833299842,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 0,
+      "peakOwnedProcessResidentSumKiB": 32,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "da40d5279e0430e1caf1f48569854a9af18299d85bd47c667739300c8be552ca"
+    }
+  ],
+  "guardPolicy": "Independent compile120/runtime120 wall, per-processCPU120 and ownedCPU120; no bounded stop. Public query/default caps were not reached.",
+  "measurementLimit": "Runtime ended before a representative sample: RSS32KiB/CPU0 are short-lived sampling observations, not a bound on actual constructor peak."
+}

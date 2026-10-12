@@ -1,0 +1,33 @@
+{
+  "old": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/fixture-at-prepare.swift",
+    "sha256": "0b60478d73c121bc6c1071211f61306e2e3c9584ec4a8f179f7ac1ccbef216d1"
+  },
+  "current": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitClosedPlaneEmptyAcceptance.swift",
+    "sha256": "abc7c5921fd75f5336d142856591c3ee75c65139c89e4b42e7987a28adf95a51"
+  },
+  "replacements": [
+    {
+      "before": "        let group = getenv(\"CAD_PROOF_GROUP\").map { String(cString: $0) } ?? \"complete\"",
+      "after": "        let group: String\n        if let value = getenv(\"CAD_PROOF_GROUP\") { group = String(cString: value) }\n        else { group = \"complete\" }"
+    },
+    {
+      "before": "            try verify(admitted(curve, plane, cells, Counter()), options: cells)",
+      "after": "            try resourceFailure { _ = try admitted(curve, plane, cells, Counter()) }"
+    },
+    {
+      "before": "PASS measured exact N/N-1 work/storage, attained scalar/source depth, chart4/3, no fabricated positive pair count and entry/mid cancellation",
+      "after": "PASS measured exact N/N-1 work/storage, attained scalar/source depth, authored chart4/3, scalar-cell allowances4/3 insufficient, and entry/mid cancellation"
+    },
+    {
+      "before": "PASS retained proof readmission exact N/N-1 work/storage/coefficient depth and sourceDepth1/0 without decomposition or solving",
+      "after": "PASS retained proof readmission exact work N/N-1, storage/depth N and applicable positive N-1, sourceDepth1/0 without decomposition or solving"
+    }
+  ],
+  "outsideReplacementsExactEqual": true,
+  "nativeSemanticChange": "resources scalar-cell allowance4 negative expectation only; other replacements Embedded-only decoding or log text.",
+  "remainingGroups": [
+    "resources"
+  ]
+}

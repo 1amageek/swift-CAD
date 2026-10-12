@@ -1,0 +1,3 @@
+(node:15281) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS all four ordinary bare/rich and standard/callback public entries preserve complete-empty authority

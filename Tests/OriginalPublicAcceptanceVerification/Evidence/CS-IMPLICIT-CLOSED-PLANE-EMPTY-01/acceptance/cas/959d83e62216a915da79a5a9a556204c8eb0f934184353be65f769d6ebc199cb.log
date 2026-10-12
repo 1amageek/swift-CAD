@@ -1,0 +1,16 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/Proof.swift:505:43: error: no type named 'OriginalExactScalarDomain' in module 'RetainedHostAdapters'
+ 503 | @main struct ImplicitClosedPlaneEmptyAcceptance {
+ 504 |     struct Failure: Error { let line: Int }
+ 505 |     typealias Base = RetainedHostAdapters.OriginalExactScalarDomain
+     |                                           `- error: no type named 'OriginalExactScalarDomain' in module 'RetainedHostAdapters'
+ 506 |     typealias Value = RetainedHostAdapters.OriginalExactScalar
+ 507 |     typealias Source = ImplicitSourcePhase.OriginalImplicitCurveSnapshot
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/Proof.swift:506:44: error: no type named 'OriginalExactScalar' in module 'RetainedHostAdapters'
+ 504 |     struct Failure: Error { let line: Int }
+ 505 |     typealias Base = RetainedHostAdapters.OriginalExactScalarDomain
+ 506 |     typealias Value = RetainedHostAdapters.OriginalExactScalar
+     |                                            `- error: no type named 'OriginalExactScalar' in module 'RetainedHostAdapters'
+ 507 |     typealias Source = ImplicitSourcePhase.OriginalImplicitCurveSnapshot
+ 508 |     typealias Receipt = ImplicitHostPlaneSourcePhase.OriginalImplicitHostPlaneSeparationReceipt

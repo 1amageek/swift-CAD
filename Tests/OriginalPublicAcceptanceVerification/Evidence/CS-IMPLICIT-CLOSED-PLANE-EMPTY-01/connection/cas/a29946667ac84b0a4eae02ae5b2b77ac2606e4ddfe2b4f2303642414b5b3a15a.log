@@ -1,0 +1,204 @@
+warning: 'nativeexactrelationverification': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalPointRelationProof/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalRealRelationProof/DESIGN.md
+warning: 'nativeexactrelationverification': found 11 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/GenericShape/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/GeometricExtrema/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/NonManifoldTopology/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OpenBoundaryLoop/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OriginalSourceValidation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OrthographicEdgeProjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SolidComplex/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/VolumeMoments/DESIGN.md
+warning: 'nativeexactrelationverification': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADKernelBoundary/DESIGN.md
+warning: 'nativeexactrelationverification': found 86 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/BSplineCurveCommonBasis/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CanonicalSphereChart/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/PlanarPartition/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativeRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/GeometryConversion/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/IntersectionAlgebra/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/Involute/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/KnotRemoval/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeMultiChartSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceChartInjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSourceZeroSet/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineImage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineOperationWord/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAnalyticIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalBoundaryClipping/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCircularMeasurement/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/BoundaryCorrection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/GuideCorrection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveConstructionChart/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/ExactParameterDomain/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterTransport/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDraftedSection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGraphBand/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalLineIncidence/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeCurveChartCover/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativePlaneContacts/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeSurfaceChartCover/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNormalAngleBounds/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolyline/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRectangleTessellation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRevolution/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRootSpan/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRuledIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSourceIssuance/OriginalPhysicalAngle/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSpatialPoint/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OrthographicCurveProjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/NativeAxisInverse/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/PeriodicBSpline/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RollingBall/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/StructuralGeometryWork/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceBoundaryCertification/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceFitting/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfacePoleGeometry/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceProjectionAdmission/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProvenance/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSurfaceQueryAdmission/DESIGN.md
+warning: 'nativeexactrelationverification': found 7 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/CapabilityContract/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/CurrentTaskCancellation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/FailureContract/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/NativeCodecCapability/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/PortableIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/PortableSourceEncoding/DESIGN.md
+Building for debugging...
+[1 / 25] CADGeometry
+[1 / 26] CADGeometry
+[5 / 93] CADGeometry
+[8 / 93] CADGeometry
+[9 / 93] CADGeometry
+[10 / 93] CADGeometry
+[11 / 93] CADGeometry
+[12 / 93] CADGeometry
+[13 / 93] CADGeometry
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:336:5: warning: 'internal' modifier conflicts with extension's default access of 'private'
+334 | 
+335 | private extension SurfaceParameterCurve {
+336 |     internal func thirdOrderDifferential(
+    |     `- warning: 'internal' modifier conflicts with extension's default access of 'private'
+337 |         atNormalizedFraction fraction: Double,
+338 |         on supportSurface: Surface3D,
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift:49:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+47 |             let argument = SurfaceIntervalJet.parameterU(box.u)
+48 |             try consumeWork()
+49 |             let sine = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork).value
+   |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+50 |             let cos = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork).value
+51 |             try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift:50:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+48 |             try consumeWork()
+49 |             let sine = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork).value
+50 |             let cos = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork).value
+   |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+51 |             try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+52 |             let cycle = cosine ? [cos, -sine, -cos, sine] : [sine, cos, -sine, -cos]
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[14 / 93] CADGeometry
+[16 / 90] CADGeometry
+[20 / 90] CADGeometry
+[21 / 90] CADGeometry
+[22 / 90] CADGeometry
+[23 / 90] CADGeometry
+[25 / 90] CADGeometry
+[26 / 90] CADGeometry
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:336:5: warning: 'internal' modifier conflicts with extension's default access of 'private'
+334 | 
+335 | private extension SurfaceParameterCurve {
+336 |     internal func thirdOrderDifferential(
+    |     `- warning: 'internal' modifier conflicts with extension's default access of 'private'
+337 |         atNormalizedFraction fraction: Double,
+338 |         on supportSurface: Surface3D,
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:145:14: warning: case is already handled by previous patterns; consider removing it
+143 |                 .parameterDerivativesThroughThirdOrder(at: parameter, tolerance: image.sourceTolerance).thirdDerivative,
+144 |                 usage: &usage)
+145 |         case let .originalGuideTraversalChain(curve):
+    |              `- warning: case is already handled by previous patterns; consider removing it
+146 |             let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+147 |                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:153:14: warning: case is already handled by previous patterns; consider removing it
+151 |             third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint,
+152 |                 z: jet.z.derivatives[3].midpoint)
+153 |         case let .originalPolyline(curve):
+    |              `- warning: case is already handled by previous patterns; consider removing it
+154 |             let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+155 |                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:161:14: warning: case is already handled by previous patterns; consider removing it
+159 |             third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint,
+160 |                 z: jet.z.derivatives[3].midpoint)
+161 |         case let .originalGuideEndpointConnector(curve):
+    |              `- warning: case is already handled by previous patterns; consider removing it
+162 |             let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+163 |                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+[27 / 90] CADGeometry
+[29 / 90] CADGeometry
+error: SwiftCompile normal arm64 /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift failed with a nonzero exit code. Command line:     cd /private/tmp/cad-di-m6-consumers-20261009/Tests
+    builtin-SwiftPerFileCompile OriginalExactNativeSelfContacts.swift
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift:23:21: error: call can throw but is not marked with 'try'
+21 |                 let piece = raw.pieces[index]
+22 |                 guard try piece.first.occurrence.selectedImage.contains(firstTuple,limits:domainLimits,using:&admission),
+23 |                     piece.second.occurrence.selectedImage.contains(secondTuple,limits:domainLimits,using:&admission) else { continue }
+   |                     |- error: call can throw but is not marked with 'try'
+   |                     |- note: did you mean to use 'try'?
+   |                     |- note: did you mean to handle error as optional value?
+   |                     `- note: did you mean to disable error propagation?
+24 |                 let left = try transporter.forward(firstTuple,through:piece.first.inverse,limits:domainLimits,using:&admission)
+25 |                 let right = try transporter.forward(secondTuple,through:piece.second.inverse,limits:domainLimits,using:&admission)
+Failed frontend command:
+/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend -frontend -c -filelist /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/sources-1 -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalWholeLinearLawReceipt.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSpatialPoint/OriginalAffineWordPoint3D+NativeCodable.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSpatialPoint/OriginalAffineWordPoint3D.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalSurfaceEmbeddingPreparer.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalSurfaceEmbeddingPreparing.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalSurfaceEmbeddingSession.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalSurfaceProjectionContraction.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalSurfaceSelfContactAtlas.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OrthographicCurveProjection/DefaultOrthographicCurveProjector.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OrthographicCurveProjection/OrthographicCurveEnclosure.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OrthographicCurveProjection/OrthographicCurveProjecting.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OrthographicCurveProjection/OrthographicProjectedCurve.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OrthographicCurveProjection/OrthographicProjectionError.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OrthographicCurveProjection/OrthographicProjectionFrame.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OutwardIntervalArithmetic.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/Parabola3D.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/ParallelCylinderSurfaceIntersector.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/ParallelOffsetTorusCylinderSurfaceIntersector.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/ParallelOffsetTorusTorusSurfaceIntersector.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/ParallelTorusTorusPlaneIntersecting.swift -primary-file /private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/ParallelTorusTorusPlaneIntersectionContext.swift -supplementary-output-file-map /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/supplementaryOutputs-40 -target arm64-apple-macos15.0 -module-can-import-version Darwin 428.0.10 0 -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins/libObservationMacros.dylib\#\#ObservationMacros -load-resolved-plugin /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#\#SwiftMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/CADGeometry-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -I /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib -F /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/PackageFrameworks -F /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug -F /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks -module-cache-path /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -D Xcode -serialize-debugging-options -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /private/tmp/cad-di-m6-consumers-20261009/Tests -enable-anonymous-context-mangled-names -file-compilation-dir /private/tmp/cad-di-m6-consumers-20261009/Tests -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/include -Xcc -I/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/DerivedSources-normal/arm64 -Xcc -I/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/DerivedSources/arm64 -Xcc -I/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name CADGeometry -package-name nativeexactrelationverification -const-gather-protocols-file /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/CADGeometry_const_extract_protocols.json -in-process-plugin-server-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -clang-target arm64-apple-macos27.0 -target-sdk-version 27.0 -target-sdk-name macosx27.0 -parse-as-library -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalWholeLinearLawReceipt.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalAffineWordPoint3D+NativeCodable.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalAffineWordPoint3D.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/DefaultOriginalExactNativeSelfContactQuery.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/DefaultOriginalSurfaceEmbeddingPreparer.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalExactNativeSelfContactQuerying.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalExactNativeSelfContacts.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalExactSelfIdentityCompiler.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalSurfaceEmbeddingPreparing.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalSurfaceEmbeddingSession.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalSurfaceProjectionContraction.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalSurfaceSelfContactAtlas.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/DefaultOrthographicCurveProjector.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OrthographicCurveEnclosure.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OrthographicCurveProjecting.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OrthographicProjectedCurve.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OrthographicProjectionError.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OrthographicProjectionFrame.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OutwardIntervalArithmetic.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/Parabola3D.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/ParallelCylinderSurfaceIntersector.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/ParallelOffsetTorusCylinderSurfaceIntersector.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/ParallelOffsetTorusTorusSurfaceIntersector.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/ParallelTorusTorusPlaneIntersecting.o -o /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/ParallelTorusTorusPlaneIntersectionContext.o -debug-module-path /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/CADGeometry.swiftmodule -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalWholeLinearLawReceipt.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalAffineWordPoint3D+NativeCodable.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalAffineWordPoint3D.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/DefaultOriginalExactNativeSelfContactQuery.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/DefaultOriginalSurfaceEmbeddingPreparer.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalExactNativeSelfContactQuerying.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalExactNativeSelfContacts.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalExactSelfIdentityCompiler.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalSurfaceEmbeddingPreparing.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalSurfaceEmbeddingSession.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalSurfaceProjectionContraction.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OriginalSurfaceSelfContactAtlas.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/DefaultOrthographicCurveProjector.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OrthographicCurveEnclosure.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OrthographicCurveProjecting.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OrthographicProjectedCurve.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OrthographicProjectionError.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OrthographicProjectionFrame.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/OutwardIntervalArithmetic.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/Parabola3D.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/ParallelCylinderSurfaceIntersector.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/ParallelOffsetTorusCylinderSurfaceIntersector.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/ParallelOffsetTorusTorusSurfaceIntersector.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/ParallelTorusTorusPlaneIntersecting.o -index-unit-output-path /NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/ParallelTorusTorusPlaneIntersectionContext.o -index-store-path /private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out -index-system-modules
+error: Build failed

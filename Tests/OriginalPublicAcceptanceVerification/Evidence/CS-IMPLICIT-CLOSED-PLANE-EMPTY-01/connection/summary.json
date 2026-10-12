@@ -1,0 +1,507 @@
+{
+  "schemaVersion": 1,
+  "cell": "CS-IMPLICIT-CLOSED-PLANE-EMPTY-01",
+  "status": "native-constructor-controls-green-public-typed-failure-observed",
+  "observationComplete": true,
+  "cellComplete": false,
+  "sourceContractComplete": false,
+  "recordingCompleted": true,
+  "publicQuerySuccessful": false,
+  "sourceAtCompile": "db25eebec9b323d502faddb38232f26fff84460c",
+  "headAfter": "db25eebec9b323d502faddb38232f26fff84460c",
+  "fixture": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/connection/cas/a91abc756f046cff7b93c42031544bd5612885ec602ee93fbd36239b75de59b6.swift",
+    "sha256": "a91abc756f046cff7b93c42031544bd5612885ec602ee93fbd36239b75de59b6",
+    "bytes": 15170,
+    "kind": "actual-connection-source-command-receipt-log"
+  },
+  "runner": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/connection/cas/2c831f882c2be04ec7ff4fbb98b8d466363047d7d9423053737cd13efe8972ab.py",
+    "sha256": "2c831f882c2be04ec7ff4fbb98b8d466363047d7d9423053737cd13efe8972ab",
+    "bytes": 17398,
+    "kind": "actual-connection-source-command-receipt-log"
+  },
+  "rawReceipt": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/connection/cas/5217ec2c7a9d6e47d2342cf5d8c67ec2e34e4324be990dafa272c1596d693f5b.json",
+    "sha256": "5217ec2c7a9d6e47d2342cf5d8c67ec2e34e4324be990dafa272c1596d693f5b",
+    "bytes": 1314281,
+    "kind": "actual-connection-source-command-receipt-log"
+  },
+  "runtimeLog": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/connection/cas/a0bec2bdd61c8c203d1365c955cf2896c086db6256cabc2bbe36848cdcf43a39.log",
+    "sha256": "a0bec2bdd61c8c203d1365c955cf2896c086db6256cabc2bbe36848cdcf43a39",
+    "bytes": 3616,
+    "kind": "actual-connection-source-command-receipt-log"
+  },
+  "bindings": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/connection/cas/684fbe7ac7f615687020e19d50f040f5b161c906b282cde925d8e3b4b85bb721.json",
+    "sha256": "684fbe7ac7f615687020e19d50f040f5b161c906b282cde925d8e3b4b85bb721",
+    "bytes": 1042321,
+    "kind": "actual-connection-source-command-receipt-log"
+  },
+  "originalObservation": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/observation/cas/a4b9dc11b6c54ea4da95fbf054201792735ae2368056694437d6c943c800a16d.json",
+    "sha256": "a4b9dc11b6c54ea4da95fbf054201792735ae2368056694437d6c943c800a16d",
+    "bytes": 12026,
+    "kind": "frozen-native-constructor-observation"
+  },
+  "scope": {
+    "lane": "native",
+    "sameModuleProductionPrimaries": 2,
+    "generationDeclarationInputs": 1651,
+    "reusedObjectBodies": 1649,
+    "upperBodies": 56,
+    "selectorBodies": 1,
+    "upperSwiftInputs": 58,
+    "linkArchives": 14,
+    "moduleEmit": 0,
+    "source6Recompile": 0,
+    "lowerCodegen": 0,
+    "ordinaryPublicCalls": 1,
+    "publicConstructorVariants": 4,
+    "additionalCompileRuntimeForPackaging": 0,
+    "completeCellAcceptance": false
+  },
+  "constructorControls": {
+    "original": {
+      "cellCount": 4,
+      "cells": [
+        {
+          "anchors": [
+            [
+              0,
+              1,
+              0.32193100795774776,
+              0.840231481082425
+            ],
+            [
+              0.5,
+              1,
+              0.15976851891757493,
+              0.6780689920422521
+            ],
+            [
+              1,
+              1,
+              0.159768518917575,
+              0.4258937267671545
+            ]
+          ],
+          "box": [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "direction": "forward",
+          "freeParameter": "firstU"
+        },
+        {
+          "anchors": [
+            [
+              1,
+              1,
+              0.159768518917575,
+              0.4258937267671545
+            ],
+            [
+              1.5,
+              1,
+              0.321931007957748,
+              0.22905333523882704
+            ],
+            [
+              2,
+              1,
+              0.5741062732328455,
+              0.22905333523882712
+            ]
+          ],
+          "box": [
+            [
+              1,
+              2
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "direction": "forward",
+          "freeParameter": "firstU"
+        },
+        {
+          "anchors": [
+            [
+              2,
+              1,
+              0.5741062732328455,
+              0.22905333523882712
+            ],
+            [
+              2.5,
+              1,
+              0.770946664761173,
+              0.42589372676715465
+            ],
+            [
+              3,
+              1,
+              0.770946664761173,
+              0.6780689920422522
+            ]
+          ],
+          "box": [
+            [
+              2,
+              3
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "direction": "forward",
+          "freeParameter": "firstU"
+        },
+        {
+          "anchors": [
+            [
+              3,
+              1,
+              0.770946664761173,
+              0.6780689920422522
+            ],
+            [
+              3.5,
+              1,
+              0.5741062732328455,
+              0.8402314810824251
+            ],
+            [
+              4,
+              1,
+              0.32193100795774776,
+              0.840231481082425
+            ]
+          ],
+          "box": [
+            [
+              3,
+              4
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "direction": "forward",
+          "freeParameter": "firstU"
+        }
+      ],
+      "firstUSeamParameters": [
+        0,
+        4
+      ],
+      "isClosed": true,
+      "secondHostControlXYZ": [
+        [
+          [
+            -1.5,
+            -1.5,
+            0
+          ],
+          [
+            1.5,
+            -1.5,
+            0
+          ]
+        ],
+        [
+          [
+            -1.5,
+            1.5,
+            0
+          ],
+          [
+            1.5,
+            1.5,
+            0
+          ]
+        ]
+      ],
+      "secondHostWeightBinary64Bits": [
+        [
+          "3ff0000000000000",
+          "3ff4000000000000"
+        ],
+        [
+          "3fe999999999999a",
+          "3ff0000000000000"
+        ]
+      ],
+      "secondHostWeights": [
+        [
+          1,
+          1.25
+        ],
+        [
+          0.8,
+          1
+        ]
+      ],
+      "stage": "constructor-result",
+      "target": "analytic plane Z=2"
+    },
+    "reversed": {
+      "cellCount": 4,
+      "control": "reversed-four-cells",
+      "directions": [
+        "reversed",
+        "reversed",
+        "reversed",
+        "reversed"
+      ],
+      "endFirstU": 0,
+      "isClosed": true,
+      "returned": true,
+      "stage": "constructor-control",
+      "startFirstU": 4
+    },
+    "swapped": {
+      "cellCount": 4,
+      "control": "swapped-hosts-four-cells",
+      "endSecondU": 4,
+      "freeParameters": [
+        "secondU",
+        "secondU",
+        "secondU",
+        "secondU"
+      ],
+      "isClosed": true,
+      "returned": true,
+      "stage": "constructor-control",
+      "startSecondU": 0
+    },
+    "nearDomain": {
+      "anchorFirstV": "all lower/mid/upper anchors shifted to the same nextDown value",
+      "control": "near-domain-upperV-nextDown",
+      "failureStage": "closed-curve-construction",
+      "predicateDirectlyObserved": false,
+      "returned": false,
+      "stage": "constructor-control",
+      "upperV": 0.9999999999999999,
+      "upperVBits": "3fefffffffffffff"
+    },
+    "negativeError": {
+      "category": "numericalIndeterminacy",
+      "cellComplete": false,
+      "code": "intersectionFailure",
+      "error": "KernelError(phase: geometry, code: intersectionFailure, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Original graph endpoint requires its unique closed gauge root enclosure.)",
+      "message": "Original graph endpoint requires its unique closed gauge root enclosure.",
+      "phase": "geometry",
+      "stage": "negative-constructor-typed-failure"
+    },
+    "directPredicateCalls": 0,
+    "authority": "Source-owned exact predicate verified separately in production contract; controls call actual public graph-cell and closed-curve constructors. Near-domain rejection occurred after graph-cell creation, during closed curve construction."
+  },
+  "independentOracle": {
+    "completeTupleImageFiber": "empty",
+    "proof": "Every rational second-host control has homogeneous Z=w*0=0. Its degree(1,1) closed-support nonnegative partition-of-unity basis and strictly positive actual weights give W>=min(weights)>0, hence source Z=0 over all UV and all intended stored cells. The target plane has Z=2 for every requested UV. Equality is impossible for every closed T, independently of first-host sphere membership and any physical pi identity.",
+    "actualWeights": [
+      "1",
+      "5/4",
+      "3602879701896397/4503599627370496",
+      "1"
+    ],
+    "weightMinimum": "3602879701896397/4503599627370496",
+    "wholeOriginalSupport": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "firstHostUV": "No identification of distinct firstU0/4 is needed or performed by this exclusion oracle.",
+    "limitation": "The intended constructor recipe was attempted unchanged except #require-to-guard; it did not produce the actual closed curve, so no public intersection or original UV publication was observed."
+  },
+  "publicObservation": {
+    "resultDTOProduced": false,
+    "receiptFields": {
+      "originalImplicitCurveRelation": "unavailable_no_result_DTO",
+      "originalNativePoints": "unavailable_no_result_DTO",
+      "originalNativeRelations": "unavailable_no_result_DTO",
+      "originalPolynomialPoints": "unavailable_no_result_DTO",
+      "originalAffinePoints": "unavailable_no_result_DTO",
+      "originalCoonsPoints": "unavailable_no_result_DTO",
+      "originalExactGeometricRelation": "unavailable_no_result_DTO",
+      "originalIssuedGeometricRelation": "unavailable_no_result_DTO",
+      "originalIssuedNumericalPoints": "unavailable_no_result_DTO",
+      "originalContainedLiftPlaneFamily": "unavailable_no_result_DTO",
+      "originalRevolutionAxisRelation": "unavailable_no_result_DTO",
+      "originalAngularPlaneRelation": "unavailable_no_result_DTO",
+      "originalCertifiedApexPlaneExclusion": "unavailable_no_result_DTO"
+    },
+    "error": {
+      "category": "invalidInput",
+      "cellComplete": false,
+      "code": "invalidInput",
+      "error": "KernelError(phase: geometry, code: invalidInput, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Original closed surface bounds extend beyond their retained support.)",
+      "message": "Original closed surface bounds extend beyond their retained support.",
+      "phase": "geometry",
+      "stage": "public-failure"
+    },
+    "stopContract": {
+      "throwSite": "Sources/CADGeometry/PreparedSurfaceDifferentialEncloser.swift:721-726",
+      "condition": "An original closed parameter interval exceeds its retained surface domain.",
+      "hostAxisAndBounds": "not recorded; not inferred"
+    },
+    "cancelInjected": false,
+    "cancellationObserved": false
+  },
+  "compilerAuthority": {
+    "module": "CADGeometry",
+    "package": "nativeexactrelationverification",
+    "cachedModuleUnchanged": true,
+    "publicLayoutSignatureConformanceUnchanged": true,
+    "inlinableBodyChanges": false,
+    "internalPredicateVisibility": "Only fresh GraphCell and ExactGraph primaries reference the new method.",
+    "rawPrimaryCommand": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/connection/cas/d63e50e69a3d855f992370cff9e1387a4d244fa679fde25c74f62bbf062f8731.json",
+      "sha256": "d63e50e69a3d855f992370cff9e1387a4d244fa679fde25c74f62bbf062f8731",
+      "bytes": 5659,
+      "kind": "actual-connection-source-command-receipt-log"
+    },
+    "rawArchiveCommand": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/connection/cas/f771c6f245a781259d457f8cebff7f3cf9ac2d52cb37fce86d795b6847d93514.json",
+      "sha256": "f771c6f245a781259d457f8cebff7f3cf9ac2d52cb37fce86d795b6847d93514",
+      "bytes": 365095,
+      "kind": "actual-connection-source-command-receipt-log"
+    },
+    "rawUpperCommand": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/connection/cas/634da289e4da6caf192d651c5685b0a465dd1222e3984b57fb1af8352ed0f0c0.json",
+      "sha256": "634da289e4da6caf192d651c5685b0a465dd1222e3984b57fb1af8352ed0f0c0",
+      "bytes": 14789,
+      "kind": "actual-connection-source-command-receipt-log"
+    },
+    "metadataInventory": "Original filelist/linklist were not historically hash-bound; their source/object sets were validated against exact M6.compiler_inputs/products and fixed as this actual profile."
+  },
+  "remainingGap": "The corrected actual closed constructor now forms the original four-cell closed input, including reversed and swapped-role controls; a near-domain tolerated anchor variant remains rejected. The one ordinary rich query fails when requesting bounds outside a retained closed support. No DTO, exclusion receipt or complete public empty result was issued. The actual failing host/axis/interval must be localized before choosing a causal next change; no cap relaxation or solver substitution is inferred.",
+  "integrity": {
+    "prePostHashesMatch": true,
+    "fixedChecks": 3645,
+    "finalChecks": 3650,
+    "products": {
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-connection-native-20261013-v1/CertifiedImplicitIntersectionGraphCell.o": "edaa64148caf64d526c1f5f11b6fda14cc1e32faf11327b9c31ca8171a7aec29",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-connection-native-20261013-v1/ExactIsoparametricPlanarIntersectionGraph.o": "3599162f749b1cb84e0476d1f161fb9ee251d0423415e13e8cd986bba00a582b",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-connection-native-20261013-v1/libCachedCADGeometryConnection.a": "f9b9076a8454ae1c50abec75348cc9982ca504a8c51c43b73bace37b1edfdee8",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-connection-native-20261013-v1/ConnectionObservation": "1bf07dcc7adfe87084cc3a4e8509c71cc085623c52f5b24f67127acdc5061c8e"
+    },
+    "cleanup": [
+      [],
+      [],
+      [],
+      []
+    ],
+    "originalObservationUnchanged": true,
+    "binaryCopies": 0
+  },
+  "resources": [
+    {
+      "label": "primary2",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 1.9558320409851149,
+      "cumulativeElapsedSeconds": 2.480489542009309,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 1.62,
+      "peakOwnedProcessResidentSumKiB": 227888,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "archive",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 2.9779060420114547,
+      "cumulativeElapsedSeconds": 6.585588333080523,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 1.3499999999999999,
+      "peakOwnedProcessResidentSumKiB": 181696,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "compile-link",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 62.81440033297986,
+      "cumulativeElapsedSeconds": 71.1458115830319,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 56.87,
+      "peakOwnedProcessResidentSumKiB": 674336,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "runtime",
+      "exitCode": 0,
+      "boundedStop": null,
+      "elapsedSeconds": 3.546583915944211,
+      "cumulativeElapsedSeconds": 76.69850045803469,
+      "wallLimitSeconds": 120,
+      "cpuLimitSecondsPerProcess": 120,
+      "ownedCPULimitSeconds": 120,
+      "sampledOwnedCPUSeconds": 2.46,
+      "peakOwnedProcessResidentSumKiB": 16048,
+      "ownedDescendantsRemaining": [],
+      "logSHA256": "a0bec2bdd61c8c203d1365c955cf2896c086db6256cabc2bbe36848cdcf43a39"
+    }
+  ],
+  "guardPolicy": "Each of primary2/archive/uppercompile/runtime is independently bounded by wall120, perProcessCPU120 and ownedCPU120; public query uses unchanged default caps."
+}

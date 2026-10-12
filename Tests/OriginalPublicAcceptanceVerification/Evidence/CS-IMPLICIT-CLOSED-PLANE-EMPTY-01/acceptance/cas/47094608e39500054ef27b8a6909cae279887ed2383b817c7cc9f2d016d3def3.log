@@ -1,0 +1,5 @@
+READMISSION_WORK: 153
+READMISSION_STORAGE: 0
+READMISSION_VALUE_DEPTH: 0
+READMISSION_COEFFICIENT_DEPTH: 0
+PASS retained proof readmission exact N/N-1 work/storage/coefficient depth and sourceDepth1/0 without decomposition or solving

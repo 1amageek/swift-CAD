@@ -59,7 +59,9 @@ struct OriginalCurveTaylorComposition {
             tolerance: scalar.tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
         var power = OutwardScalarInterval.exact(1)
         for k in 0...order {
-            try consumeWork(); try result.set(scalar.coefficient(k, 0) * power, k, 0)
+            try consumeWork()
+            let coefficient = try scalar.coefficient(k, 0)
+            try result.set(k == 0 ? coefficient : coefficient * power, k, 0)
             power = power * scale
         }
         return result

@@ -1,0 +1,5 @@
+QUERY_WORK: 2750
+QUERY_STORAGE: 13448
+ATTAINED_VALUE_DEPTH: 0
+ATTAINED_COEFFICIENT_DEPTH: 0
+PASS measured exact N/N-1 work/storage, attained scalar/source depth, authored chart4/3, scalar-cell allowances4/3 insufficient, and entry/mid cancellation

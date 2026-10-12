@@ -1,0 +1,5 @@
+{
+  "/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/AdaptivePlanarPredicateEvaluator.swift" : {
+
+  }
+}

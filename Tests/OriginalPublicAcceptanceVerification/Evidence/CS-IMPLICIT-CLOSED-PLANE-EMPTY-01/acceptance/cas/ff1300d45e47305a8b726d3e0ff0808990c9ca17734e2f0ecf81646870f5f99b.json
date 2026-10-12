@@ -1,0 +1,247 @@
+[
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/libGuideSeamPort.a",
+    "sha256": "cca6d83fecde872371592ded02e104e55d26f4a60222fa0be74907f60ad7b5c1",
+    "bytes": 1450162
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries/libPublicLiftPlane.a",
+    "sha256": "91b42f29c259e79b768627e8f1ced246ae4ffb131d966e6cdb4f7ef32a0a2507",
+    "bytes": 6553088
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedCADCore.a",
+    "sha256": "19d48eec452ec9caa7e98ab6407e62e5d89da1b3f81388d62eca82af69755089",
+    "bytes": 4028326
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedHashTreeCollections.a",
+    "sha256": "ea8ff0a25ceafc0b606684c9eb485d51302061f77deb597187728a8635e22a8f",
+    "bytes": 2992070
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/embedded/74927a2fc6204dd499f96dccb2cdddab/libCachedInternalCollectionsUtilities.a",
+    "sha256": "54d51fc605941beb8e8b0637fd57da41accf81c4c057054bbe05970bd1680eb9",
+    "bytes": 988308
+  },
+  {
+    "path": "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a",
+    "sha256": "3abc2dd90a84bf165dbfad4ba2f3ae2470ef5cb27472cb18a9c1632e0ff719d9",
+    "bytes": 743480
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libRetainedHostAdapters.a",
+    "sha256": "4bd70dfddc224411d0d584f3a1739ed1c18540a218e8afbcdeb36ab72bee56e6",
+    "bytes": 10741716
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/libDerivativePayloadAccess.a",
+    "sha256": "5c7625e677e5add71f53c734689f5b7646fe34339819cae4c9405dfb17c4ee85",
+    "bytes": 287266
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c/libCallerAdapters.a",
+    "sha256": "6a610f16d9f850d3dc26d9e28c77eb837db09484e62bf4dfabb5415b02330803",
+    "bytes": 91043046
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled/libRuledObservationAdapters.a",
+    "sha256": "cdfbaab026ba0e877d53a472a1b0be56d192f86afe1d128880d167a584a6deb7",
+    "bytes": 254682
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/libDraftZeroRuledPort.a",
+    "sha256": "f2a83c4638536140dbc2ac4d412710bbdcc9d1703bf8d7edff754f863415426c",
+    "bytes": 147127414
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source/libAngularSourcePhase.a",
+    "sha256": "7d744478124880033b5cfe147b513e4d3d37f776c0c3531e73a07c2475485eb4",
+    "bytes": 1552554
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source/libCertifiedApexSourcePhase.a",
+    "sha256": "68b7e1fe9515dd7ac4174223ddbfb5aed6eb1369ef89f1faffeb82677a75668b",
+    "bytes": 89190974
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source/libImplicitSourcePhase.a",
+    "sha256": "4c6a3f72b9978e4bb97180182291171e11475a4c427bb945171695a171a68079",
+    "bytes": 2242626
+  },
+  {
+    "path": "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADCore-t.build/Objects-normal/arm64/CADCore.swiftmodule",
+    "sha256": "e966910de6f0b07227d89bb3adbb11ad18646ce6128405cdf0e70b41ce86b8dd",
+    "bytes": 526088
+  },
+  {
+    "path": "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADGeometry-t.build/Objects-normal/arm64/CADGeometry.swiftmodule",
+    "sha256": "7638604b23bb04b5a97af2a802fac25ff442c7c2fb294d329b0bb40d7a2c3c45",
+    "bytes": 8468980
+  },
+  {
+    "path": "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/CADGeometry.swiftmodule/arm64-apple-macos.swiftmodule",
+    "sha256": "7638604b23bb04b5a97af2a802fac25ff442c7c2fb294d329b0bb40d7a2c3c45",
+    "bytes": 8468980
+  },
+  {
+    "path": "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/CADCore.swiftmodule/arm64-apple-macos.swiftmodule",
+    "sha256": "e966910de6f0b07227d89bb3adbb11ad18646ce6128405cdf0e70b41ce86b8dd",
+    "bytes": 526088
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/RetainedHostAdapters.swiftmodule",
+    "sha256": "d571655cc8d88c7aa82c7f367bcb61bb5fab42f784a8b7d5d3bf8108b4afcd04",
+    "bytes": 1327868
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/native/a0f471629a0347cc80a505e20dea0037/DerivativePayloadAccess.swiftmodule",
+    "sha256": "8fdd6113c899800b05dfb5a38a91fefe9721c2ad30d82b1715f8b185b0cc5e02",
+    "bytes": 20932
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/native/a0f471629a0347cc80a505e20dea0037/RetainedHostAdapters.swiftmodule",
+    "sha256": "35811580f04e9f5e9f00c94dd8b4e70c8e6930331e43a998cebde8cf444dd47b",
+    "bytes": 1350348
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/native/6ac72d917f8d4afd89fd104f4172c2f8/CallerAdapters.swiftmodule",
+    "sha256": "2d6d79e73536ee27fb7d26b158dd98ddc016c2056c109d614082067576f5a6ab",
+    "bytes": 235088
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/libraries/PublicLiftPlane.swiftmodule",
+    "sha256": "398b0f752f788ff45ae8af04527c9b903af6d80de3af054b141c392e7128d288",
+    "bytes": 811120
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/DraftZeroRuledPort.swiftmodule",
+    "sha256": "a1436a86c244e0e20bc1e364b4f9cbedfe6d7caa07874e7d0fdd007e21667726",
+    "bytes": 393384
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/native/6283747d6c134138a13a65719b956feb/CallerAdapters.swiftmodule",
+    "sha256": "3066e4373099f11666776854762baca4eb6fe1b31477a42713817cf3fb67b8b4",
+    "bytes": 120236
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/RuledObservationAdapters.swiftmodule",
+    "sha256": "477b93a2a21d54ae917d8c7ca0e186a9afb0315e925459fa4e6354ba0f962d09",
+    "bytes": 57104
+  },
+  {
+    "path": "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/Modules/CADGeometry.swiftmodule",
+    "sha256": "e050c604e806592b4c6d7ab345e33743288316c537125cb9b27d648958440d50",
+    "bytes": 183301568
+  },
+  {
+    "path": "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/Modules/CADCore.swiftmodule",
+    "sha256": "07c7b3a55d3dc3632383974e25703e5e98fd9a3fbd6e8519b67775dee0f2dbdc",
+    "bytes": 2348368
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88/RetainedHostAdapters.swiftmodule",
+    "sha256": "68dce56f808f551eb11c7d8964c9c911485d2c56d0b37b5242c2ab2c95bd3a97",
+    "bytes": 7761940
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/DerivativePayloadAccess.swiftmodule",
+    "sha256": "1da85a1b8830d314df1623fd40157c101c5d75d24befe76a2801fcc7a9d5fe70",
+    "bytes": 102248
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/embedded/e86467d972e8474e9aefa8218bd95617/RetainedHostAdapters.swiftmodule",
+    "sha256": "06971e6a2ae8bdc5bc1d85fcce3e5d5f2232dcef8c00bb1791595ff90facbe86",
+    "bytes": 7952232
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/embedded/fa832f6f91da4d338cd85c8b6ebc3fc0/CallerAdapters.swiftmodule",
+    "sha256": "4508177e168c1baada4ea18abda5ea92262d4ce38a713cd4cf78bb9b17494c0a",
+    "bytes": 2254064
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/libraries/PublicLiftPlane.swiftmodule",
+    "sha256": "7d73f614ffa28447c7e95b111c4205e045db46ebdec17b6df3db3fd5b8ce62ae",
+    "bytes": 4896256
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-embedded-20261012-v1/DraftZeroRuledPort.swiftmodule",
+    "sha256": "843471e56587cbaf5504a4dc1b3cec545fe00fd17f459b5be489bf1fc414c596",
+    "bytes": 27247896
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-guide-curve-rolling-ball/embedded/e3caf269bf584415a457b77a84af7a7c/CallerAdapters.swiftmodule",
+    "sha256": "0e4276ac09e94d5fd4e1a078ce116b3d93422c33499f868c38e130dd5a4a59c8",
+    "bytes": 1511820
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/ruled/RuledObservationAdapters.swiftmodule",
+    "sha256": "83f6043df47c4523459f2b63d48bfc1a78d74b88febecdaef6f065220eedb050",
+    "bytes": 151516
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-embedded-20261012-v1/GuideSeamPort.swiftmodule",
+    "sha256": "16567fc98a779c1d7f86f64ff8c5a45b56e03e5ec6905c2ce9a86dd6f22f2548",
+    "bytes": 938408
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-angular-physical-acceptance-embedded-20261012-v1/source/AngularSourcePhase.swiftmodule",
+    "sha256": "ee806b832c4b256e6ff54eec9f603706147cc124fcdf2f4852baec6e14066086",
+    "bytes": 1202140
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-embedded-20261013-v1/source/CertifiedApexSourcePhase.swiftmodule",
+    "sha256": "8ac149efd90180f129b1548bc8b282cef5d298a65f3bcaf0249a898691ad0a56",
+    "bytes": 1202124
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source/ImplicitSourcePhase.swiftdoc",
+    "sha256": "9337e7d57f3290034e80a1a6de819d1f63d12ca7f2ddc0a1c6dd57f5aab0a9e0",
+    "bytes": 3620
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source/ImplicitSourcePhase.swiftsourceinfo",
+    "sha256": "426f3f17cae4704202788ad4dde66928c1d7a38af4ba37196badfdb9326327e4",
+    "bytes": 22212
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/source/ImplicitSourcePhase.swiftmodule",
+    "sha256": "3f80b7c89e1d8a56a22a43608cea63b43717823c29e0da4d245e5cd2a1ee11da",
+    "bytes": 1537300
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/upper-module/ImplicitAcceptanceUpper.swiftdoc",
+    "sha256": "86e2cbe9adb8ddff78b8ac5dc4140fdaa8a4d5d2b6ae4654459b045e5971cbfd",
+    "bytes": 22144
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/upper-module/ImplicitAcceptanceUpper.swiftmodule",
+    "sha256": "43e83339a3aa0fe3a742f8926b4c9394d9c4621db7d29b73b8630b2efaf07b10",
+    "bytes": 53770684
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v1/upper-module/ImplicitAcceptanceUpper.swiftsourceinfo",
+    "sha256": "56ccd739195662d961e0ca0276bc80360cb0eb750e25cc4434333fa7e67a6ace",
+    "bytes": 134644
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/upper-persistent/ImplicitReverseAcceptance-1.swiftdoc",
+    "sha256": "fe4e114cafdc99e4affd53a0697ea15ad643b96725075071e6b7508f54ef4b7c",
+    "bytes": 668
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/upper-persistent/ImplicitReverseAcceptance-1.swiftsourceinfo",
+    "sha256": "b845b6b825738271df1cf08d217b0eada63e7aca7c8da1187bc707c185258ed5",
+    "bytes": 8044
+  },
+  {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-reverse-acceptance-embedded-20261013-v2/upper-persistent/ImplicitReverseAcceptance-1.swiftmodule",
+    "sha256": "2af39952da8c9644e023418206ac178bddce38b687bf0eae68d7fa24f36e0af3",
+    "bytes": 12699628
+  },
+  {
+    "path": "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/Modules/CADGeometry.swiftmodule",
+    "sha256": "e050c604e806592b4c6d7ab345e33743288316c537125cb9b27d648958440d50",
+    "bytes": 183301568
+  }
+]

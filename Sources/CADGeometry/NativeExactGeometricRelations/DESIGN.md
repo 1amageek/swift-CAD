@@ -692,3 +692,43 @@ selections, image/fiber meaning, candidate/source/depth/resource/cancel boundari
 and detached/COW independent reads. Changed identity evaluator behavior requires
 the smallest existing rational numeric regression; no unchanged lower solver
 reproof or broad unrelated public replay is implied.
+
+## Implicit host-plane empty publication
+
+`OriginalImplicitHostPlanePublicProducer` selects only the separate source-owned
+whole Native-host/analytic-plane separation capability, before creating a caller
+admission. It is called first by the existing implicit producer, so all four
+ordinary bare/rich and callback entries share it. Unsupported representations
+decline into the existing dispatch; once selected, typed source/domain/arithmetic,
+resource and cancellation failures propagate with the existing publication mapper.
+The existing positive implicit graph consumer remains unchanged.
+
+The producer binds the actual implicit snapshot through the separate exclusion
+provider and the actual plane through its existing provider. It uses the exact
+rational field, existing checked unit-plane basis issuer, source separation issuer
+and [complete-empty DI owner](../NativeExactRelations/DESIGN.md#implicit-host-plane-empty-pair-binding).
+The source owner alone proves the constant Native-host height, strictly positive
+weights, actual closed-cell bounds and nonzero plane separation. Publication
+never synthesizes source equations, a positive host UV map or an empty L5/L6
+relation. Missing T range means authored full support; plane UV requests preserve
+the existing unbounded or explicit interval semantics.
+
+`OriginalImplicitHostPlaneExclusionReading` declares non-generic requirements for
+its concrete immutable owner, emptiness and dimensional flags, preserving
+Embedded witness-table access. The additive result field
+`originalImplicitHostPlaneExclusion` retains this theorem with empty numerical
+points/overlaps. Existing representation and legacy fields remain unchanged;
+all positive-dimensional flags are false. The owner, rather than empty arrays,
+proves completeness. Its checked internal factory and private initializer prevent
+unchecked publication authority.
+
+One `NativeExactPublicAdmission<NativeCurveSurfacePointAllowance>` owns all
+binding, source proof, DI selection, output allocation and the final cancellation
+checkpoint. It keeps existing work/storage/depth/candidate limits and invocation
+callbacks. Later proof queries use explicit independent admissions. All retained
+state is immutable Sendable, with no target-specific state or isolation branch.
+Verification owns actual standard/callback bare/rich empty behavior, exact
+requested/effective domains, capability decline, selected typed failures,
+cell/source/depth/resource limits, entry/processing/final-empty cancellation and
+detached/COW lifetime. The unchanged positive source/graph path needs only the
+causally affected dispatch regression.

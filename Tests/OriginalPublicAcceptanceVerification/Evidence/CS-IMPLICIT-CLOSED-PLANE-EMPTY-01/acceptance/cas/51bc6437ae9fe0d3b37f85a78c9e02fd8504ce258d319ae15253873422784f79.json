@@ -1,0 +1,28 @@
+{
+  "old": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/fixture-at-prepare.swift",
+    "sha256": "99ccc84be6c329d37250832972af9520c737eba2ece80f54c7dc0ab8b3c17495"
+  },
+  "current": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ImplicitClosedPlaneEmptyAcceptance.swift",
+    "sha256": "0b60478d73c121bc6c1071211f61306e2e3c9584ec4a8f179f7ac1ccbef216d1"
+  },
+  "before": "catch OriginalDomainIdentityFailure.domain(.foreignOwner)",
+  "after": "catch OriginalDomainIdentityFailure.foreignOwner",
+  "outsideReplacementExactEqual": true,
+  "reusedGroups": [
+    "complete",
+    "dispatch",
+    "source"
+  ],
+  "remainingGroups": [
+    "requests",
+    "resources",
+    "readmission",
+    "cancel-entry",
+    "cancel-final",
+    "cancel-reader",
+    "lifetime",
+    "changed-controls"
+  ]
+}

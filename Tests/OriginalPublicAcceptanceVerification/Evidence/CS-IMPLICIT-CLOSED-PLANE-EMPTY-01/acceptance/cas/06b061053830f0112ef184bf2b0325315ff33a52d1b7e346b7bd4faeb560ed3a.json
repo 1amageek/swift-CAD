@@ -1,0 +1,55 @@
+{
+  "driverReceipt": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-final-jobs-receipt.json",
+    "sha256": "01e3b893df5ff6d44210ba7154da900c569ae261b8c04ddcdecce6b40f613b97",
+    "bytes": 380638
+  },
+  "printedJob": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/printed-final-jobs.json",
+    "sha256": "edfd41bd2f26e74382d3e7b5e48b93868cdbce09186c8426091b0e1a5b9c58d6",
+    "bytes": 2776
+  },
+  "retainedTemporaryLists": [
+    {
+      "flag": "-filelist",
+      "driverTemporaryPath": "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.Iplnxw/sources-1",
+      "retained": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/final-sources-1.txt",
+        "sha256": "65294e8cb842ceccc8d2f11205d527d416f1caf498f345c3dff01bff8940efdb",
+        "bytes": 204545
+      }
+    },
+    {
+      "flag": "-supplementary-output-file-map",
+      "driverTemporaryPath": "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.Iplnxw/supplementaryOutputs-1",
+      "retained": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/final-supplementaryOutputs-1.txt",
+        "sha256": "82df9483cd1a97bc4a73e94e052800d59457c7c793cf37d9df6fb7922fea5884",
+        "bytes": 117
+      }
+    },
+    {
+      "flag": "-output-filelist",
+      "driverTemporaryPath": "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/TemporaryDirectory.Iplnxw/outputs-1",
+      "retained": {
+        "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/final-outputs-1.txt",
+        "sha256": "9ad57f6748956eb8871253166694e5dc3d218b3b82008828df2a80b9179f6787",
+        "bytes": 266041
+      }
+    }
+  ],
+  "inputCount": 1651,
+  "outputCount": 1651,
+  "jobs": 1,
+  "primaryFiles": 0,
+  "threads": 14,
+  "module": "CADGeometry",
+  "package": "nativeexactrelationverification",
+  "driverWMOFlag": true,
+  "frontendExplicitWMOFlag": false,
+  "frontendModeInterpretation": "Driver-selected full-module compilation: one frontend receives all1651 sources and no-primary-file. Printed jobs were not executed.",
+  "inputsExactlyEqualFrozen1651": true,
+  "outputsExactlyEqualPrivateM6Map": true,
+  "codegen": 0,
+  "actualObjects": 0
+}

@@ -1,0 +1,22 @@
+{
+  "prepareScript": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/PrepareV2.py",
+    "sha256": "1fecec339fbd3ad0900686c3fbc9934dadf9d3d7027a36ffe56e8ceb519f6f14",
+    "bytes": 2720
+  },
+  "priorApprovedProfile": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/profile.json",
+    "sha256": "4eddf899eb75558a761a891459619b8e842a783f4d3e3a817de5b3251187bead",
+    "bytes": 13047
+  },
+  "priorFailure": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v1/receipt.json",
+    "sha256": "7bdd3f33ed8fac5feb1e779c95a60777ea5968a544ba395cacd456d80951bb47",
+    "bytes": 383970
+  },
+  "probeCommand": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-embedded-wmo-proposal-20261013-v2/driver-jobs-command.json",
+    "sha256": "10861d8ccd13d37eff4ada97e626fe01f53fdfca1e5a5388891b729b9b049bb5",
+    "bytes": 2207
+  }
+}

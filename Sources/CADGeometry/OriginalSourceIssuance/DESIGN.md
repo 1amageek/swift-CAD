@@ -2748,3 +2748,69 @@ of the non-discrete result, exact reversed endpoints and total tangent,
 forward one/two-cell regression, and unchanged typed unsupported,
 owner/depth/budget/cancellation/lifetime behavior. The pair owner retains
 public verification responsibility; source-only success is insufficient.
+
+## Implicit Whole-Host Plane Separation
+
+CS-IMPLICIT-CLOSED-PLANE-EMPTY-01 consumes the actual immutable implicit curve's
+common-root position contract without constructing a positive UV parameterization.
+Every original common-root position belongs to both retained Native hosts. A
+whole-domain exclusion of the second host therefore excludes every curve point
+over the complete authored T support [0,1], including all stored cells and the
+closed connection. Numerical representatives and residuals supply no equality
+or separation authority. This position-only proof does not complete a positive
+closed implicit graph, source parameter map, smooth join or general Native family.
+
+```text
+immutable implicit curve / all original cells / both Native bindings
+    -> exact closed cell containment in the original host domains
+    -> second Native host's positive weights and constant homogeneous Z law
+    -> exact signed gap from the original unit-Z target plane
+    -> sealed whole-support source exclusion
+    -> original request/effective selections and target plane cover
+```
+
+OriginalImplicitHostExclusionSnapshotProvider is a separate capability from the
+existing triangular implicit graph provider. Its bounded static selector accepts
+nonempty implicit sources with two nonperiodic Native hosts and a degree-1/1,
+2-by-2 second host whose four finite positive-weight controls share one exact
+stored Z coordinate. The target selector requires an authored analytic unit-Z
+plane at a different finite stored height. Admitted issuance independently checks
+the same assumptions. It consumes validateCertificationContract for the immutable
+curve, binds both original Native hosts through their counted snapshot provider,
+and checks every actual cell's closed bounds against both retained Native domains.
+It preserves the original free coordinate, direction, cell order and closed flag;
+source depth is one above the maximum child depth. It does not replay root,
+connection, subdivision or interval-jet proofs.
+
+DefaultOriginalImplicitHostPlaneSeparationIssuer imports the four original
+weights and weighted Z coefficients exactly into OriginalExactScalarDomain.
+Positive weights and the Native nonnegative partition-of-unity basis prove a
+strictly positive denominator over the entire original closed host support.
+It verifies each homogeneous Z coefficient equals the retained host height times
+its weight, and proves the host height minus the actual plane height is nonzero.
+The original unit-Z plane basis, source and selected second-host owner remain
+bound to this theorem. The fixed recipe's stored 0.8 is an exact binary64
+coefficient, and no mathematical sphere, angular period or fitted spatial law is
+introduced.
+
+OriginalImplicitHostPlaneSeparationReceipt has a sealed initializer and retains
+the source, actual plane basis, exact field, selected host, host support, authored
+T support, exact weights/homogeneous Z, heights, signed gap and attained proof
+depth. Cells and cell count are views of the retained original source; no duplicate
+cell bounds or T-map arrays are manufactured for this exclusion. Its proof scope
+is originalCommonRootPositionOnly. Readmission checks source/host/plane ownership,
+the caller's maximum cell allowance, source depth and every retained scalar and
+coefficient depth through the same admission without re-solving or re-proving
+the sealed theorem. Work, actual retained payload storage and cancellation remain
+caller-owned on every target; no mutable shared state is introduced.
+
+Unsupported source/plane capabilities fail explicitly at direct issuance and
+decline before public selection. A zero gap, invalid cell containment, foreign
+field, insufficient source/scalar depth, work/storage exhaustion or cancellation
+cannot become empty success or a caught fallback. Verification must show actual
+ordinary empty publication with complete original source/request/plane ownership,
+all four cells and the closed flag, exact signed gap and denominator coefficients;
+it must also preserve nonseparation/unsupported, cell allowance, foreign owner,
+depth, budget, cancellation and COW lifetime failures. The pair owner binds actual
+T and plane UV requests using existing parameter transport and plane-domain
+issuance; source-only construction does not complete the public cell.

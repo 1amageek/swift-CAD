@@ -1,0 +1,25 @@
+{
+  "kind": "derived-metadata-correction-no-new-runtime",
+  "field": "independentOracle.limitation",
+  "rejectedHistoricalSummary": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/cas/04a06c9df48416cd297c27890ec408203785b5547e04842751b8a3bd50a70dfe.json",
+    "sha256": "04a06c9df48416cd297c27890ec408203785b5547e04842751b8a3bd50a70dfe",
+    "bytes": 17814,
+    "kind": "actual-value-source-command-receipt-log",
+    "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/summary.json"
+  },
+  "before": "The intended constructor recipe was attempted unchanged except #require-to-guard; it did not produce the actual closed curve, so no public intersection or original UV publication was observed.",
+  "after": "The actual four-cell closed constructor succeeded with distinct firstU0/4 retained. The sole ordinary rich query returned neither DTO nor typed error before the independent runtime wall guard; no original UV publication was observed.",
+  "reason": "The copied initial-observation limitation contradicted this v2 constructor-result and originalClosedConstructor.",
+  "unchangedRawReceipt": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/receipt.json",
+    "sha256": "18ab20da3b2e2f16fdc299050669519f3bbbaf42fd80bd3462f649570c694e72"
+  },
+  "unchangedRuntimeLog": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/runtime.log",
+    "sha256": "76192e7bdcbb89031708b623365159e762827ba3816ad7576e35e3c2534052b5"
+  },
+  "newCompileCalls": 0,
+  "newRuntimeCalls": 0,
+  "originalObservationAndConnectionUnchanged": true
+}

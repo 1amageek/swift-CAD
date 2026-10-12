@@ -1,0 +1,1649 @@
+{
+  "cell": "CS-IMPLICIT-CLOSED-PLANE-EMPTY-01",
+  "state": "NATIVE-FOCUSED-GREEN-PORTABLE-UNOBSERVED",
+  "cellComplete": false,
+  "formalFourLaneManifestPending": true,
+  "groups": [
+    "complete",
+    "dispatch",
+    "source",
+    "requests",
+    "readmission",
+    "cancel-entry",
+    "cancel-final",
+    "cancel-reader",
+    "lifetime",
+    "changed-controls",
+    "resources"
+  ],
+  "sourceModule": {
+    "source-command.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/36ba5d476a59103165effa72bc529eb30224c178232805f5501388d4d0f214bd.json",
+      "sha256": "36ba5d476a59103165effa72bc529eb30224c178232805f5501388d4d0f214bd",
+      "bytes": 5103,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-command.json"
+    },
+    "source-premises.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ac2b17793b698dfe4df279200ae2a9a8fb78bbe9c36c74c028f48225eab96852.json",
+      "sha256": "ac2b17793b698dfe4df279200ae2a9a8fb78bbe9c36c74c028f48225eab96852",
+      "bytes": 1047292,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-premises.json"
+    },
+    "source-compile-receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79.json",
+      "sha256": "ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79",
+      "bytes": 922211,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-compile-receipt.json"
+    },
+    "source-compile.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-compile.log"
+    }
+  },
+  "accepted": [
+    {
+      "version": 2,
+      "sourceModuleReceipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79.json",
+        "sha256": "ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79",
+        "bytes": 922211,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-compile-receipt.json"
+      },
+      "upperReceipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8d146ffee76cc668aa3a936eef84ed08808325c5cc34e6683e78347f7eabb7f6.json",
+        "sha256": "8d146ffee76cc668aa3a936eef84ed08808325c5cc34e6683e78347f7eabb7f6",
+        "bytes": 959768,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/upper-compile-receipt.json"
+      },
+      "upperCommand": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/7a928d5d867d57b00e24188dcc03d78d0177fbfd8e08245b229b842554628b45.json",
+        "sha256": "7a928d5d867d57b00e24188dcc03d78d0177fbfd8e08245b229b842554628b45",
+        "bytes": 15413,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/upper-command.json"
+      },
+      "upperPremises": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/fc999e530052932681abf7bf5f17fb24cb5518e45f8c1671bd2a6295209f91de.json",
+        "sha256": "fc999e530052932681abf7bf5f17fb24cb5518e45f8c1671bd2a6295209f91de",
+        "bytes": 1104143,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/upper-premises.json"
+      },
+      "proof": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/01f67e81c57d5569e2493b6f8cef83c04ddba6d3c9bc971b9b3fb8bf3b100942.swift",
+        "sha256": "01f67e81c57d5569e2493b6f8cef83c04ddba6d3c9bc971b9b3fb8bf3b100942",
+        "bytes": 73904,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/Proof.swift"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/99ccc84be6c329d37250832972af9520c737eba2ece80f54c7dc0ab8b3c17495.swift",
+        "sha256": "99ccc84be6c329d37250832972af9520c737eba2ece80f54c7dc0ab8b3c17495",
+        "bytes": 42383,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/fixture-at-prepare.swift"
+      },
+      "driver": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842.py",
+        "sha256": "f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842",
+        "bytes": 14001,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/driver-at-prepare.py"
+      },
+      "runtimeDriver": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842.py",
+        "sha256": "f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842",
+        "bytes": 14001,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/driver-at-runtime.py"
+      },
+      "freeze": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b7c418c0108817499bf1168447805e1d16aa2cfafc0250f521d4c59f4b70f191.json",
+        "sha256": "b7c418c0108817499bf1168447805e1d16aa2cfafc0250f521d4c59f4b70f191",
+        "bytes": 13467,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/freeze.json"
+      },
+      "groups": [
+        "complete",
+        "dispatch",
+        "source"
+      ],
+      "runs": [
+        {
+          "group": "complete",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6f22224e63377fa59be715741c2cc81a4f0df7fc978c61e1d723e49aca1d1737.json",
+            "sha256": "6f22224e63377fa59be715741c2cc81a4f0df7fc978c61e1d723e49aca1d1737",
+            "bytes": 944337,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-complete-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/73d8027261c3a3dbe22c8ed774a14ea8c2bdda758cf5c0c4cfad6b396d7c0ca4.log",
+            "sha256": "73d8027261c3a3dbe22c8ed774a14ea8c2bdda758cf5c0c4cfad6b396d7c0ca4",
+            "bytes": 101,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-complete.log"
+          }
+        },
+        {
+          "group": "dispatch",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4bf393cb697696109c496525974a38215897780573fb320b38bbd43637ca1a68.json",
+            "sha256": "4bf393cb697696109c496525974a38215897780573fb320b38bbd43637ca1a68",
+            "bytes": 944337,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-dispatch-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/240d8561de854e04dfde72c347ef99fbe2e13f2be3368561e03e3638136a2630.log",
+            "sha256": "240d8561de854e04dfde72c347ef99fbe2e13f2be3368561e03e3638136a2630",
+            "bytes": 104,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-dispatch.log"
+          }
+        },
+        {
+          "group": "source",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/80501f229132386d16462927702f26e33f1433447a6fd854c8ee91d261345fe3.json",
+            "sha256": "80501f229132386d16462927702f26e33f1433447a6fd854c8ee91d261345fe3",
+            "bytes": 944333,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-source-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8bbde67834f19e27924a3151fb44d300447db39b1e2094ee1a7b8a60d56a6261.log",
+            "sha256": "8bbde67834f19e27924a3151fb44d300447db39b1e2094ee1a7b8a60d56a6261",
+            "bytes": 107,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-source.log"
+          }
+        }
+      ]
+    },
+    {
+      "version": 3,
+      "sourceModuleReceipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79.json",
+        "sha256": "ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79",
+        "bytes": 922211,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-compile-receipt.json"
+      },
+      "upperReceipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/00501678f0eb799a8fdb27df0c5edebc34716ce341354d66ef92fde1c47d0179.json",
+        "sha256": "00501678f0eb799a8fdb27df0c5edebc34716ce341354d66ef92fde1c47d0179",
+        "bytes": 960747,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/upper-compile-receipt.json"
+      },
+      "upperCommand": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4893ddf415d9c1809cf6c1c8e60eef67e2c24bf973c64c86549c05ed0af7c590.json",
+        "sha256": "4893ddf415d9c1809cf6c1c8e60eef67e2c24bf973c64c86549c05ed0af7c590",
+        "bytes": 15413,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/upper-command.json"
+      },
+      "upperPremises": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8a1842a65c0132b9a40cff2be03f173740e8c6b0e42241a5fd7cbdb21716eea6.json",
+        "sha256": "8a1842a65c0132b9a40cff2be03f173740e8c6b0e42241a5fd7cbdb21716eea6",
+        "bytes": 1105222,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/upper-premises.json"
+      },
+      "proof": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/34c95b05d12da382ce4deb7d5905f062a917bd46dc9e5e86cd329b1ea5cb053e.swift",
+        "sha256": "34c95b05d12da382ce4deb7d5905f062a917bd46dc9e5e86cd329b1ea5cb053e",
+        "bytes": 73895,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/Proof.swift"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0b60478d73c121bc6c1071211f61306e2e3c9584ec4a8f179f7ac1ccbef216d1.swift",
+        "sha256": "0b60478d73c121bc6c1071211f61306e2e3c9584ec4a8f179f7ac1ccbef216d1",
+        "bytes": 42374,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/fixture-at-prepare.swift"
+      },
+      "driver": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290.py",
+        "sha256": "a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290",
+        "bytes": 14087,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/driver-at-prepare.py"
+      },
+      "runtimeDriver": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290.py",
+        "sha256": "a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290",
+        "bytes": 14087,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/driver-at-runtime.py"
+      },
+      "freeze": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ec8d3e1334896b8b84b1592bfc8cdcf8d13bbff3b17570c078ab5ef01412eddc.json",
+        "sha256": "ec8d3e1334896b8b84b1592bfc8cdcf8d13bbff3b17570c078ab5ef01412eddc",
+        "bytes": 13467,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/freeze.json"
+      },
+      "groups": [
+        "requests",
+        "readmission",
+        "cancel-entry",
+        "cancel-final",
+        "cancel-reader",
+        "lifetime",
+        "changed-controls"
+      ],
+      "runs": [
+        {
+          "group": "requests",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e9e602b9392a69bb44f696bb483369051a8dc3aaae7e840cfe815975a8265215.json",
+            "sha256": "e9e602b9392a69bb44f696bb483369051a8dc3aaae7e840cfe815975a8265215",
+            "bytes": 945304,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-requests-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9951284c5ff7c5f7f6fb4a38c4db74538b6abe547da03aaf5d9e1c33b049a11f.log",
+            "sha256": "9951284c5ff7c5f7f6fb4a38c4db74538b6abe547da03aaf5d9e1c33b049a11f",
+            "bytes": 116,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-requests.log"
+          }
+        },
+        {
+          "group": "readmission",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/291d0fa8ff9081bff4e70368c5d4f4fe35397fc4c6fa13a850b3a08fdb310b8e.json",
+            "sha256": "291d0fa8ff9081bff4e70368c5d4f4fe35397fc4c6fa13a850b3a08fdb310b8e",
+            "bytes": 945310,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-readmission-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/47094608e39500054ef27b8a6909cae279887ed2383b817c7cc9f2d016d3def3.log",
+            "sha256": "47094608e39500054ef27b8a6909cae279887ed2383b817c7cc9f2d016d3def3",
+            "bytes": 232,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-readmission.log"
+          }
+        },
+        {
+          "group": "cancel-entry",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4653e679570bfe767c3090621c2fed3f6e829e81f5bebf5e629465fb86bf732f.json",
+            "sha256": "4653e679570bfe767c3090621c2fed3f6e829e81f5bebf5e629465fb86bf732f",
+            "bytes": 945312,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-entry-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/053dc81d1e62aaa920aff06b8c41010e8fa1c697dd9f8d29d6ea7bd5b3e88440.log",
+            "sha256": "053dc81d1e62aaa920aff06b8c41010e8fa1c697dd9f8d29d6ea7bd5b3e88440",
+            "bytes": 57,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-entry.log"
+          }
+        },
+        {
+          "group": "cancel-final",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/394f8b3be6913486eb130bb423ddd94ec4cb5c12e09a709b76051a9d3bda5bf7.json",
+            "sha256": "394f8b3be6913486eb130bb423ddd94ec4cb5c12e09a709b76051a9d3bda5bf7",
+            "bytes": 945312,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-final-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/167e871a081e1a17c62684e3be3ca593a3c106c235efa01794f515422d39b5b3.log",
+            "sha256": "167e871a081e1a17c62684e3be3ca593a3c106c235efa01794f515422d39b5b3",
+            "bytes": 64,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-final.log"
+          }
+        },
+        {
+          "group": "cancel-reader",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/93200f800f95bd098fbb76163dfda528d3beaa85cb7c4680ed5e409dc85ce89d.json",
+            "sha256": "93200f800f95bd098fbb76163dfda528d3beaa85cb7c4680ed5e409dc85ce89d",
+            "bytes": 945314,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-reader-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/cc8fdbaf721370be5c2e3b9491c22e79ec1dcffe38e68409aa3639c6d8ba260f.log",
+            "sha256": "cc8fdbaf721370be5c2e3b9491c22e79ec1dcffe38e68409aa3639c6d8ba260f",
+            "bytes": 77,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-reader.log"
+          }
+        },
+        {
+          "group": "lifetime",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2385769a9d452d7173bf5f00ce48a677ee965f6c5a0732113c37ecde7fabfefd.json",
+            "sha256": "2385769a9d452d7173bf5f00ce48a677ee965f6c5a0732113c37ecde7fabfefd",
+            "bytes": 945304,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-lifetime-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/45765eba92bb30e7d74c56a86d41f26f31f4958d8b340854462accda67b824e1.log",
+            "sha256": "45765eba92bb30e7d74c56a86d41f26f31f4958d8b340854462accda67b824e1",
+            "bytes": 93,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-lifetime.log"
+          }
+        },
+        {
+          "group": "changed-controls",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2d3f9c539fd73237215b488c3097f0bd7ed8658c91dd9fa63b001c1825386576.json",
+            "sha256": "2d3f9c539fd73237215b488c3097f0bd7ed8658c91dd9fa63b001c1825386576",
+            "bytes": 945320,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-changed-controls-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/eeb63df05e558f380a00180c638948419a090d2460ba6fb035e26e97e51fd196.log",
+            "sha256": "eeb63df05e558f380a00180c638948419a090d2460ba6fb035e26e97e51fd196",
+            "bytes": 83,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-changed-controls.log"
+          }
+        }
+      ]
+    },
+    {
+      "version": 4,
+      "sourceModuleReceipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79.json",
+        "sha256": "ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79",
+        "bytes": 922211,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-compile-receipt.json"
+      },
+      "upperReceipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d3896313328c8d70a527882dedbee69e5ea92c326ec2da6afa1b9da272cfd350.json",
+        "sha256": "d3896313328c8d70a527882dedbee69e5ea92c326ec2da6afa1b9da272cfd350",
+        "bytes": 961701,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/upper-compile-receipt.json"
+      },
+      "upperCommand": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4950f5c307bce1a55b15bd416d2e778f8e1da6a005f9765a965e19c48ce33a35.json",
+        "sha256": "4950f5c307bce1a55b15bd416d2e778f8e1da6a005f9765a965e19c48ce33a35",
+        "bytes": 15413,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/upper-command.json"
+      },
+      "upperPremises": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/48a9f54142e67798bbfc53bf0dc198b35655ff4f6f016fbbe33f67be97fd8443.json",
+        "sha256": "48a9f54142e67798bbfc53bf0dc198b35655ff4f6f016fbbe33f67be97fd8443",
+        "bytes": 1106272,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/upper-premises.json"
+      },
+      "proof": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f9bc94c72fe55aed7d346065a8648eeb761aadcf11b6ae5013c4d8e6640812ad.swift",
+        "sha256": "f9bc94c72fe55aed7d346065a8648eeb761aadcf11b6ae5013c4d8e6640812ad",
+        "bytes": 73988,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/Proof.swift"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/abc7c5921fd75f5336d142856591c3ee75c65139c89e4b42e7987a28adf95a51.swift",
+        "sha256": "abc7c5921fd75f5336d142856591c3ee75c65139c89e4b42e7987a28adf95a51",
+        "bytes": 42467,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/fixture-at-prepare.swift"
+      },
+      "driver": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e9219e391ce55bf205614a7c1bdaf13d1d5bd2c64aa8b15db93402ad6dab63ec.py",
+        "sha256": "e9219e391ce55bf205614a7c1bdaf13d1d5bd2c64aa8b15db93402ad6dab63ec",
+        "bytes": 14171,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/driver-at-prepare.py"
+      },
+      "runtimeDriver": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e9219e391ce55bf205614a7c1bdaf13d1d5bd2c64aa8b15db93402ad6dab63ec.py",
+        "sha256": "e9219e391ce55bf205614a7c1bdaf13d1d5bd2c64aa8b15db93402ad6dab63ec",
+        "bytes": 14171,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/driver-at-runtime.py"
+      },
+      "freeze": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9b5192c66e9607695d15b29e11625131d2e1522fa5070add9975d084b5ed259d.json",
+        "sha256": "9b5192c66e9607695d15b29e11625131d2e1522fa5070add9975d084b5ed259d",
+        "bytes": 13467,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/freeze.json"
+      },
+      "groups": [
+        "resources"
+      ],
+      "runs": [
+        {
+          "group": "resources",
+          "receipt": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/553d68e9dc50d4f56d791f5b044b4c6e5aad1c2fb61737aa036da95ae3df2199.json",
+            "sha256": "553d68e9dc50d4f56d791f5b044b4c6e5aad1c2fb61737aa036da95ae3df2199",
+            "bytes": 946273,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/runtime-resources-receipt.json"
+          },
+          "log": {
+            "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4421889d8c68e3da22d872e56d6558f57bf2f865bf8c302e01b6bc172e9df987.log",
+            "sha256": "4421889d8c68e3da22d872e56d6558f57bf2f865bf8c302e01b6bc172e9df987",
+            "bytes": 248,
+            "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/runtime-resources.log"
+          }
+        }
+      ]
+    }
+  ],
+  "diagnostics": [
+    {
+      "version": 1,
+      "label": "upper-compile",
+      "scope": "fixture/compiler contract diagnostic; not production/source failure or accepted runtime",
+      "receipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/febeef2bce7711db2afbfac1878cadf6c6b161b1a95de96a54338f0c6abb0b0e.json",
+        "sha256": "febeef2bce7711db2afbfac1878cadf6c6b161b1a95de96a54338f0c6abb0b0e",
+        "bytes": 958596,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/upper-compile-receipt.json"
+      },
+      "log": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/959d83e62216a915da79a5a9a556204c8eb0f934184353be65f769d6ebc199cb.log",
+        "sha256": "959d83e62216a915da79a5a9a556204c8eb0f934184353be65f769d6ebc199cb",
+        "bytes": 1450,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/upper-compile.log"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ceed1b2d090921350fac3c320f2923cae9950bff291b51973b1125efb40fa956.swift",
+        "sha256": "ceed1b2d090921350fac3c320f2923cae9950bff291b51973b1125efb40fa956",
+        "bytes": 42401,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/fixture-at-prepare.swift"
+      },
+      "driver": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ce9f37fdeac84311dfaa6e40fcaa08d87b008964eecdb1a5543d89dc66410570.py",
+        "sha256": "ce9f37fdeac84311dfaa6e40fcaa08d87b008964eecdb1a5543d89dc66410570",
+        "bytes": 11594,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/driver-at-prepare.py"
+      }
+    },
+    {
+      "version": 2,
+      "label": "runtime-requests",
+      "scope": "fixture/compiler contract diagnostic; not production/source failure or accepted runtime",
+      "receipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0a352fe340bf8a6f6ee0c483b90e573121f88fbbbf5bd8b6cb07ae291837fd51.json",
+        "sha256": "0a352fe340bf8a6f6ee0c483b90e573121f88fbbbf5bd8b6cb07ae291837fd51",
+        "bytes": 944337,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-requests-receipt.json"
+      },
+      "log": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/13baad4a69a57c11d2e21a2666bf109c91aca2f7dc8bf12df68b06860cc4937f.log",
+        "sha256": "13baad4a69a57c11d2e21a2666bf109c91aca2f7dc8bf12df68b06860cc4937f",
+        "bytes": 60,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-requests.log"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/99ccc84be6c329d37250832972af9520c737eba2ece80f54c7dc0ab8b3c17495.swift",
+        "sha256": "99ccc84be6c329d37250832972af9520c737eba2ece80f54c7dc0ab8b3c17495",
+        "bytes": 42383,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/fixture-at-prepare.swift"
+      },
+      "driver": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842.py",
+        "sha256": "f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842",
+        "bytes": 14001,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/driver-at-prepare.py"
+      }
+    },
+    {
+      "version": 3,
+      "label": "runtime-resources",
+      "scope": "fixture/compiler contract diagnostic; not production/source failure or accepted runtime",
+      "receipt": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d347631fe0cc8bf9f727e5100523577de4419f3bf1a58a4840216c1b4128abf5.json",
+        "sha256": "d347631fe0cc8bf9f727e5100523577de4419f3bf1a58a4840216c1b4128abf5",
+        "bytes": 945307,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-resources-receipt.json"
+      },
+      "log": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f0f0b734cb105d8b4b194d8357e6e20000dbd3ff3846ef291980703e251173ea.log",
+        "sha256": "f0f0b734cb105d8b4b194d8357e6e20000dbd3ff3846ef291980703e251173ea",
+        "bytes": 149,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-resources.log"
+      },
+      "fixture": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0b60478d73c121bc6c1071211f61306e2e3c9584ec4a8f179f7ac1ccbef216d1.swift",
+        "sha256": "0b60478d73c121bc6c1071211f61306e2e3c9584ec4a8f179f7ac1ccbef216d1",
+        "bytes": 42374,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/fixture-at-prepare.swift"
+      },
+      "driver": {
+        "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290.py",
+        "sha256": "a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290",
+        "bytes": 14087,
+        "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/driver-at-prepare.py"
+      }
+    }
+  ],
+  "fixtureComparators": [
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/51bc6437ae9fe0d3b37f85a78c9e02fd8504ce258d319ae15253873422784f79.json",
+      "sha256": "51bc6437ae9fe0d3b37f85a78c9e02fd8504ce258d319ae15253873422784f79",
+      "bytes": 908,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/fixture-correction.json"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9b96e8dad0adb3215ef08e387f979f0c1317a8467e69c8c87cdaa254678fa3be.json",
+      "sha256": "9b96e8dad0adb3215ef08e387f979f0c1317a8467e69c8c87cdaa254678fa3be",
+      "bytes": 1908,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/fixture-correction.json"
+    }
+  ],
+  "nativeChanged3ControlsReuse": {
+    "connection": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/connection/summary.json",
+      "sha256": "53935493088f2cde3b6a8305cd30930126de1f3c5d911335bd031614609f6841"
+    },
+    "value": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/summary.json",
+      "sha256": "77fefcac0db39033b3ebf98013c00254274c30981406c3636e4bbf9c18337445"
+    },
+    "valueManifest": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/value/manifest.json",
+      "sha256": "5ab5cd9623a694573be4366c95c42f70ae649bb5c5a36c4a3eb5fb5e3974c0f8"
+    },
+    "scope": "Native v1 original/reversed/swapped/nearbox constructors and v2 Taylor/strict-domain controls only; no controls replay. Old 04a06c9d summary is historical-rejected-metadata, never accepted."
+  },
+  "counts": {
+    "source4Codegen": 1,
+    "source6Codegen": 0,
+    "lowerCodegen": 0,
+    "upperAttempts": 4
+  },
+  "scope": "Native composed acceptance only: initial constructor RED and value wall-stop remain distinct immutable baseline observations. Four targets not yet complete. Scalar-cell4/3 are observed insufficient; authored chart4/3 separate. Storage/depth N-1 only when positive, no scalar-cell exactN claim.",
+  "files": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-command.json#36ba5d476a59103165effa72bc529eb30224c178232805f5501388d4d0f214bd": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/36ba5d476a59103165effa72bc529eb30224c178232805f5501388d4d0f214bd.json",
+      "sha256": "36ba5d476a59103165effa72bc529eb30224c178232805f5501388d4d0f214bd",
+      "bytes": 5103,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-premises.json#ac2b17793b698dfe4df279200ae2a9a8fb78bbe9c36c74c028f48225eab96852": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ac2b17793b698dfe4df279200ae2a9a8fb78bbe9c36c74c028f48225eab96852.json",
+      "sha256": "ac2b17793b698dfe4df279200ae2a9a8fb78bbe9c36c74c028f48225eab96852",
+      "bytes": 1047292,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-premises.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-compile-receipt.json#ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79.json",
+      "sha256": "ce52059ca62f2709bdada05f40539fcad61bb11592f17fa8d0a0f973ab658b79",
+      "bytes": 922211,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-compile-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-compile.log#e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source-compile.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalImplicitHostExclusionSnapshotProvider.swift#18acd55c3889cce12b8fc7eff6b025af69a96fdcea5ff15b34b0031fb057bb71": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/18acd55c3889cce12b8fc7eff6b025af69a96fdcea5ff15b34b0031fb057bb71.swift",
+      "sha256": "18acd55c3889cce12b8fc7eff6b025af69a96fdcea5ff15b34b0031fb057bb71",
+      "bytes": 5183,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalImplicitHostExclusionSnapshotProvider.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/OriginalImplicitHostExclusionSnapshotProvider.swift#8639f5f9de1b8e81eade1c29ae3170ac59e63b01b9570737775f44e3fd0a1eee": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8639f5f9de1b8e81eade1c29ae3170ac59e63b01b9570737775f44e3fd0a1eee.swift",
+      "sha256": "8639f5f9de1b8e81eade1c29ae3170ac59e63b01b9570737775f44e3fd0a1eee",
+      "bytes": 36529,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/OriginalImplicitHostExclusionSnapshotProvider.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalImplicitHostPlaneSeparationIssuing.swift#bc7766b5c15c4a8de47c7dcb64f2d78aab4c60a26accc1de759441de8fc26f81": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/bc7766b5c15c4a8de47c7dcb64f2d78aab4c60a26accc1de759441de8fc26f81.swift",
+      "sha256": "bc7766b5c15c4a8de47c7dcb64f2d78aab4c60a26accc1de759441de8fc26f81",
+      "bytes": 566,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalImplicitHostPlaneSeparationIssuing.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/OriginalImplicitHostPlaneSeparationIssuing.swift#8d564d2c697740743786fa7b4f0e5855cccacda75954669a6302fe277409f8ad": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8d564d2c697740743786fa7b4f0e5855cccacda75954669a6302fe277409f8ad.swift",
+      "sha256": "8d564d2c697740743786fa7b4f0e5855cccacda75954669a6302fe277409f8ad",
+      "bytes": 31912,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/OriginalImplicitHostPlaneSeparationIssuing.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalImplicitHostPlaneSeparationReceipt.swift#337ecb4214f6faa2f64f0621dfb885ee08f4445f47d52088bd8d201520c76041": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/337ecb4214f6faa2f64f0621dfb885ee08f4445f47d52088bd8d201520c76041.swift",
+      "sha256": "337ecb4214f6faa2f64f0621dfb885ee08f4445f47d52088bd8d201520c76041",
+      "bytes": 3928,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalImplicitHostPlaneSeparationReceipt.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/OriginalImplicitHostPlaneSeparationReceipt.swift#a91700446c5bba07a2063b6a483d5c1b4565dfc56fb04ec50b9254beddb1bbae": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a91700446c5bba07a2063b6a483d5c1b4565dfc56fb04ec50b9254beddb1bbae.swift",
+      "sha256": "a91700446c5bba07a2063b6a483d5c1b4565dfc56fb04ec50b9254beddb1bbae",
+      "bytes": 35274,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/OriginalImplicitHostPlaneSeparationReceipt.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalImplicitHostPlaneSeparationIssuer.swift#50556c40d00a1ba64f92b46cf8501fca1b4dff5ae293c4b7eee3f4ea63a051de": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/50556c40d00a1ba64f92b46cf8501fca1b4dff5ae293c4b7eee3f4ea63a051de.swift",
+      "sha256": "50556c40d00a1ba64f92b46cf8501fca1b4dff5ae293c4b7eee3f4ea63a051de",
+      "bytes": 6851,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalImplicitHostPlaneSeparationIssuer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/DefaultOriginalImplicitHostPlaneSeparationIssuer.swift#e906fa23f14e275d399476f16b7e409fc5aa938c776a88852ce7f86c8396ad51": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e906fa23f14e275d399476f16b7e409fc5aa938c776a88852ce7f86c8396ad51.swift",
+      "sha256": "e906fa23f14e275d399476f16b7e409fc5aa938c776a88852ce7f86c8396ad51",
+      "bytes": 38197,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/source/DefaultOriginalImplicitHostPlaneSeparationIssuer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionAxisSectionEvidence.swift#d8e315532dae1cf2bb4ccbd6ffe1ee5b6abb64ee1d9e2f15f8318b400cc17386": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d8e315532dae1cf2bb4ccbd6ffe1ee5b6abb64ee1d9e2f15f8318b400cc17386.swift",
+      "sha256": "d8e315532dae1cf2bb4ccbd6ffe1ee5b6abb64ee1d9e2f15f8318b400cc17386",
+      "bytes": 2688,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionAxisSectionEvidence.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisSectionEvidence.swift#22f89f8f0b500bca6c0ce1765182b9a8b8f513acd135719763e218ff85f437dd": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/22f89f8f0b500bca6c0ce1765182b9a8b8f513acd135719763e218ff85f437dd.swift",
+      "sha256": "22f89f8f0b500bca6c0ce1765182b9a8b8f513acd135719763e218ff85f437dd",
+      "bytes": 34209,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisSectionEvidence.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionAxisSectionReceipt.swift#af065a2d3070def515d1093a3a5b0a44e8e1c5b085bc89d215214ea410e2ab53": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/af065a2d3070def515d1093a3a5b0a44e8e1c5b085bc89d215214ea410e2ab53.swift",
+      "sha256": "af065a2d3070def515d1093a3a5b0a44e8e1c5b085bc89d215214ea410e2ab53",
+      "bytes": 2429,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionAxisSectionReceipt.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisSectionReceipt.swift#8247fdd041bbd036501b8a928964448ae63d8304d6031669a60e9818cf4fe2cd": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8247fdd041bbd036501b8a928964448ae63d8304d6031669a60e9818cf4fe2cd.swift",
+      "sha256": "8247fdd041bbd036501b8a928964448ae63d8304d6031669a60e9818cf4fe2cd",
+      "bytes": 33950,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisSectionReceipt.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionAxisSectionIssuing.swift#482d457874480b21389c072cec9af8075e16ef07cc200837dde3aee5c25f554d": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/482d457874480b21389c072cec9af8075e16ef07cc200837dde3aee5c25f554d.swift",
+      "sha256": "482d457874480b21389c072cec9af8075e16ef07cc200837dde3aee5c25f554d",
+      "bytes": 880,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionAxisSectionIssuing.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisSectionIssuing.swift#103488dd9843a95cfc9fadcc21d3fb8ac2729d7a6e5afc330bfb5f6143bea1e2": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/103488dd9843a95cfc9fadcc21d3fb8ac2729d7a6e5afc330bfb5f6143bea1e2.swift",
+      "sha256": "103488dd9843a95cfc9fadcc21d3fb8ac2729d7a6e5afc330bfb5f6143bea1e2",
+      "bytes": 32401,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisSectionIssuing.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalRevolutionAxisSectionIssuer.swift#d75ff85616f4b9fbc931037cf8cb479e26c24b161b913fc00148be1e3f20a929": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d75ff85616f4b9fbc931037cf8cb479e26c24b161b913fc00148be1e3f20a929.swift",
+      "sha256": "d75ff85616f4b9fbc931037cf8cb479e26c24b161b913fc00148be1e3f20a929",
+      "bytes": 11807,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalRevolutionAxisSectionIssuer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultOriginalRevolutionAxisSectionIssuer.swift#038e7a22d4db158edcd30490c3cdb70ac0265dbf2c848f9c08615619626e9b1c": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/038e7a22d4db158edcd30490c3cdb70ac0265dbf2c848f9c08615619626e9b1c.swift",
+      "sha256": "038e7a22d4db158edcd30490c3cdb70ac0265dbf2c848f9c08615619626e9b1c",
+      "bytes": 43328,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultOriginalRevolutionAxisSectionIssuer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionSnapshot.swift#8e9bfd3055f8d9bb666347012e4f3abda0fc0ac3c14ac4538fbcdaeb2bf1d5ca": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8e9bfd3055f8d9bb666347012e4f3abda0fc0ac3c14ac4538fbcdaeb2bf1d5ca.swift",
+      "sha256": "8e9bfd3055f8d9bb666347012e4f3abda0fc0ac3c14ac4538fbcdaeb2bf1d5ca",
+      "bytes": 724,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionSnapshot.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionSnapshot.swift#fc73b568e9e570db09b90040d147215a1d9d874e7d3047e7b5b946cc78ecbc51": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/fc73b568e9e570db09b90040d147215a1d9d874e7d3047e7b5b946cc78ecbc51.swift",
+      "sha256": "fc73b568e9e570db09b90040d147215a1d9d874e7d3047e7b5b946cc78ecbc51",
+      "bytes": 32245,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionSnapshot.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionSnapshotProvider.swift#c80479c23449f187d72be8b9d15f484d67860400a0a99c1edee96a5201ba7291": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c80479c23449f187d72be8b9d15f484d67860400a0a99c1edee96a5201ba7291.swift",
+      "sha256": "c80479c23449f187d72be8b9d15f484d67860400a0a99c1edee96a5201ba7291",
+      "bytes": 1969,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRevolutionSnapshotProvider.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionSnapshotProvider.swift#da3ca547ae67c4a3c28189fbf26672f674f979f71ae2f39d5eb50abaaefad655": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/da3ca547ae67c4a3c28189fbf26672f674f979f71ae2f39d5eb50abaaefad655.swift",
+      "sha256": "da3ca547ae67c4a3c28189fbf26672f674f979f71ae2f39d5eb50abaaefad655",
+      "bytes": 33490,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionSnapshotProvider.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalTraversalSpanSnapshot.swift#9a3401de21cf305a7fa6b38519de31ce0d4f7d063b26f37d8dc0a4f4c89a28f7": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9a3401de21cf305a7fa6b38519de31ce0d4f7d063b26f37d8dc0a4f4c89a28f7.swift",
+      "sha256": "9a3401de21cf305a7fa6b38519de31ce0d4f7d063b26f37d8dc0a4f4c89a28f7",
+      "bytes": 749,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalTraversalSpanSnapshot.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalTraversalSpanSnapshot.swift#2c9cafdee2a0b179a2fe4455487a6bc7bbc50a6e73b3c972092ec5c369c71d70": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2c9cafdee2a0b179a2fe4455487a6bc7bbc50a6e73b3c972092ec5c369c71d70.swift",
+      "sha256": "2c9cafdee2a0b179a2fe4455487a6bc7bbc50a6e73b3c972092ec5c369c71d70",
+      "bytes": 32270,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalTraversalSpanSnapshot.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalTraversalSpanSnapshotProvider.swift#d2975146ab508ff2d9f237205e7c7e2632a2e6f7765c6cc4b6e0ca07aa8a92c3": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d2975146ab508ff2d9f237205e7c7e2632a2e6f7765c6cc4b6e0ca07aa8a92c3.swift",
+      "sha256": "d2975146ab508ff2d9f237205e7c7e2632a2e6f7765c6cc4b6e0ca07aa8a92c3",
+      "bytes": 2487,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalTraversalSpanSnapshotProvider.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalTraversalSpanSnapshotProvider.swift#9cc46336be0d71868b846737d303a7d252689fc9c0577e8e6cd3afb8a1bffc7d": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9cc46336be0d71868b846737d303a7d252689fc9c0577e8e6cd3afb8a1bffc7d.swift",
+      "sha256": "9cc46336be0d71868b846737d303a7d252689fc9c0577e8e6cd3afb8a1bffc7d",
+      "bytes": 34008,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalTraversalSpanSnapshotProvider.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalRevolutionAxisRelations.swift#59c3016c52caffe96459c048f9c2aadd1b08384caadef64029093a0749922927": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/59c3016c52caffe96459c048f9c2aadd1b08384caadef64029093a0749922927.swift",
+      "sha256": "59c3016c52caffe96459c048f9c2aadd1b08384caadef64029093a0749922927",
+      "bytes": 6664,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalRevolutionAxisRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisRelations.swift#da50bee8514f1b7e5e7c359e6f0540ffddc852054a99a294d04010b26b1b4b55": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/da50bee8514f1b7e5e7c359e6f0540ffddc852054a99a294d04010b26b1b4b55.swift",
+      "sha256": "da50bee8514f1b7e5e7c359e6f0540ffddc852054a99a294d04010b26b1b4b55",
+      "bytes": 38185,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRevolutionAxisGeometricRelationReading.swift#da82fe753fbc79dec668e85285f319fae174e01efc9235fe62102970b3c7df80": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/da82fe753fbc79dec668e85285f319fae174e01efc9235fe62102970b3c7df80.swift",
+      "sha256": "da82fe753fbc79dec668e85285f319fae174e01efc9235fe62102970b3c7df80",
+      "bytes": 802,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRevolutionAxisGeometricRelationReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisGeometricRelationReading.swift#5a7fd70d7bce1158c42e698f133dd11215e82ca2890a0275f3333ec5fc9af2fd": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/5a7fd70d7bce1158c42e698f133dd11215e82ca2890a0275f3333ec5fc9af2fd.swift",
+      "sha256": "5a7fd70d7bce1158c42e698f133dd11215e82ca2890a0275f3333ec5fc9af2fd",
+      "bytes": 32323,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisGeometricRelationReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRevolutionAxisGeometricRelations.swift#1c885dd4306a6b1e8260d2b45fa390cccccb0cce20270ba22d5d0029d603199b": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1c885dd4306a6b1e8260d2b45fa390cccccb0cce20270ba22d5d0029d603199b.swift",
+      "sha256": "1c885dd4306a6b1e8260d2b45fa390cccccb0cce20270ba22d5d0029d603199b",
+      "bytes": 2699,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRevolutionAxisGeometricRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisGeometricRelations.swift#60198aaf05602bd4362996b68d13eec3dd1b15d5e098de7b982cd4281b795914": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/60198aaf05602bd4362996b68d13eec3dd1b15d5e098de7b982cd4281b795914.swift",
+      "sha256": "60198aaf05602bd4362996b68d13eec3dd1b15d5e098de7b982cd4281b795914",
+      "bytes": 34220,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisGeometricRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRevolutionAxisLinePublicProducer.swift#76a00991f0929528870c7bb2e8b67433972ba5adce50a40b55aaabbaf1627e8d": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/76a00991f0929528870c7bb2e8b67433972ba5adce50a40b55aaabbaf1627e8d.swift",
+      "sha256": "76a00991f0929528870c7bb2e8b67433972ba5adce50a40b55aaabbaf1627e8d",
+      "bytes": 12646,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRevolutionAxisLinePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisLinePublicProducer.swift#9fa69eecd7e60dd03ef15e3dea5eeb084f26def2aef4bef2c154b8a6e89aeaa4": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9fa69eecd7e60dd03ef15e3dea5eeb084f26def2aef4bef2c154b8a6e89aeaa4.swift",
+      "sha256": "9fa69eecd7e60dd03ef15e3dea5eeb084f26def2aef4bef2c154b8a6e89aeaa4",
+      "bytes": 44167,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRevolutionAxisLinePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedExactIntersectionPoint.swift#8e952ba577b9fa876f4020a4fcee3e8db685fe22c58b21c068b403bc6b7c64c6": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8e952ba577b9fa876f4020a4fcee3e8db685fe22c58b21c068b403bc6b7c64c6.swift",
+      "sha256": "8e952ba577b9fa876f4020a4fcee3e8db685fe22c58b21c068b403bc6b7c64c6",
+      "bytes": 1591,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedExactIntersectionPoint.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedExactIntersectionPoint.swift#ba521ccf0f4a7545297b603d2d33825e956eede1c606c6a536da8f13c8c29470": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ba521ccf0f4a7545297b603d2d33825e956eede1c606c6a536da8f13c8c29470.swift",
+      "sha256": "ba521ccf0f4a7545297b603d2d33825e956eede1c606c6a536da8f13c8c29470",
+      "bytes": 33112,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedExactIntersectionPoint.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricPublication.swift#b7d324b9b101fafb670e655cb2c0d9e45eaa8505f40624b9297d1d9ef8124e44": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b7d324b9b101fafb670e655cb2c0d9e45eaa8505f40624b9297d1d9ef8124e44.swift",
+      "sha256": "b7d324b9b101fafb670e655cb2c0d9e45eaa8505f40624b9297d1d9ef8124e44",
+      "bytes": 8512,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricPublication.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedGeometricPublication.swift#e43213a3fd01c5aaf9fca9b5d901b5005a056c806e0fd272eaef4c8240923e29": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e43213a3fd01c5aaf9fca9b5d901b5005a056c806e0fd272eaef4c8240923e29.swift",
+      "sha256": "e43213a3fd01c5aaf9fca9b5d901b5005a056c806e0fd272eaef4c8240923e29",
+      "bytes": 40033,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedGeometricPublication.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricRelationPair.swift#69e7fa56a9951dfb1b98a90c7a64c2aa8623fd0a214ed7d3c2eb36549292b3eb": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/69e7fa56a9951dfb1b98a90c7a64c2aa8623fd0a214ed7d3c2eb36549292b3eb.swift",
+      "sha256": "69e7fa56a9951dfb1b98a90c7a64c2aa8623fd0a214ed7d3c2eb36549292b3eb",
+      "bytes": 567,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricRelationPair.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedGeometricRelationPair.swift#6d58cae700eb9c5264095eb5715f2ca4917635e0834407b1b52343d6d2d19e38": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6d58cae700eb9c5264095eb5715f2ca4917635e0834407b1b52343d6d2d19e38.swift",
+      "sha256": "6d58cae700eb9c5264095eb5715f2ca4917635e0834407b1b52343d6d2d19e38",
+      "bytes": 32088,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedGeometricRelationPair.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricRelationReading.swift#181d4d4e9cfd40216612f8cd3123a9ef0f2e74aa5121a14d3a2b06fbf4c69f3f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/181d4d4e9cfd40216612f8cd3123a9ef0f2e74aa5121a14d3a2b06fbf4c69f3f.swift",
+      "sha256": "181d4d4e9cfd40216612f8cd3123a9ef0f2e74aa5121a14d3a2b06fbf4c69f3f",
+      "bytes": 649,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricRelationReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedGeometricRelationReading.swift#2f1bca2bec780bf121c99c5fda426ba3301bdf11c44fceda047fdd7f474a7a43": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2f1bca2bec780bf121c99c5fda426ba3301bdf11c44fceda047fdd7f474a7a43.swift",
+      "sha256": "2f1bca2bec780bf121c99c5fda426ba3301bdf11c44fceda047fdd7f474a7a43",
+      "bytes": 32170,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedGeometricRelationReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift#e58918fc53ee9b5d3b74f1c645cdcb3bfc5413b1a661679bbb4e15c728a214a8": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e58918fc53ee9b5d3b74f1c645cdcb3bfc5413b1a661679bbb4e15c728a214a8.swift",
+      "sha256": "e58918fc53ee9b5d3b74f1c645cdcb3bfc5413b1a661679bbb4e15c728a214a8",
+      "bytes": 208405,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultCurveSurfaceIntersector.swift#bef9e5e37e2d79af76b4c4fd1bbbe499e0b00a46003d359caf21c114aa3347e6": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/bef9e5e37e2d79af76b4c4fd1bbbe499e0b00a46003d359caf21c114aa3347e6.swift",
+      "sha256": "bef9e5e37e2d79af76b4c4fd1bbbe499e0b00a46003d359caf21c114aa3347e6",
+      "bytes": 239926,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultCurveSurfaceIntersector.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift#5dc5ff32f68a145e4db99edf81c246de6c8976bcaee6b31fae34904c52012774": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/5dc5ff32f68a145e4db99edf81c246de6c8976bcaee6b31fae34904c52012774.swift",
+      "sha256": "5dc5ff32f68a145e4db99edf81c246de6c8976bcaee6b31fae34904c52012774",
+      "bytes": 4181,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultCurveSurfaceIntersector+Overlap.swift#d994b94636cb7a3d20afeabb8fa3df9517674a9f40b285d4751bd9b0fbbe1efc": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d994b94636cb7a3d20afeabb8fa3df9517674a9f40b285d4751bd9b0fbbe1efc.swift",
+      "sha256": "d994b94636cb7a3d20afeabb8fa3df9517674a9f40b285d4751bd9b0fbbe1efc",
+      "bytes": 35702,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultCurveSurfaceIntersector+Overlap.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift#e314106b7eedb65c4581b522e03d4ec0304a26a31e48e358a3159fcd97eaf8a7": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e314106b7eedb65c4581b522e03d4ec0304a26a31e48e358a3159fcd97eaf8a7.swift",
+      "sha256": "e314106b7eedb65c4581b522e03d4ec0304a26a31e48e358a3159fcd97eaf8a7",
+      "bytes": 32129,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/CurveSurfaceOverlapResolver.swift#570ba6181b8fa3477ab75ca34acd9f5e6502b9cf38f112c16a3ce724a11431c2": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/570ba6181b8fa3477ab75ca34acd9f5e6502b9cf38f112c16a3ce724a11431c2.swift",
+      "sha256": "570ba6181b8fa3477ab75ca34acd9f5e6502b9cf38f112c16a3ce724a11431c2",
+      "bytes": 63650,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/CurveSurfaceOverlapResolver.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift#ecd73512f8b188457d7c854aac1e3f93980457f8845de0046fd808c44550f28f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ecd73512f8b188457d7c854aac1e3f93980457f8845de0046fd808c44550f28f.swift",
+      "sha256": "ecd73512f8b188457d7c854aac1e3f93980457f8845de0046fd808c44550f28f",
+      "bytes": 6234,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/CurveSurfaceIntersectionResult.swift#3af3b9ba2ca3b0435e64e0f0ab3fd18889f33861847c3dcc802f645a37d6986e": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/3af3b9ba2ca3b0435e64e0f0ab3fd18889f33861847c3dcc802f645a37d6986e.swift",
+      "sha256": "3af3b9ba2ca3b0435e64e0f0ab3fd18889f33861847c3dcc802f645a37d6986e",
+      "bytes": 37755,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/CurveSurfaceIntersectionResult.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResolving.swift#28218d4989807d9868903720b286b247ff94743551541ea8c8bc56b9e1120716": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/28218d4989807d9868903720b286b247ff94743551541ea8c8bc56b9e1120716.swift",
+      "sha256": "28218d4989807d9868903720b286b247ff94743551541ea8c8bc56b9e1120716",
+      "bytes": 1806,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResolving.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/CurveSurfaceIntersectionResolving.swift#88f172d9fd830d22ce4cf240f7a341b9bada4192e74d07d31b25a5aea016c97e": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/88f172d9fd830d22ce4cf240f7a341b9bada4192e74d07d31b25a5aea016c97e.swift",
+      "sha256": "88f172d9fd830d22ce4cf240f7a341b9bada4192e74d07d31b25a5aea016c97e",
+      "bytes": 33327,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/CurveSurfaceIntersectionResolving.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactCurveSurfacePointProducer.swift#24e93de2dada584f7830d51b613bf74c5395e81106c3d05940a37b46fb8a1101": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/24e93de2dada584f7830d51b613bf74c5395e81106c3d05940a37b46fb8a1101.swift",
+      "sha256": "24e93de2dada584f7830d51b613bf74c5395e81106c3d05940a37b46fb8a1101",
+      "bytes": 21825,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactCurveSurfacePointProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/NativeExactCurveSurfacePointProducer.swift#f15bc9516e7f32050892022b0c7be12c67862f6afd2a71c38a777db6b3b424ff": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f15bc9516e7f32050892022b0c7be12c67862f6afd2a71c38a777db6b3b424ff.swift",
+      "sha256": "f15bc9516e7f32050892022b0c7be12c67862f6afd2a71c38a777db6b3b424ff",
+      "bytes": 22082,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/NativeExactCurveSurfacePointProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/DefaultCurveSurfaceIntersector+CurveSurfaceGeometry.swift#4487d79fb5c1afd173892f1550ec48c6fec0f1e28b86ca1b28f4dfd2ebead9b9": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4487d79fb5c1afd173892f1550ec48c6fec0f1e28b86ca1b28f4dfd2ebead9b9.swift",
+      "sha256": "4487d79fb5c1afd173892f1550ec48c6fec0f1e28b86ca1b28f4dfd2ebead9b9",
+      "bytes": 1222,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/DefaultCurveSurfaceIntersector+CurveSurfaceGeometry.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultCurveSurfaceIntersector+CurveSurfaceGeometry.swift#1b7c2bc1c3287ea5809262dd475eae4b0990dbbacf485bbd1f42d48cc4d1da9f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1b7c2bc1c3287ea5809262dd475eae4b0990dbbacf485bbd1f42d48cc4d1da9f.swift",
+      "sha256": "1b7c2bc1c3287ea5809262dd475eae4b0990dbbacf485bbd1f42d48cc4d1da9f",
+      "bytes": 1479,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultCurveSurfaceIntersector+CurveSurfaceGeometry.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultCurveSurfaceIntersector+ExactRelation.swift#053aaf3e51436e980d7d0eb8324831ec9429f9133bcbb19ba1af26decfb82303": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/053aaf3e51436e980d7d0eb8324831ec9429f9133bcbb19ba1af26decfb82303.swift",
+      "sha256": "053aaf3e51436e980d7d0eb8324831ec9429f9133bcbb19ba1af26decfb82303",
+      "bytes": 2506,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultCurveSurfaceIntersector+ExactRelation.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultCurveSurfaceIntersector+ExactRelation.swift#20acf7275fc3d6dd7408e77aad80f884af04cfb905640922c92785281c714550": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/20acf7275fc3d6dd7408e77aad80f884af04cfb905640922c92785281c714550.swift",
+      "sha256": "20acf7275fc3d6dd7408e77aad80f884af04cfb905640922c92785281c714550",
+      "bytes": 2763,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultCurveSurfaceIntersector+ExactRelation.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactPublicCurveSurfaceProducer.swift#2672f2a6f23b881fd89d0693de46c55949c89a361a6b71bf481a0c1c371d9602": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2672f2a6f23b881fd89d0693de46c55949c89a361a6b71bf481a0c1c371d9602.swift",
+      "sha256": "2672f2a6f23b881fd89d0693de46c55949c89a361a6b71bf481a0c1c371d9602",
+      "bytes": 4490,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactPublicCurveSurfaceProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/NativeExactPublicCurveSurfaceProducer.swift#c145d8b3d5378c939bf79ee249464f5e13ddd203aa540baa0bdec5179821cb1a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c145d8b3d5378c939bf79ee249464f5e13ddd203aa540baa0bdec5179821cb1a.swift",
+      "sha256": "c145d8b3d5378c939bf79ee249464f5e13ddd203aa540baa0bdec5179821cb1a",
+      "bytes": 4747,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/NativeExactPublicCurveSurfaceProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/NativeCurveSurfacePointProducer.swift#121d98a54bcc48ef9e5f8b9ff4afb0c9a13a654eb8d6549cda99af2310f49c46": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/121d98a54bcc48ef9e5f8b9ff4afb0c9a13a654eb8d6549cda99af2310f49c46.swift",
+      "sha256": "121d98a54bcc48ef9e5f8b9ff4afb0c9a13a654eb8d6549cda99af2310f49c46",
+      "bytes": 23102,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/NativeCurveSurfacePointProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/NativeCurveSurfacePointProducer.swift#60e4eecf7217a2078dda64a8feb1cbba60f9a3e08b308c619fd43500f98c97e7": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/60e4eecf7217a2078dda64a8feb1cbba60f9a3e08b308c619fd43500f98c97e7.swift",
+      "sha256": "60e4eecf7217a2078dda64a8feb1cbba60f9a3e08b308c619fd43500f98c97e7",
+      "bytes": 54623,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/NativeCurveSurfacePointProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/OriginalPolynomialCurveSurfacePointProducer.swift#b8e6cd79ef9853c0ce5d106491feefa388b1d0705c759f791ad22e02eddac326": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b8e6cd79ef9853c0ce5d106491feefa388b1d0705c759f791ad22e02eddac326.swift",
+      "sha256": "b8e6cd79ef9853c0ce5d106491feefa388b1d0705c759f791ad22e02eddac326",
+      "bytes": 9188,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/OriginalPolynomialCurveSurfacePointProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalPolynomialCurveSurfacePointProducer.swift#d91348d711fb8b88cf2f783263d9efaea1852b0a1afd0943944a476072a3f33c": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d91348d711fb8b88cf2f783263d9efaea1852b0a1afd0943944a476072a3f33c.swift",
+      "sha256": "d91348d711fb8b88cf2f783263d9efaea1852b0a1afd0943944a476072a3f33c",
+      "bytes": 40709,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalPolynomialCurveSurfacePointProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/OriginalAffineCurveSurfacePointProducer.swift#a2e1aead76e7851e4028e4fa8629243501b7e5d3ca78c7be9bc30f4eae9737b7": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a2e1aead76e7851e4028e4fa8629243501b7e5d3ca78c7be9bc30f4eae9737b7.swift",
+      "sha256": "a2e1aead76e7851e4028e4fa8629243501b7e5d3ca78c7be9bc30f4eae9737b7",
+      "bytes": 10084,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/OriginalAffineCurveSurfacePointProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAffineCurveSurfacePointProducer.swift#031991a6484b0a47bb9c3cdcb0752f87718f6e3a551c7f6e465c558b084f7e7a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/031991a6484b0a47bb9c3cdcb0752f87718f6e3a551c7f6e465c558b084f7e7a.swift",
+      "sha256": "031991a6484b0a47bb9c3cdcb0752f87718f6e3a551c7f6e465c558b084f7e7a",
+      "bytes": 41605,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAffineCurveSurfacePointProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/OriginalCoonsCurveSurfacePointProducer.swift#ab28e7105f3cd915759e8e6d53e879d304905412634b43c0e067021d8a86d168": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ab28e7105f3cd915759e8e6d53e879d304905412634b43c0e067021d8a86d168.swift",
+      "sha256": "ab28e7105f3cd915759e8e6d53e879d304905412634b43c0e067021d8a86d168",
+      "bytes": 9057,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/OriginalCoonsCurveSurfacePointProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCoonsCurveSurfacePointProducer.swift#ed8eaeb2245a27d75ab7eceb5f3d77028227554ec1dc7e8fbf7b0b01a81d4268": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ed8eaeb2245a27d75ab7eceb5f3d77028227554ec1dc7e8fbf7b0b01a81d4268.swift",
+      "sha256": "ed8eaeb2245a27d75ab7eceb5f3d77028227554ec1dc7e8fbf7b0b01a81d4268",
+      "bytes": 40578,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCoonsCurveSurfacePointProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalAngularPlaneRelations.swift#ccad1c3badd162a6683bdedfd60583a7b912386267db2c9daa3095f99b637746": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ccad1c3badd162a6683bdedfd60583a7b912386267db2c9daa3095f99b637746.swift",
+      "sha256": "ccad1c3badd162a6683bdedfd60583a7b912386267db2c9daa3095f99b637746",
+      "bytes": 4257,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalAngularPlaneRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAngularPlaneRelations.swift#27c46d6656e1efb121e71b2b456399adb5ba0277cccbc4c986cf454e02bc7e8f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/27c46d6656e1efb121e71b2b456399adb5ba0277cccbc4c986cf454e02bc7e8f.swift",
+      "sha256": "27c46d6656e1efb121e71b2b456399adb5ba0277cccbc4c986cf454e02bc7e8f",
+      "bytes": 35778,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAngularPlaneRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultOriginalAngularPlaneRelationCompiler.swift#6d145acb4508fda97eb39f0c454bd56dac590e7564ba2e47d85449823929c2ac": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6d145acb4508fda97eb39f0c454bd56dac590e7564ba2e47d85449823929c2ac.swift",
+      "sha256": "6d145acb4508fda97eb39f0c454bd56dac590e7564ba2e47d85449823929c2ac",
+      "bytes": 8794,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultOriginalAngularPlaneRelationCompiler.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultOriginalAngularPlaneRelationCompiler.swift#24dda71c30343f89c085a3e5f8fd0a4200ee1aa660dd004ea7a281be6d024662": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/24dda71c30343f89c085a3e5f8fd0a4200ee1aa660dd004ea7a281be6d024662.swift",
+      "sha256": "24dda71c30343f89c085a3e5f8fd0a4200ee1aa660dd004ea7a281be6d024662",
+      "bytes": 40315,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultOriginalAngularPlaneRelationCompiler.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalAngularPlaneRelationReading.swift#d56ae30ff4019e52f5a8c57af36c785a9ad6e63d57b3a5593f57bb0c912f460a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d56ae30ff4019e52f5a8c57af36c785a9ad6e63d57b3a5593f57bb0c912f460a.swift",
+      "sha256": "d56ae30ff4019e52f5a8c57af36c785a9ad6e63d57b3a5593f57bb0c912f460a",
+      "bytes": 561,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalAngularPlaneRelationReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAngularPlaneRelationReading.swift#f5e44142417d0a718a17463762eb9c6d66c106233d7b057cb6db44b29f5f01cc": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f5e44142417d0a718a17463762eb9c6d66c106233d7b057cb6db44b29f5f01cc.swift",
+      "sha256": "f5e44142417d0a718a17463762eb9c6d66c106233d7b057cb6db44b29f5f01cc",
+      "bytes": 32082,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAngularPlaneRelationReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalAngularPlaneGeometricRelations.swift#f2bcb5180f8c5388e7e687cad7f0ed513f68d52f2a7cd683bb21ad5397eb1620": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f2bcb5180f8c5388e7e687cad7f0ed513f68d52f2a7cd683bb21ad5397eb1620.swift",
+      "sha256": "f2bcb5180f8c5388e7e687cad7f0ed513f68d52f2a7cd683bb21ad5397eb1620",
+      "bytes": 3825,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalAngularPlaneGeometricRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAngularPlaneGeometricRelations.swift#75f94bfe66a5ffc68dbf192bb3d076b1cbae1e4d945cd5c5ea87ccdb548376d0": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/75f94bfe66a5ffc68dbf192bb3d076b1cbae1e4d945cd5c5ea87ccdb548376d0.swift",
+      "sha256": "75f94bfe66a5ffc68dbf192bb3d076b1cbae1e4d945cd5c5ea87ccdb548376d0",
+      "bytes": 35346,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAngularPlaneGeometricRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalAngularPlanePublicProducer.swift#3f2a0651c28be9476c2babde61d21538f474989dd2bf4e70f101a8159109861a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/3f2a0651c28be9476c2babde61d21538f474989dd2bf4e70f101a8159109861a.swift",
+      "sha256": "3f2a0651c28be9476c2babde61d21538f474989dd2bf4e70f101a8159109861a",
+      "bytes": 12536,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalAngularPlanePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAngularPlanePublicProducer.swift#99f202d6b7561c983b4c2577335673825447f95eadb4e6b7de8396eda8ac926b": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/99f202d6b7561c983b4c2577335673825447f95eadb4e6b7de8396eda8ac926b.swift",
+      "sha256": "99f202d6b7561c983b4c2577335673825447f95eadb4e6b7de8396eda8ac926b",
+      "bytes": 44057,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAngularPlanePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalAngularPlaneExactPoint.swift#aba6f5ad498ec113c8c96311bae2950526d958bac92798184870bc21a56283b7": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/aba6f5ad498ec113c8c96311bae2950526d958bac92798184870bc21a56283b7.swift",
+      "sha256": "aba6f5ad498ec113c8c96311bae2950526d958bac92798184870bc21a56283b7",
+      "bytes": 1457,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalAngularPlaneExactPoint.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAngularPlaneExactPoint.swift#d95767f26107c7952c482b789c33065d9c7c3afcfa737f4a9abc2e164beba57b": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d95767f26107c7952c482b789c33065d9c7c3afcfa737f4a9abc2e164beba57b.swift",
+      "sha256": "d95767f26107c7952c482b789c33065d9c7c3afcfa737f4a9abc2e164beba57b",
+      "bytes": 32978,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalAngularPlaneExactPoint.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactGeometryPublicationFailure.swift#947799e8fc5d99a8a75eb7c0d6b529f3c74a03b11b7b08ef342265d81e9bb9d1": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/947799e8fc5d99a8a75eb7c0d6b529f3c74a03b11b7b08ef342265d81e9bb9d1.swift",
+      "sha256": "947799e8fc5d99a8a75eb7c0d6b529f3c74a03b11b7b08ef342265d81e9bb9d1",
+      "bytes": 9322,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactGeometryPublicationFailure.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/NativeExactGeometryPublicationFailure.swift#ea49a546542b021c153cd3d8bf7c29e38eb189f8feee4d29b0ef6f4889ab64c3": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ea49a546542b021c153cd3d8bf7c29e38eb189f8feee4d29b0ef6f4889ab64c3.swift",
+      "sha256": "ea49a546542b021c153cd3d8bf7c29e38eb189f8feee4d29b0ef6f4889ab64c3",
+      "bytes": 40843,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/NativeExactGeometryPublicationFailure.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalCertifiedApexPlaneExclusion.swift#f0d685128329003eab3561e0ea1f14119b1403d4a87f703dc8f486d4829e0526": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f0d685128329003eab3561e0ea1f14119b1403d4a87f703dc8f486d4829e0526.swift",
+      "sha256": "f0d685128329003eab3561e0ea1f14119b1403d4a87f703dc8f486d4829e0526",
+      "bytes": 7455,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalCertifiedApexPlaneExclusion.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCertifiedApexPlaneExclusion.swift#8ed05685c6c9e8a58f63e865480737c0a7092f1f3f231feb76f4c8d18e4ae80d": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8ed05685c6c9e8a58f63e865480737c0a7092f1f3f231feb76f4c8d18e4ae80d.swift",
+      "sha256": "8ed05685c6c9e8a58f63e865480737c0a7092f1f3f231feb76f4c8d18e4ae80d",
+      "bytes": 38976,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCertifiedApexPlaneExclusion.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalCertifiedApexPlaneExclusionReading.swift#febbb7315c1eb0bb03217deb6de3a3f15f1e9aa68f20064cf48fdfb239873e13": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/febbb7315c1eb0bb03217deb6de3a3f15f1e9aa68f20064cf48fdfb239873e13.swift",
+      "sha256": "febbb7315c1eb0bb03217deb6de3a3f15f1e9aa68f20064cf48fdfb239873e13",
+      "bytes": 522,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalCertifiedApexPlaneExclusionReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCertifiedApexPlaneExclusionReading.swift#69d681f1894819fdcbcfb81d9eb8e0dbd2fa7c336bf9c05097307d90f00ff39d": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/69d681f1894819fdcbcfb81d9eb8e0dbd2fa7c336bf9c05097307d90f00ff39d.swift",
+      "sha256": "69d681f1894819fdcbcfb81d9eb8e0dbd2fa7c336bf9c05097307d90f00ff39d",
+      "bytes": 32043,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCertifiedApexPlaneExclusionReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalCertifiedApexPlanePublicProducer.swift#ec5b43895be101410a206c8bcf609009f52903aa3bc46d6827a75b6e28a76dd1": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ec5b43895be101410a206c8bcf609009f52903aa3bc46d6827a75b6e28a76dd1.swift",
+      "sha256": "ec5b43895be101410a206c8bcf609009f52903aa3bc46d6827a75b6e28a76dd1",
+      "bytes": 4676,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalCertifiedApexPlanePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCertifiedApexPlanePublicProducer.swift#1ac637e7a2c3aae391960820c69e2cce51958091e6b7a786c5facb01ab5f9e03": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1ac637e7a2c3aae391960820c69e2cce51958091e6b7a786c5facb01ab5f9e03.swift",
+      "sha256": "1ac637e7a2c3aae391960820c69e2cce51958091e6b7a786c5facb01ab5f9e03",
+      "bytes": 36197,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCertifiedApexPlanePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalCompleteCurveGraphDomainCover.swift#9d78ed299b3b15af799c287c7a156de3646f04c5915258c49fd766cd31b8de75": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9d78ed299b3b15af799c287c7a156de3646f04c5915258c49fd766cd31b8de75.swift",
+      "sha256": "9d78ed299b3b15af799c287c7a156de3646f04c5915258c49fd766cd31b8de75",
+      "bytes": 1133,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalCompleteCurveGraphDomainCover.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCompleteCurveGraphDomainCover.swift#a142d41a6905604533f7c3c51b8dba1e2ee445160db10040469168a605ec47d2": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a142d41a6905604533f7c3c51b8dba1e2ee445160db10040469168a605ec47d2.swift",
+      "sha256": "a142d41a6905604533f7c3c51b8dba1e2ee445160db10040469168a605ec47d2",
+      "bytes": 32654,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCompleteCurveGraphDomainCover.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalCompleteCurveGraphFamilyPreparing.swift#f2da92294a8696db36bc22faa05ff015fd71a0e8e37ef16f2584fc4d5b5fd89f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f2da92294a8696db36bc22faa05ff015fd71a0e8e37ef16f2584fc4d5b5fd89f.swift",
+      "sha256": "f2da92294a8696db36bc22faa05ff015fd71a0e8e37ef16f2584fc4d5b5fd89f",
+      "bytes": 819,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalCompleteCurveGraphFamilyPreparing.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCompleteCurveGraphFamilyPreparing.swift#420898e99a15af3c6f658fee4d7fe99343f4af1ddb8ef137b0c317c039858560": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/420898e99a15af3c6f658fee4d7fe99343f4af1ddb8ef137b0c317c039858560.swift",
+      "sha256": "420898e99a15af3c6f658fee4d7fe99343f4af1ddb8ef137b0c317c039858560",
+      "bytes": 32340,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalCompleteCurveGraphFamilyPreparing.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultOriginalCompleteCurveGraphFamilyPreparer.swift#2dc3ed2fc6ceb23354b4065efeae47dcaaa3806a7433443f8943de65f422cf16": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2dc3ed2fc6ceb23354b4065efeae47dcaaa3806a7433443f8943de65f422cf16.swift",
+      "sha256": "2dc3ed2fc6ceb23354b4065efeae47dcaaa3806a7433443f8943de65f422cf16",
+      "bytes": 4091,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultOriginalCompleteCurveGraphFamilyPreparer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultOriginalCompleteCurveGraphFamilyPreparer.swift#e29ab42e6c8e4fdf2f044bb3c029debc0ef2bbbc80697294d1fecd5a32d70354": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e29ab42e6c8e4fdf2f044bb3c029debc0ef2bbbc80697294d1fecd5a32d70354.swift",
+      "sha256": "e29ab42e6c8e4fdf2f044bb3c029debc0ef2bbbc80697294d1fecd5a32d70354",
+      "bytes": 35612,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultOriginalCompleteCurveGraphFamilyPreparer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRationalGraphCurvePointEvaluating.swift#fdba8d3e5922a98ef01bbf652d3213ba2e33bd51d75394362ac04d151aba07f3": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/fdba8d3e5922a98ef01bbf652d3213ba2e33bd51d75394362ac04d151aba07f3.swift",
+      "sha256": "fdba8d3e5922a98ef01bbf652d3213ba2e33bd51d75394362ac04d151aba07f3",
+      "bytes": 1409,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRationalGraphCurvePointEvaluating.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRationalGraphCurvePointEvaluating.swift#426e590bfe24d66df1b2053f238f1a0ac3cfa55c4ad0c43dde913d8554f48e80": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/426e590bfe24d66df1b2053f238f1a0ac3cfa55c4ad0c43dde913d8554f48e80.swift",
+      "sha256": "426e590bfe24d66df1b2053f238f1a0ac3cfa55c4ad0c43dde913d8554f48e80",
+      "bytes": 32930,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRationalGraphCurvePointEvaluating.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRationalGraphPointAccess.swift#d9f99fffb1b8d523ff95ecf3b282a402a0ad6bcb542d447bbd8b6109c9cf807a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d9f99fffb1b8d523ff95ecf3b282a402a0ad6bcb542d447bbd8b6109c9cf807a.swift",
+      "sha256": "d9f99fffb1b8d523ff95ecf3b282a402a0ad6bcb542d447bbd8b6109c9cf807a",
+      "bytes": 5328,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRationalGraphPointAccess.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRationalGraphPointAccess.swift#cca2ec52722e22f4f9e29f9bffa69a1687165e6d5efcf42b550c6e0c2eee39a9": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/cca2ec52722e22f4f9e29f9bffa69a1687165e6d5efcf42b550c6e0c2eee39a9.swift",
+      "sha256": "cca2ec52722e22f4f9e29f9bffa69a1687165e6d5efcf42b550c6e0c2eee39a9",
+      "bytes": 36849,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRationalGraphPointAccess.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIdentityRationalGraphCurvePointEvaluator.swift#a3c904157cfdc705cfc2bca8b2d535ba2f5a18461fa6e85a97761f92fdca3905": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a3c904157cfdc705cfc2bca8b2d535ba2f5a18461fa6e85a97761f92fdca3905.swift",
+      "sha256": "a3c904157cfdc705cfc2bca8b2d535ba2f5a18461fa6e85a97761f92fdca3905",
+      "bytes": 1796,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIdentityRationalGraphCurvePointEvaluator.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIdentityRationalGraphCurvePointEvaluator.swift#e8380e5121b27dfa76bbc669e95c9ddb429de33fde9ba878360bb2247c97738a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e8380e5121b27dfa76bbc669e95c9ddb429de33fde9ba878360bb2247c97738a.swift",
+      "sha256": "e8380e5121b27dfa76bbc669e95c9ddb429de33fde9ba878360bb2247c97738a",
+      "bytes": 33317,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIdentityRationalGraphCurvePointEvaluator.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitCurvePointEvaluator.swift#2eac2ef7531e17569a410622818a74964e1794b9fd41f52f244c7d34510547f8": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2eac2ef7531e17569a410622818a74964e1794b9fd41f52f244c7d34510547f8.swift",
+      "sha256": "2eac2ef7531e17569a410622818a74964e1794b9fd41f52f244c7d34510547f8",
+      "bytes": 10871,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitCurvePointEvaluator.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitCurvePointEvaluator.swift#6a54cc3280308188a6c31476496ca81afa4dc9e7feb76f496186443f6d12cb11": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6a54cc3280308188a6c31476496ca81afa4dc9e7feb76f496186443f6d12cb11.swift",
+      "sha256": "6a54cc3280308188a6c31476496ca81afa4dc9e7feb76f496186443f6d12cb11",
+      "bytes": 42392,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitCurvePointEvaluator.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitCurvePointPublisher.swift#a36321c123b8b4127dd8e7e3af5944fd7cf6f8ddcb1a80a4016ba4b204efe359": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a36321c123b8b4127dd8e7e3af5944fd7cf6f8ddcb1a80a4016ba4b204efe359.swift",
+      "sha256": "a36321c123b8b4127dd8e7e3af5944fd7cf6f8ddcb1a80a4016ba4b204efe359",
+      "bytes": 1337,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitCurvePointPublisher.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitCurvePointPublisher.swift#a080cd9bf453375c5e6b35af7664bc6c0573f397464a48a62fc9cdbf045488d4": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a080cd9bf453375c5e6b35af7664bc6c0573f397464a48a62fc9cdbf045488d4.swift",
+      "sha256": "a080cd9bf453375c5e6b35af7664bc6c0573f397464a48a62fc9cdbf045488d4",
+      "bytes": 32858,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitCurvePointPublisher.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitCurvePublicProducer.swift#e54826ec13073bfa4c61ad99263562bf8bba78b34f6bf65c5aba2d876c64555a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e54826ec13073bfa4c61ad99263562bf8bba78b34f6bf65c5aba2d876c64555a.swift",
+      "sha256": "e54826ec13073bfa4c61ad99263562bf8bba78b34f6bf65c5aba2d876c64555a",
+      "bytes": 14832,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitCurvePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitCurvePublicProducer.swift#5ba267dcd26f1d25e219cfa43ffe31645eb1c81b1b459ee2a2b5a7f3f36abcf2": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/5ba267dcd26f1d25e219cfa43ffe31645eb1c81b1b459ee2a2b5a7f3f36abcf2.swift",
+      "sha256": "5ba267dcd26f1d25e219cfa43ffe31645eb1c81b1b459ee2a2b5a7f3f36abcf2",
+      "bytes": 46353,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitCurvePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitCurveRelationReading.swift#1243523c57b4bbfd66bf67935b968e8d628016eefcaf07f1e20008637910d4b0": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1243523c57b4bbfd66bf67935b968e8d628016eefcaf07f1e20008637910d4b0.swift",
+      "sha256": "1243523c57b4bbfd66bf67935b968e8d628016eefcaf07f1e20008637910d4b0",
+      "bytes": 1238,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitCurveRelationReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitCurveRelationReading.swift#0b9949f91ea4a7be8d912a8f5af15c9bd699a5bcbe8012b2fa0b1a12ca3cafa5": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0b9949f91ea4a7be8d912a8f5af15c9bd699a5bcbe8012b2fa0b1a12ca3cafa5.swift",
+      "sha256": "0b9949f91ea4a7be8d912a8f5af15c9bd699a5bcbe8012b2fa0b1a12ca3cafa5",
+      "bytes": 32759,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitCurveRelationReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitCurveRelations.swift#b972eeee9055ba741b1cefd9b612b9fdf9f8a6a4ed9533140b2551ade584895a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b972eeee9055ba741b1cefd9b612b9fdf9f8a6a4ed9533140b2551ade584895a.swift",
+      "sha256": "b972eeee9055ba741b1cefd9b612b9fdf9f8a6a4ed9533140b2551ade584895a",
+      "bytes": 2121,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitCurveRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitCurveRelations.swift#6035f18ccc0d12878ff4833f98e5c032b8760cb48f3008cde44358102c858119": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6035f18ccc0d12878ff4833f98e5c032b8760cb48f3008cde44358102c858119.swift",
+      "sha256": "6035f18ccc0d12878ff4833f98e5c032b8760cb48f3008cde44358102c858119",
+      "bytes": 33642,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitCurveRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRationalGraphPointPublisher.swift#0773e7ea0f54f1de63871c96b9a88ad5369a6e2321f421404181bee34c549c30": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0773e7ea0f54f1de63871c96b9a88ad5369a6e2321f421404181bee34c549c30.swift",
+      "sha256": "0773e7ea0f54f1de63871c96b9a88ad5369a6e2321f421404181bee34c549c30",
+      "bytes": 15843,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRationalGraphPointPublisher.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRationalGraphPointPublisher.swift#6f38211e02fe83b2df605e141be9175c71646b962eced113153d89b3d93a8daa": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6f38211e02fe83b2df605e141be9175c71646b962eced113153d89b3d93a8daa.swift",
+      "sha256": "6f38211e02fe83b2df605e141be9175c71646b962eced113153d89b3d93a8daa",
+      "bytes": 47364,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalRationalGraphPointPublisher.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalDraftedZeroLinePublicProducer.swift#3bdab08bfb4ac499d222805ea9b8ef8533a015c2075dda47bfdbbd2ad8ebf35a": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/3bdab08bfb4ac499d222805ea9b8ef8533a015c2075dda47bfdbbd2ad8ebf35a.swift",
+      "sha256": "3bdab08bfb4ac499d222805ea9b8ef8533a015c2075dda47bfdbbd2ad8ebf35a",
+      "bytes": 10706,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalDraftedZeroLinePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalDraftedZeroLinePublicProducer.swift#49c50652925ad20137fccebf3383f1745d1d666f8c9a336e3b4b527f2a32ba22": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/49c50652925ad20137fccebf3383f1745d1d666f8c9a336e3b4b527f2a32ba22.swift",
+      "sha256": "49c50652925ad20137fccebf3383f1745d1d666f8c9a336e3b4b527f2a32ba22",
+      "bytes": 42227,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalDraftedZeroLinePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricRelations.swift#ba08c238eb8423e598859f24a91f10c0cded237699330650c2e73aef77d73daa": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ba08c238eb8423e598859f24a91f10c0cded237699330650c2e73aef77d73daa.swift",
+      "sha256": "ba08c238eb8423e598859f24a91f10c0cded237699330650c2e73aef77d73daa",
+      "bytes": 1269,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedGeometricRelations.swift#0f03bec8ac7768f1bcf514b50fb230e502331a044b7d50ef027ba6c144fca973": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0f03bec8ac7768f1bcf514b50fb230e502331a044b7d50ef027ba6c144fca973.swift",
+      "sha256": "0f03bec8ac7768f1bcf514b50fb230e502331a044b7d50ef027ba6c144fca973",
+      "bytes": 32790,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedGeometricRelations.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/DefaultOriginalIssuedGeometricRelationResolver.swift#58ee764d4aef928b70c81249efb6fc188319e0b1b4d3a204f76a9ac67fbea2f3": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/58ee764d4aef928b70c81249efb6fc188319e0b1b4d3a204f76a9ac67fbea2f3.swift",
+      "sha256": "58ee764d4aef928b70c81249efb6fc188319e0b1b4d3a204f76a9ac67fbea2f3",
+      "bytes": 1738,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/DefaultOriginalIssuedGeometricRelationResolver.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultOriginalIssuedGeometricRelationResolver.swift#c5dd855b9c88c155ee3f3b96795d84b12f87e2f4fefb7e68188e86dc4c3e8c61": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c5dd855b9c88c155ee3f3b96795d84b12f87e2f4fefb7e68188e86dc4c3e8c61.swift",
+      "sha256": "c5dd855b9c88c155ee3f3b96795d84b12f87e2f4fefb7e68188e86dc4c3e8c61",
+      "bytes": 33259,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/DefaultOriginalIssuedGeometricRelationResolver.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricRelationResolving.swift#1f38d157a527427319d9a4ce00e6f54a1a20851906f0be7b9b9d3fc46a7191b1": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/1f38d157a527427319d9a4ce00e6f54a1a20851906f0be7b9b9d3fc46a7191b1.swift",
+      "sha256": "1f38d157a527427319d9a4ce00e6f54a1a20851906f0be7b9b9d3fc46a7191b1",
+      "bytes": 695,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricRelationResolving.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedGeometricRelationResolving.swift#c2fd8a35bc619adaea3bb514e9cc76db02e2c1aeae2615380fdd3171fa97dca4": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/c2fd8a35bc619adaea3bb514e9cc76db02e2c1aeae2615380fdd3171fa97dca4.swift",
+      "sha256": "c2fd8a35bc619adaea3bb514e9cc76db02e2c1aeae2615380fdd3171fa97dca4",
+      "bytes": 32216,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedGeometricRelationResolving.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedNumericalCurveSurfacePoints.swift#5efafb3039ace1fee076a44dd39fb18a220d61709ca5cb04cbc99ed72be6caae": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/5efafb3039ace1fee076a44dd39fb18a220d61709ca5cb04cbc99ed72be6caae.swift",
+      "sha256": "5efafb3039ace1fee076a44dd39fb18a220d61709ca5cb04cbc99ed72be6caae",
+      "bytes": 813,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedNumericalCurveSurfacePoints.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedNumericalCurveSurfacePoints.swift#5f6897c5540f3409c72512a06195a29718390d24fc5ff98fd0e5133adcf28de3": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/5f6897c5540f3409c72512a06195a29718390d24fc5ff98fd0e5133adcf28de3.swift",
+      "sha256": "5f6897c5540f3409c72512a06195a29718390d24fc5ff98fd0e5133adcf28de3",
+      "bytes": 32334,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalIssuedNumericalCurveSurfacePoints.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalImplicitHostPlaneExclusion.swift#275c42a7dd5ed29b442804300feff37bf246de9616e0c35c511f0c937ade177c": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/275c42a7dd5ed29b442804300feff37bf246de9616e0c35c511f0c937ade177c.swift",
+      "sha256": "275c42a7dd5ed29b442804300feff37bf246de9616e0c35c511f0c937ade177c",
+      "bytes": 7476,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalImplicitHostPlaneExclusion.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitHostPlaneExclusion.swift#373d58c50a83e696ff7118d77550ec1254369aef068b868f96223a0b34621f11": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/373d58c50a83e696ff7118d77550ec1254369aef068b868f96223a0b34621f11.swift",
+      "sha256": "373d58c50a83e696ff7118d77550ec1254369aef068b868f96223a0b34621f11",
+      "bytes": 38997,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitHostPlaneExclusion.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitHostPlaneExclusionReading.swift#b6fbcdd6ea7dd488d36784241a7e56acff08f0f2cabb319c2b15451f1fb7ca6f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b6fbcdd6ea7dd488d36784241a7e56acff08f0f2cabb319c2b15451f1fb7ca6f.swift",
+      "sha256": "b6fbcdd6ea7dd488d36784241a7e56acff08f0f2cabb319c2b15451f1fb7ca6f",
+      "bytes": 517,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitHostPlaneExclusionReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitHostPlaneExclusionReading.swift#6427bcf5775335200c424eb1ab74461bfdc2ae866188023c4e23b5a9de59385f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6427bcf5775335200c424eb1ab74461bfdc2ae866188023c4e23b5a9de59385f.swift",
+      "sha256": "6427bcf5775335200c424eb1ab74461bfdc2ae866188023c4e23b5a9de59385f",
+      "bytes": 32038,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitHostPlaneExclusionReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitHostPlanePublicProducer.swift#8c7d9a9ee51f4b1ef8fae5b7261eeafdcd0857e9ece3ffd634ab83d932cb0bfe": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8c7d9a9ee51f4b1ef8fae5b7261eeafdcd0857e9ece3ffd634ab83d932cb0bfe.swift",
+      "sha256": "8c7d9a9ee51f4b1ef8fae5b7261eeafdcd0857e9ece3ffd634ab83d932cb0bfe",
+      "bytes": 4931,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitHostPlanePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitHostPlanePublicProducer.swift#b00af2e600acbbf5a6f17b069857207bc4969d4dac5e24ab57e253d856d03060": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b00af2e600acbbf5a6f17b069857207bc4969d4dac5e24ab57e253d856d03060.swift",
+      "sha256": "b00af2e600acbbf5a6f17b069857207bc4969d4dac5e24ab57e253d856d03060",
+      "bytes": 36452,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/OriginalImplicitHostPlanePublicProducer.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/upper-compile-receipt.json#8d146ffee76cc668aa3a936eef84ed08808325c5cc34e6683e78347f7eabb7f6": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8d146ffee76cc668aa3a936eef84ed08808325c5cc34e6683e78347f7eabb7f6.json",
+      "sha256": "8d146ffee76cc668aa3a936eef84ed08808325c5cc34e6683e78347f7eabb7f6",
+      "bytes": 959768,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/upper-compile-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/upper-command.json#7a928d5d867d57b00e24188dcc03d78d0177fbfd8e08245b229b842554628b45": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/7a928d5d867d57b00e24188dcc03d78d0177fbfd8e08245b229b842554628b45.json",
+      "sha256": "7a928d5d867d57b00e24188dcc03d78d0177fbfd8e08245b229b842554628b45",
+      "bytes": 15413,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/upper-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/upper-premises.json#fc999e530052932681abf7bf5f17fb24cb5518e45f8c1671bd2a6295209f91de": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/fc999e530052932681abf7bf5f17fb24cb5518e45f8c1671bd2a6295209f91de.json",
+      "sha256": "fc999e530052932681abf7bf5f17fb24cb5518e45f8c1671bd2a6295209f91de",
+      "bytes": 1104143,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/upper-premises.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/Proof.swift#01f67e81c57d5569e2493b6f8cef83c04ddba6d3c9bc971b9b3fb8bf3b100942": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/01f67e81c57d5569e2493b6f8cef83c04ddba6d3c9bc971b9b3fb8bf3b100942.swift",
+      "sha256": "01f67e81c57d5569e2493b6f8cef83c04ddba6d3c9bc971b9b3fb8bf3b100942",
+      "bytes": 73904,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/Proof.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/fixture-at-prepare.swift#99ccc84be6c329d37250832972af9520c737eba2ece80f54c7dc0ab8b3c17495": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/99ccc84be6c329d37250832972af9520c737eba2ece80f54c7dc0ab8b3c17495.swift",
+      "sha256": "99ccc84be6c329d37250832972af9520c737eba2ece80f54c7dc0ab8b3c17495",
+      "bytes": 42383,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/fixture-at-prepare.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/driver-at-prepare.py#f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842.py",
+      "sha256": "f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842",
+      "bytes": 14001,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/driver-at-prepare.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/driver-at-runtime.py#f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842.py",
+      "sha256": "f63e1495cc1b4e6e073134e51f0958455de3080b758d38e0a11a518396af5842",
+      "bytes": 14001,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/driver-at-runtime.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/freeze.json#b7c418c0108817499bf1168447805e1d16aa2cfafc0250f521d4c59f4b70f191": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/b7c418c0108817499bf1168447805e1d16aa2cfafc0250f521d4c59f4b70f191.json",
+      "sha256": "b7c418c0108817499bf1168447805e1d16aa2cfafc0250f521d4c59f4b70f191",
+      "bytes": 13467,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/freeze.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-complete-receipt.json#6f22224e63377fa59be715741c2cc81a4f0df7fc978c61e1d723e49aca1d1737": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/6f22224e63377fa59be715741c2cc81a4f0df7fc978c61e1d723e49aca1d1737.json",
+      "sha256": "6f22224e63377fa59be715741c2cc81a4f0df7fc978c61e1d723e49aca1d1737",
+      "bytes": 944337,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-complete-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-complete.log#73d8027261c3a3dbe22c8ed774a14ea8c2bdda758cf5c0c4cfad6b396d7c0ca4": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/73d8027261c3a3dbe22c8ed774a14ea8c2bdda758cf5c0c4cfad6b396d7c0ca4.log",
+      "sha256": "73d8027261c3a3dbe22c8ed774a14ea8c2bdda758cf5c0c4cfad6b396d7c0ca4",
+      "bytes": 101,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-complete.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-dispatch-receipt.json#4bf393cb697696109c496525974a38215897780573fb320b38bbd43637ca1a68": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4bf393cb697696109c496525974a38215897780573fb320b38bbd43637ca1a68.json",
+      "sha256": "4bf393cb697696109c496525974a38215897780573fb320b38bbd43637ca1a68",
+      "bytes": 944337,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-dispatch-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-dispatch.log#240d8561de854e04dfde72c347ef99fbe2e13f2be3368561e03e3638136a2630": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/240d8561de854e04dfde72c347ef99fbe2e13f2be3368561e03e3638136a2630.log",
+      "sha256": "240d8561de854e04dfde72c347ef99fbe2e13f2be3368561e03e3638136a2630",
+      "bytes": 104,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-dispatch.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-source-receipt.json#80501f229132386d16462927702f26e33f1433447a6fd854c8ee91d261345fe3": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/80501f229132386d16462927702f26e33f1433447a6fd854c8ee91d261345fe3.json",
+      "sha256": "80501f229132386d16462927702f26e33f1433447a6fd854c8ee91d261345fe3",
+      "bytes": 944333,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-source-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-source.log#8bbde67834f19e27924a3151fb44d300447db39b1e2094ee1a7b8a60d56a6261": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8bbde67834f19e27924a3151fb44d300447db39b1e2094ee1a7b8a60d56a6261.log",
+      "sha256": "8bbde67834f19e27924a3151fb44d300447db39b1e2094ee1a7b8a60d56a6261",
+      "bytes": 107,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-source.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/upper-compile-receipt.json#00501678f0eb799a8fdb27df0c5edebc34716ce341354d66ef92fde1c47d0179": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/00501678f0eb799a8fdb27df0c5edebc34716ce341354d66ef92fde1c47d0179.json",
+      "sha256": "00501678f0eb799a8fdb27df0c5edebc34716ce341354d66ef92fde1c47d0179",
+      "bytes": 960747,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/upper-compile-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/upper-command.json#4893ddf415d9c1809cf6c1c8e60eef67e2c24bf973c64c86549c05ed0af7c590": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4893ddf415d9c1809cf6c1c8e60eef67e2c24bf973c64c86549c05ed0af7c590.json",
+      "sha256": "4893ddf415d9c1809cf6c1c8e60eef67e2c24bf973c64c86549c05ed0af7c590",
+      "bytes": 15413,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/upper-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/upper-premises.json#8a1842a65c0132b9a40cff2be03f173740e8c6b0e42241a5fd7cbdb21716eea6": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/8a1842a65c0132b9a40cff2be03f173740e8c6b0e42241a5fd7cbdb21716eea6.json",
+      "sha256": "8a1842a65c0132b9a40cff2be03f173740e8c6b0e42241a5fd7cbdb21716eea6",
+      "bytes": 1105222,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/upper-premises.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/Proof.swift#34c95b05d12da382ce4deb7d5905f062a917bd46dc9e5e86cd329b1ea5cb053e": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/34c95b05d12da382ce4deb7d5905f062a917bd46dc9e5e86cd329b1ea5cb053e.swift",
+      "sha256": "34c95b05d12da382ce4deb7d5905f062a917bd46dc9e5e86cd329b1ea5cb053e",
+      "bytes": 73895,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/Proof.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/fixture-at-prepare.swift#0b60478d73c121bc6c1071211f61306e2e3c9584ec4a8f179f7ac1ccbef216d1": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0b60478d73c121bc6c1071211f61306e2e3c9584ec4a8f179f7ac1ccbef216d1.swift",
+      "sha256": "0b60478d73c121bc6c1071211f61306e2e3c9584ec4a8f179f7ac1ccbef216d1",
+      "bytes": 42374,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/fixture-at-prepare.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/driver-at-prepare.py#a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290.py",
+      "sha256": "a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290",
+      "bytes": 14087,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/driver-at-prepare.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/driver-at-runtime.py#a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290.py",
+      "sha256": "a655dfc2c30782e71dcce195a0145ad4800595179de952d52ea0fd29d8f7b290",
+      "bytes": 14087,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/driver-at-runtime.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/freeze.json#ec8d3e1334896b8b84b1592bfc8cdcf8d13bbff3b17570c078ab5ef01412eddc": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ec8d3e1334896b8b84b1592bfc8cdcf8d13bbff3b17570c078ab5ef01412eddc.json",
+      "sha256": "ec8d3e1334896b8b84b1592bfc8cdcf8d13bbff3b17570c078ab5ef01412eddc",
+      "bytes": 13467,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/freeze.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-requests-receipt.json#e9e602b9392a69bb44f696bb483369051a8dc3aaae7e840cfe815975a8265215": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e9e602b9392a69bb44f696bb483369051a8dc3aaae7e840cfe815975a8265215.json",
+      "sha256": "e9e602b9392a69bb44f696bb483369051a8dc3aaae7e840cfe815975a8265215",
+      "bytes": 945304,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-requests-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-requests.log#9951284c5ff7c5f7f6fb4a38c4db74538b6abe547da03aaf5d9e1c33b049a11f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9951284c5ff7c5f7f6fb4a38c4db74538b6abe547da03aaf5d9e1c33b049a11f.log",
+      "sha256": "9951284c5ff7c5f7f6fb4a38c4db74538b6abe547da03aaf5d9e1c33b049a11f",
+      "bytes": 116,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-requests.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-readmission-receipt.json#291d0fa8ff9081bff4e70368c5d4f4fe35397fc4c6fa13a850b3a08fdb310b8e": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/291d0fa8ff9081bff4e70368c5d4f4fe35397fc4c6fa13a850b3a08fdb310b8e.json",
+      "sha256": "291d0fa8ff9081bff4e70368c5d4f4fe35397fc4c6fa13a850b3a08fdb310b8e",
+      "bytes": 945310,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-readmission-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-readmission.log#47094608e39500054ef27b8a6909cae279887ed2383b817c7cc9f2d016d3def3": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/47094608e39500054ef27b8a6909cae279887ed2383b817c7cc9f2d016d3def3.log",
+      "sha256": "47094608e39500054ef27b8a6909cae279887ed2383b817c7cc9f2d016d3def3",
+      "bytes": 232,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-readmission.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-entry-receipt.json#4653e679570bfe767c3090621c2fed3f6e829e81f5bebf5e629465fb86bf732f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4653e679570bfe767c3090621c2fed3f6e829e81f5bebf5e629465fb86bf732f.json",
+      "sha256": "4653e679570bfe767c3090621c2fed3f6e829e81f5bebf5e629465fb86bf732f",
+      "bytes": 945312,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-entry-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-entry.log#053dc81d1e62aaa920aff06b8c41010e8fa1c697dd9f8d29d6ea7bd5b3e88440": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/053dc81d1e62aaa920aff06b8c41010e8fa1c697dd9f8d29d6ea7bd5b3e88440.log",
+      "sha256": "053dc81d1e62aaa920aff06b8c41010e8fa1c697dd9f8d29d6ea7bd5b3e88440",
+      "bytes": 57,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-entry.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-final-receipt.json#394f8b3be6913486eb130bb423ddd94ec4cb5c12e09a709b76051a9d3bda5bf7": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/394f8b3be6913486eb130bb423ddd94ec4cb5c12e09a709b76051a9d3bda5bf7.json",
+      "sha256": "394f8b3be6913486eb130bb423ddd94ec4cb5c12e09a709b76051a9d3bda5bf7",
+      "bytes": 945312,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-final-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-final.log#167e871a081e1a17c62684e3be3ca593a3c106c235efa01794f515422d39b5b3": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/167e871a081e1a17c62684e3be3ca593a3c106c235efa01794f515422d39b5b3.log",
+      "sha256": "167e871a081e1a17c62684e3be3ca593a3c106c235efa01794f515422d39b5b3",
+      "bytes": 64,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-final.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-reader-receipt.json#93200f800f95bd098fbb76163dfda528d3beaa85cb7c4680ed5e409dc85ce89d": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/93200f800f95bd098fbb76163dfda528d3beaa85cb7c4680ed5e409dc85ce89d.json",
+      "sha256": "93200f800f95bd098fbb76163dfda528d3beaa85cb7c4680ed5e409dc85ce89d",
+      "bytes": 945314,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-reader-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-reader.log#cc8fdbaf721370be5c2e3b9491c22e79ec1dcffe38e68409aa3639c6d8ba260f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/cc8fdbaf721370be5c2e3b9491c22e79ec1dcffe38e68409aa3639c6d8ba260f.log",
+      "sha256": "cc8fdbaf721370be5c2e3b9491c22e79ec1dcffe38e68409aa3639c6d8ba260f",
+      "bytes": 77,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-cancel-reader.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-lifetime-receipt.json#2385769a9d452d7173bf5f00ce48a677ee965f6c5a0732113c37ecde7fabfefd": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2385769a9d452d7173bf5f00ce48a677ee965f6c5a0732113c37ecde7fabfefd.json",
+      "sha256": "2385769a9d452d7173bf5f00ce48a677ee965f6c5a0732113c37ecde7fabfefd",
+      "bytes": 945304,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-lifetime-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-lifetime.log#45765eba92bb30e7d74c56a86d41f26f31f4958d8b340854462accda67b824e1": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/45765eba92bb30e7d74c56a86d41f26f31f4958d8b340854462accda67b824e1.log",
+      "sha256": "45765eba92bb30e7d74c56a86d41f26f31f4958d8b340854462accda67b824e1",
+      "bytes": 93,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-lifetime.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-changed-controls-receipt.json#2d3f9c539fd73237215b488c3097f0bd7ed8658c91dd9fa63b001c1825386576": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/2d3f9c539fd73237215b488c3097f0bd7ed8658c91dd9fa63b001c1825386576.json",
+      "sha256": "2d3f9c539fd73237215b488c3097f0bd7ed8658c91dd9fa63b001c1825386576",
+      "bytes": 945320,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-changed-controls-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-changed-controls.log#eeb63df05e558f380a00180c638948419a090d2460ba6fb035e26e97e51fd196": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/eeb63df05e558f380a00180c638948419a090d2460ba6fb035e26e97e51fd196.log",
+      "sha256": "eeb63df05e558f380a00180c638948419a090d2460ba6fb035e26e97e51fd196",
+      "bytes": 83,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-changed-controls.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/upper-compile-receipt.json#d3896313328c8d70a527882dedbee69e5ea92c326ec2da6afa1b9da272cfd350": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d3896313328c8d70a527882dedbee69e5ea92c326ec2da6afa1b9da272cfd350.json",
+      "sha256": "d3896313328c8d70a527882dedbee69e5ea92c326ec2da6afa1b9da272cfd350",
+      "bytes": 961701,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/upper-compile-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/upper-command.json#4950f5c307bce1a55b15bd416d2e778f8e1da6a005f9765a965e19c48ce33a35": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4950f5c307bce1a55b15bd416d2e778f8e1da6a005f9765a965e19c48ce33a35.json",
+      "sha256": "4950f5c307bce1a55b15bd416d2e778f8e1da6a005f9765a965e19c48ce33a35",
+      "bytes": 15413,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/upper-command.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/upper-premises.json#48a9f54142e67798bbfc53bf0dc198b35655ff4f6f016fbbe33f67be97fd8443": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/48a9f54142e67798bbfc53bf0dc198b35655ff4f6f016fbbe33f67be97fd8443.json",
+      "sha256": "48a9f54142e67798bbfc53bf0dc198b35655ff4f6f016fbbe33f67be97fd8443",
+      "bytes": 1106272,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/upper-premises.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/Proof.swift#f9bc94c72fe55aed7d346065a8648eeb761aadcf11b6ae5013c4d8e6640812ad": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f9bc94c72fe55aed7d346065a8648eeb761aadcf11b6ae5013c4d8e6640812ad.swift",
+      "sha256": "f9bc94c72fe55aed7d346065a8648eeb761aadcf11b6ae5013c4d8e6640812ad",
+      "bytes": 73988,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/Proof.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/fixture-at-prepare.swift#abc7c5921fd75f5336d142856591c3ee75c65139c89e4b42e7987a28adf95a51": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/abc7c5921fd75f5336d142856591c3ee75c65139c89e4b42e7987a28adf95a51.swift",
+      "sha256": "abc7c5921fd75f5336d142856591c3ee75c65139c89e4b42e7987a28adf95a51",
+      "bytes": 42467,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/fixture-at-prepare.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/driver-at-prepare.py#e9219e391ce55bf205614a7c1bdaf13d1d5bd2c64aa8b15db93402ad6dab63ec": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e9219e391ce55bf205614a7c1bdaf13d1d5bd2c64aa8b15db93402ad6dab63ec.py",
+      "sha256": "e9219e391ce55bf205614a7c1bdaf13d1d5bd2c64aa8b15db93402ad6dab63ec",
+      "bytes": 14171,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/driver-at-prepare.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/driver-at-runtime.py#e9219e391ce55bf205614a7c1bdaf13d1d5bd2c64aa8b15db93402ad6dab63ec": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/e9219e391ce55bf205614a7c1bdaf13d1d5bd2c64aa8b15db93402ad6dab63ec.py",
+      "sha256": "e9219e391ce55bf205614a7c1bdaf13d1d5bd2c64aa8b15db93402ad6dab63ec",
+      "bytes": 14171,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/driver-at-runtime.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/freeze.json#9b5192c66e9607695d15b29e11625131d2e1522fa5070add9975d084b5ed259d": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9b5192c66e9607695d15b29e11625131d2e1522fa5070add9975d084b5ed259d.json",
+      "sha256": "9b5192c66e9607695d15b29e11625131d2e1522fa5070add9975d084b5ed259d",
+      "bytes": 13467,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/freeze.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/runtime-resources-receipt.json#553d68e9dc50d4f56d791f5b044b4c6e5aad1c2fb61737aa036da95ae3df2199": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/553d68e9dc50d4f56d791f5b044b4c6e5aad1c2fb61737aa036da95ae3df2199.json",
+      "sha256": "553d68e9dc50d4f56d791f5b044b4c6e5aad1c2fb61737aa036da95ae3df2199",
+      "bytes": 946273,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/runtime-resources-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/runtime-resources.log#4421889d8c68e3da22d872e56d6558f57bf2f865bf8c302e01b6bc172e9df987": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/4421889d8c68e3da22d872e56d6558f57bf2f865bf8c302e01b6bc172e9df987.log",
+      "sha256": "4421889d8c68e3da22d872e56d6558f57bf2f865bf8c302e01b6bc172e9df987",
+      "bytes": 248,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/runtime-resources.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/upper-compile-receipt.json#febeef2bce7711db2afbfac1878cadf6c6b161b1a95de96a54338f0c6abb0b0e": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/febeef2bce7711db2afbfac1878cadf6c6b161b1a95de96a54338f0c6abb0b0e.json",
+      "sha256": "febeef2bce7711db2afbfac1878cadf6c6b161b1a95de96a54338f0c6abb0b0e",
+      "bytes": 958596,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/upper-compile-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/upper-compile.log#959d83e62216a915da79a5a9a556204c8eb0f934184353be65f769d6ebc199cb": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/959d83e62216a915da79a5a9a556204c8eb0f934184353be65f769d6ebc199cb.log",
+      "sha256": "959d83e62216a915da79a5a9a556204c8eb0f934184353be65f769d6ebc199cb",
+      "bytes": 1450,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/upper-compile.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/fixture-at-prepare.swift#ceed1b2d090921350fac3c320f2923cae9950bff291b51973b1125efb40fa956": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ceed1b2d090921350fac3c320f2923cae9950bff291b51973b1125efb40fa956.swift",
+      "sha256": "ceed1b2d090921350fac3c320f2923cae9950bff291b51973b1125efb40fa956",
+      "bytes": 42401,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/fixture-at-prepare.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/driver-at-prepare.py#ce9f37fdeac84311dfaa6e40fcaa08d87b008964eecdb1a5543d89dc66410570": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/ce9f37fdeac84311dfaa6e40fcaa08d87b008964eecdb1a5543d89dc66410570.py",
+      "sha256": "ce9f37fdeac84311dfaa6e40fcaa08d87b008964eecdb1a5543d89dc66410570",
+      "bytes": 11594,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v1/driver-at-prepare.py"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-requests-receipt.json#0a352fe340bf8a6f6ee0c483b90e573121f88fbbbf5bd8b6cb07ae291837fd51": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/0a352fe340bf8a6f6ee0c483b90e573121f88fbbbf5bd8b6cb07ae291837fd51.json",
+      "sha256": "0a352fe340bf8a6f6ee0c483b90e573121f88fbbbf5bd8b6cb07ae291837fd51",
+      "bytes": 944337,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-requests-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-requests.log#13baad4a69a57c11d2e21a2666bf109c91aca2f7dc8bf12df68b06860cc4937f": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/13baad4a69a57c11d2e21a2666bf109c91aca2f7dc8bf12df68b06860cc4937f.log",
+      "sha256": "13baad4a69a57c11d2e21a2666bf109c91aca2f7dc8bf12df68b06860cc4937f",
+      "bytes": 60,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v2/runtime-requests.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-resources-receipt.json#d347631fe0cc8bf9f727e5100523577de4419f3bf1a58a4840216c1b4128abf5": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/d347631fe0cc8bf9f727e5100523577de4419f3bf1a58a4840216c1b4128abf5.json",
+      "sha256": "d347631fe0cc8bf9f727e5100523577de4419f3bf1a58a4840216c1b4128abf5",
+      "bytes": 945307,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-resources-receipt.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-resources.log#f0f0b734cb105d8b4b194d8357e6e20000dbd3ff3846ef291980703e251173ea": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/f0f0b734cb105d8b4b194d8357e6e20000dbd3ff3846ef291980703e251173ea.log",
+      "sha256": "f0f0b734cb105d8b4b194d8357e6e20000dbd3ff3846ef291980703e251173ea",
+      "bytes": 149,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/runtime-resources.log"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/fixture-correction.json#51bc6437ae9fe0d3b37f85a78c9e02fd8504ce258d319ae15253873422784f79": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/51bc6437ae9fe0d3b37f85a78c9e02fd8504ce258d319ae15253873422784f79.json",
+      "sha256": "51bc6437ae9fe0d3b37f85a78c9e02fd8504ce258d319ae15253873422784f79",
+      "bytes": 908,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v3/fixture-correction.json"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/fixture-correction.json#9b96e8dad0adb3215ef08e387f979f0c1317a8467e69c8c87cdaa254678fa3be": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-IMPLICIT-CLOSED-PLANE-EMPTY-01/acceptance/cas/9b96e8dad0adb3215ef08e387f979f0c1317a8467e69c8c87cdaa254678fa3be.json",
+      "sha256": "9b96e8dad0adb3215ef08e387f979f0c1317a8467e69c8c87cdaa254678fa3be",
+      "bytes": 1908,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-implicit-closed-acceptance-native-20261013-v4/fixture-correction.json"
+    }
+  }
+}

@@ -14,6 +14,10 @@ struct OriginalImplicitCurvePublicProducer {
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil,
         retainingRelations: Bool = false) throws -> CurveSurfaceIntersectionResult? {
+        if let excluded = try OriginalImplicitHostPlanePublicProducer().resolve(
+            curve: curve, surface: surface, options: options, tolerance: tolerance, invocation: invocation) {
+            return excluded
+        }
         // FIXME(INCOMPLETE_IMPLEMENTATION): The ordinary implicit selector consumes
         // only the source-owned finite forward axis-separated Native cell capability.
         // Other implicit branches require complete original graph/coverage authority.
