@@ -1,0 +1,17 @@
+{
+  "cell": "CS-IMPLICIT-CLOSED-PLANE-EMPTY-01",
+  "success": true,
+  "implementation": "57be04fa5a83914c8692af99592296f28b499ce8",
+  "baseline": "db25eebec9b323d502faddb38232f26fff84460c",
+  "summarySHA256": "d434922e6db74bf21baa7f1e4ab7fdf2c27c41a17bf5d2442df2b303f86681b7",
+  "manifestSHA256": "126b6fd82a9db95b8f019e3a72b46d02840703ad0bcbaf1ccd257aa9b5d8006a",
+  "reviewSHA256": "1a9acd950e50375d18416c612edb34fb6863f91ac7ff4d8712372052a1ceba7a",
+  "durableFilesChecked": 1577,
+  "freshBodiesChecked": 66,
+  "acceptedRuntimeGroups": 44,
+  "changedPathsChecked": 506,
+  "build": 0,
+  "runtime": 0,
+  "protectedDraftUnchanged": true,
+  "pushPerformed": false
+}
