@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/nonlinear-collapse-20261013/red/Proof"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.8268086669268087,
+  "peakRSSBytes": 32768,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "4fabde8d4b2c83ba2556bbbf821fb28935ab82c3deca4eb76ef49177fa77c26b"
+}

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/nonlinear-collapse-20261013/validator-cancel-red/Proof"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.823221999919042,
+  "peakRSSBytes": 32768,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "888662d4b4aaa03bbe8b32bf434916a96fe28df6eafe6cdf70367edac6c3dd99"
+}

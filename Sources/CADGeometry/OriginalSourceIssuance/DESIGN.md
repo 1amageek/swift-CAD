@@ -1415,15 +1415,39 @@ This source intake alone does not establish complete public intersection success
 
 ## Native surface lift graph supply
 
+### Complete polynomial lift law for rational child composition
+
+`OriginalPolynomialNativeLiftChartIssuing` consumes an already issued complete
+Native lift graph family. Its finite capability requires one whole nonperiodic
+surface chart and one whole pcurve chart. The sealed family and Native snapshot
+prove whole traversal coverage: the original pcurve image lies inside Native
+support, positive original spline weights keep both denominators nonzero, and
+the sole closed charts include every incident point. The existing checked
+polynomial lift reducer supplies the unique forward auxiliary correspondence.
+These assumptions establish every original graph guard throughout [0,1]; no
+sampled guard test or bounding enclosure grants this authority.
+
+The issued rational law's selection retains the complete family and reduction,
+including every original condition and nonlinear UV law. The rational law is
+valid on full normalized T support and retains the original lift source owner;
+ruled composition therefore consumes the existing producer rather than fitting
+a constant XYZ curve. Multiple charts, periodic hosts and non-polynomial
+auxiliary equations remain explicitly unsupported by this bridge, not absent
+intersections. The nonlinear-collapse acceptance owns this bridge's downstream
+ruled/DI/identity/self-contact behavior and resource/owner refusal evidence.
+
 The lift source owner retains the actual `SurfaceLiftCurve3D`, a validated Native
 surface binding and a validated rational B-spline pcurve binding. The 2D source
 reader exposes original U/V controls and exact zero as its third homogeneous
 coordinate; it never fits or constructs a replacement XYZ curve. This finite
 capability requires nonperiodic Native children and no priority B-spline image.
-The pcurve control hull must lie inside exact Native support: positive weights
-then prove that no legacy tolerance-driven UV clamp participates. Control hulls
-outside exact support remain unsupported pending full correspondence, even when
-the numerical evaluator accepts/clamps them. Other pcurve/surface variants and a priority image without retained equality proof
+The pcurve image must lie inside exact Native support. A contained positive-weight
+control hull remains sufficient. A single clamped equal-positive-weight quadratic
+also consumes the whole-image extremum proof owned by
+[source validation](../OriginalGeometrySourceValidation/DESIGN.md#exact-quadratic-pcurve-image-admission),
+so an outlying control point alone does not reject an original curve whose entire
+image is contained. Unproved out-of-support hulls remain unsupported; numerical
+tolerance or clamping cannot supply correspondence. Other pcurve/surface variants and a priority image without retained equality proof
 fail explicitly and remain required unfinished family work.
 
 ```mermaid

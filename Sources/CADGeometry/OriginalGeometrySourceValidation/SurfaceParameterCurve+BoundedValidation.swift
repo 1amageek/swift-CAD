@@ -66,6 +66,18 @@ extension SurfaceParameterCurve {
             guard length > Double.ulpOfOne else { throw GeometryError.invalidDistance(length) }
         case .bSpline(let curve):
             try curve.validate(tolerance: tolerance, consumeWork: { try consumeWork(0) })
+            try surface.uDomain.validate(tolerance: tolerance)
+            try surface.vDomain.validate(tolerance: tolerance)
+            let contained = try withoutActuallyEscaping(consumeWork) { visit in
+                var usage = OriginalGeometryValidationAdmission(consumeWork: visit,
+                    consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                return try OriginalQuadraticPcurveContainment.contains(curve,
+                    u: surface.uDomain, v: surface.vDomain, using: &usage)
+            }
+            if contained == true {
+                try CurrentTaskCancellationChecker().checkCancellation()
+                return
+            }
             for point in curve.controlPoints { try parameter(.init(u: point.x, v: point.y)) }
         case .originalAffineWord(let image):
             guard remainingSourceDepth > 0 else {

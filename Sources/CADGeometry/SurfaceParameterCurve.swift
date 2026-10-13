@@ -220,6 +220,16 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
             }
         case let .bSpline(curve):
             try curve.validate(tolerance: tolerance)
+            try surface.uDomain.validate(tolerance: tolerance)
+            try surface.vDomain.validate(tolerance: tolerance)
+            var usage = OriginalGeometryValidationAdmission(consumeWork: { _ in
+                try CurrentTaskCancellationChecker().checkCancellation()
+            })
+            if try OriginalQuadraticPcurveContainment.contains(curve,
+                u: surface.uDomain, v: surface.vDomain, using: &usage) == true {
+                try CurrentTaskCancellationChecker().checkCancellation()
+                return
+            }
             for controlPoint in curve.controlPoints {
                 try validateParameter(
                     SurfaceParameter(u: controlPoint.x, v: controlPoint.y),

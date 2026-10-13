@@ -1,5 +1,28 @@
 # Original Geometry Source Validation
 
+## Exact quadratic pcurve image admission
+
+`OriginalQuadraticPcurveContainment` owns whole-image containment for a validated,
+single clamped quadratic Bezier with equal positive original weights. It uses
+the original binary64 coefficients as exact rationals: each coordinate's extrema
+on normalized traversal [0,1] are the two endpoints and its stationary point,
+when that point belongs to [0,1]. No control polygon, numerical sample, tolerance,
+or inverse parameterization substitutes for the curve image. Constant and linear
+coordinates retain their original traversal. Periodic/unbounded axes impose no
+finite image bound. Unsupported representations return no theorem; arithmetic,
+resource and cancellation failures propagate instead of becoming exclusion.
+
+Legacy and bounded pcurve validators consume this same proof before retaining
+their existing conservative hull fallback. Bounded validation forwards the caller
+work/storage/algebra admission; legacy validation adds no private query budget.
+The Native lift snapshot owner also consumes this proof against exact knot
+support, preventing a tolerance-based clamp from becoming source equality.
+The source/DI path retains the original nonlinear pcurve and all graph guards;
+this admission theorem neither constructs an XYZ approximation nor issues a
+structural identity. S-NONLINEAR-COLLAPSE-01 owns the actual outlying-control
+success, genuine interior extremum escape, unequal weights, cancellation and
+resource boundary behavior; the red snapshot is retained in its evidence.
+
 Original native 2D continuation admission validates the raw spline on the caller
 work ledger, then obtains its complete D0 UV cover through the caller-admitted
 original continuation producer. Closed support containment uses this cover;

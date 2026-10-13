@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "sourceCount": 2113,
+  "productCount": 10668,
+  "sourcePremisesSHA256": "c64de0190623927fe3d734ac05159b2684548acf976082bba7d63fceba10adf2",
+  "productsSHA256": "af06840cef1d664d950cccbacd75946bc68717739e52348466c9825bdca8fb4f",
+  "lanes": {
+    "native": {
+      "compileSeconds": 1.3941264169989154,
+      "runtimeSeconds": 5.5191794160055,
+      "executableSHA256": "629be4071d341506da3445e533e1ebb51f701461e90326a83ec2992e8f24da78",
+      "premisesSHA256": "fed598e0a7de91e242d2f93d2dfa9f1849f40d07c4c21c6723446d21887c8584",
+      "runtimeLogSHA256": "d5d98c5d2b6119d7d8531828b80bf7df39fa20d4e3fa40539075ad4e31e8c785"
+    },
+    "asan": {
+      "compileSeconds": 1.6723462499212474,
+      "runtimeSeconds": 14.060240583959967,
+      "executableSHA256": "5e98aa76e8f1d245ec29ee0ec51fe1e12eed23c9fc37b26eb16cb9493f991827",
+      "premisesSHA256": "6f4040b0d29518c1ecdcf1127137cf4c8461a9db62708057fabff08a6d4ed721",
+      "runtimeLogSHA256": "d5d98c5d2b6119d7d8531828b80bf7df39fa20d4e3fa40539075ad4e31e8c785"
+    },
+    "wasm": {
+      "compileSeconds": 2.4874117909930646,
+      "runtimeSeconds": 7.473501208005473,
+      "executableSHA256": "4bc85f4922058f51c311a1b780a226ba499e8cfe026fc02ce4c295df3a18664c",
+      "premisesSHA256": "75ba230c095eadbaf827c6d54634864f186449fe5e72af50392139add7a8d0ec",
+      "runtimeLogSHA256": "e17fbded62273bc80c1fc441a87032d3f476df527cb7626a11786b5064c0e066"
+    },
+    "embedded": {
+      "compileSeconds": 75.301814916078,
+      "runtimeSeconds": 5.630113124963827,
+      "executableSHA256": "517ded711c189c10a54904a5909195e707e06d692d81376f85d08b5ff5acfd72",
+      "premisesSHA256": "a2b0a4c4c0289c28c71881b7af194adb377019950d4d8eedfe1c8065dd990302",
+      "runtimeLogSHA256": "34e8a499d924714d9adb50762e1d16d700a6573b4b0c4125bd68d95b897c26e8"
+    }
+  },
+  "embeddedGeometrySeconds": 210.19230650004465,
+  "embeddedAuthorization": "User explicitly approved this fixed 2049-source Geometry module/WMO snapshot; Core, Kernel and independent L2-L6 artifacts are reused.",
+  "wholeSevenCompleted": 1,
+  "wholeSevenTotal": 7,
+  "full87Complete": false
+}

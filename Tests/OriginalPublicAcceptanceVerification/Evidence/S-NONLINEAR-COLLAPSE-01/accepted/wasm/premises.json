@@ -1,0 +1,23 @@
+{
+  "source": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/OriginalSourceIssuance/OriginalNativeSurfaceLiftSnapshotProvider.swift": "3fdbe605fb95202a53dc083ee2bbe700947ac1e3506b53fa895ebdf3aca9f3da",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/SurfaceParameterCurve.swift": "39008b713698830271fbdc16f6eca944c3a7df1b358b719d271c300b7fa599db",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/OriginalGeometrySourceValidation/SurfaceParameterCurve+BoundedValidation.swift": "c6e60556ce1c97d3ad1ba442a3efedff16bd7ce55ead1871e232b3c17e87c6d5",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/OriginalGeometrySourceValidation/OriginalQuadraticPcurveContainment.swift": "fe217410491dee251ec9a8e7ad394e3463f78c42583a72597963ee5ef79b83f3",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/OriginalSourceIssuance/OriginalPolynomialNativeLiftChart.swift": "64c64dc0ee143f5e920cf4f3ad62070873305ea2373a85021edb4a83d6c64923",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/OriginalSourceIssuance/OriginalPolynomialNativeLiftChartIssuing.swift": "eb9d31af6576867d8ba333ffea0be37b3489b1ec6140b68ba4ee1ba550868424",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalPolynomialNativeLiftChartIssuer.swift": "9aa0912bebb987b367e4f63044cc2893a36e7c626937e51efa635fa5ac45d959",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/OriginalSourceIssuance/OriginalNativeSurfaceLiftCurveSnapshotProvider.swift": "ec809dda136aac68e24c247bf117801045027aeedca89d07d410c6e3f25226b7"
+  },
+  "ports": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/nonlinear-collapse-20261013/actual-wasm/OriginalQuadraticPcurveContainment.swift": "338495b453b8ec2a905c8a3749a4ef3782d90a10d3157a43ccbfd04c4eed21d1",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/nonlinear-collapse-20261013/actual-wasm/OriginalPolynomialNativeLiftChart.swift": "d6eb20ab4d60eb64e63f87fb3ff8bc5083cbb33071c78ae595e58d3cbadfd630",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/nonlinear-collapse-20261013/actual-wasm/OriginalPolynomialNativeLiftChartIssuing.swift": "a4bb4bbc6d4cdfffae2d81b9cf4b72beb86ccbf719ea6801ad45f574076fd3ff",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/nonlinear-collapse-20261013/actual-wasm/DefaultOriginalPolynomialNativeLiftChartIssuer.swift": "96729147f9e50c6a6afdd328b124f6121e5c216936f857e51334743ba23acf09",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/nonlinear-collapse-20261013/actual-wasm/OriginalNativeSurfaceLiftCurveSnapshotProvider.swift": "d32462b2a0c6814b9fd65aa7d201a903f240d15a21b2ccd3bc19478e01a52ee4"
+  },
+  "fixtureSHA256": "7c75912e8e413c99066854094ea13c76eb640d486a013d74d231ca553051c5b5",
+  "productManifestSHA256": "c7c9c2fe0b6277d88931c3d60b4435569633f762f0c2e2b604490de8341f1b98",
+  "executableSHA256": "4bc85f4922058f51c311a1b780a226ba499e8cfe026fc02ce4c295df3a18664c",
+  "scope": "Fresh current legacy/bounded validation bodies and source provider; new lift/ruled issuer bodies independently compiled."
+}

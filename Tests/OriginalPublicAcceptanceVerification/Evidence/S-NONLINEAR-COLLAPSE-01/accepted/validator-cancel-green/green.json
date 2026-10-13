@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/nonlinear-collapse-20261013/validator-cancel-green/Proof"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.8596328750718385,
+  "peakRSSBytes": 4964352,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "bfa0d5049303ea63a338315bd6b2e45180156d341019d3a7c4775c576dd3adb2"
+}

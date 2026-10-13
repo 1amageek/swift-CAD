@@ -23,20 +23,27 @@ public struct OriginalNativeSurfaceLiftSnapshotProvider: OriginalSourceSnapshott
             let native = surface.original
             let lowerU = native.uKnots[native.uDegree], upperU = native.uKnots[native.uControlPointCount]
             let lowerV = native.vKnots[native.vDegree], upperV = native.vKnots[native.vControlPointCount]
-            // Preserve the actual lift's control-domain validation after bounded child validation.
-            for point in pcurve.controlPoints {
-                try a.consumeWork(1)
-                guard try input.surface.uDomain.contains(point.x,tolerance:tolerance),
-                    try input.surface.vDomain.contains(point.y,tolerance:tolerance) else {
-                    throw OriginalSourceIssuanceFailure.invalidSource
-                }
-                try a.consumeWork(1)
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy lift evaluation clamps UV inside
-                // tolerance. This exact source port cannot publish that implicit geometry change.
-                // General out-of-support hulls require complete original correspondence proofs.
-                guard (native.isUPeriodic || (point.x >= lowerU && point.x <= upperU)),
-                    (native.isVPeriodic || (point.y >= lowerV && point.y <= upperV)) else {
-                    throw OriginalSourceIssuanceFailure.unsupportedRepresentation
+            // Whole-image proof uses original coefficients, never a guessed inverse or UV clamp.
+            let contained = try ExactScalarNumericAccess.withAdmission(&a) { usage in
+                try OriginalQuadraticPcurveContainment.contains(pcurve,
+                    u: native.isUPeriodic ? .unbounded : .closed(lowerU, upperU),
+                    v: native.isVPeriodic ? .unbounded : .closed(lowerV, upperV), using: &usage)
+            }.value
+            if contained != true {
+                for point in pcurve.controlPoints {
+                    try a.consumeWork(1)
+                    guard try input.surface.uDomain.contains(point.x,tolerance:tolerance),
+                        try input.surface.vDomain.contains(point.y,tolerance:tolerance) else {
+                        throw OriginalSourceIssuanceFailure.invalidSource
+                    }
+                    try a.consumeWork(1)
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy lift evaluation clamps UV inside
+                    // tolerance. This exact source port cannot publish that implicit geometry change.
+                    // Unproved out-of-support images require complete original correspondence proofs.
+                    guard (native.isUPeriodic || (point.x >= lowerU && point.x <= upperU)),
+                        (native.isVPeriodic || (point.y >= lowerV && point.y <= upperV)) else {
+                        throw OriginalSourceIssuanceFailure.unsupportedRepresentation
+                    }
                 }
             }
             let depth = max(surface.sourceDepth,curve.sourceDepth).addingReportingOverflow(1)
