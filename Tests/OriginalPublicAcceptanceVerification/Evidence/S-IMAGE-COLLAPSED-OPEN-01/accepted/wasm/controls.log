@@ -1,0 +1,5 @@
+(node:85802) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+METRIC preparedQueryBoundary 1511943 24241161 280072 
+METRIC identity depth/count/source 4 2 1 
+PASS image swapped open scope both directions, owner/depth/count/source refusal and detached COW lifetime

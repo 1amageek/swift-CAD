@@ -1,0 +1,86 @@
+{
+  "status": "PASS",
+  "sourceCount": 2103,
+  "productCount": 8538,
+  "sourcePremisesSHA256": "5fa75122a3abc7b03388ebb2ecf9d4fce80c6a1e00c261892d7972dab388ef8a",
+  "productsSHA256": "c04db749ec00bbe4100dc4aa057d8cab5fc66fc88fd978c8afa5d25678da1876",
+  "inheritedCurrentCompositionProductsSHA256": "685fa8b9c054479220f5a734b17854c1817ab20b19820f11a46fa75caa5c1e31",
+  "lanes": {
+    "native": {
+      "groups": [
+        "complete",
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel",
+        "empty"
+      ],
+      "queryBoundary": [
+        1513232,
+        48184021,
+        280072
+      ],
+      "elapsedSeconds": 12.391391457989812,
+      "premisesSHA256": "c2145afb618fe9bc72cb1222c18af43ec22edb7ca839adb1c10a6531f46d2845"
+    },
+    "asan": {
+      "groups": [
+        "complete",
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel",
+        "empty"
+      ],
+      "queryBoundary": [
+        1513232,
+        48184021,
+        280072
+      ],
+      "elapsedSeconds": 32.53226291493047,
+      "premisesSHA256": "236134950cc259ba9879e2a6960c28b88f5ad6b3b93e6d3c55a82a3eb2a7e299"
+    },
+    "wasm": {
+      "groups": [
+        "complete",
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel",
+        "empty"
+      ],
+      "queryBoundary": [
+        1511943,
+        24241161,
+        280072
+      ],
+      "elapsedSeconds": 19.654217459028587,
+      "premisesSHA256": "5e31200375e0890401f5a6144c327795bcf0c830fd31ff933a568feb55f15dd2"
+    },
+    "embedded": {
+      "groups": [
+        "complete",
+        "controls",
+        "exact",
+        "work",
+        "storage",
+        "cancel",
+        "empty"
+      ],
+      "queryBoundary": [
+        1511943,
+        24241161,
+        280072
+      ],
+      "elapsedSeconds": 12.397838416858576,
+      "premisesSHA256": "55e4e3e67a96e5c84a4c0929d69068974a43240d7abf87e3fa56b23a55d23213"
+    }
+  },
+  "protectedFileCount": 12,
+  "wholeSevenCompleted": 1,
+  "wholeSevenTotal": 7,
+  "full87Complete": false
+}

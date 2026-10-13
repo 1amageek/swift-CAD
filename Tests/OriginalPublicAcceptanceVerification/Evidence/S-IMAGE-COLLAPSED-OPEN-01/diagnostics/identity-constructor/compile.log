@@ -1,0 +1,114 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:36:24: error: type 'AffineTransform3D' has no member 'identity'
+ 34 |             controlPoints:[[.init(x:0,y:0,z:0),.init(x:0,y:0,z:0)],[.init(x:0,y:1,z:0),.init(x:1,y:1,z:0)]])
+ 35 |         let image=try OriginalImageSurface3D(source:.bSpline(surface),uGain:-1,vGain:1,uOffset:1,
+ 36 |             transform:.identity,swapAxes:true,tolerance:.standard)
+    |                        `- error: type 'AffineTransform3D' has no member 'identity'
+ 37 |         let source=try DefaultOriginalSourceBindingIssuer(provider:OriginalParameterImageSurfaceSnapshotProvider(
+ 38 |             child:OriginalNativeSurfaceFamilySnapshotProvider(tolerance:.standard),tolerance:.standard))
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:46:95: error: generic parameter 'Selection' could not be inferred
+ 44 |             chart:space.sourceCharts[0],field:f,limits:l.source,using:&a)
+ 45 |         let scope=try space.frame.selection(intervals:[[interval(0,1,f,&a,denominator:2,upper:false)],[interval(0,0,f,&a)]],limits:l,using:&a)
+ 46 |         let childIdentity=try DefaultOriginalParameterIdentityIssuer<BSplineSurface3D,Base>().collapsed(law:childLaw,on:scope,limits:l,using:&a)
+    |                                                                                               `- error: generic parameter 'Selection' could not be inferred
+ 47 |         let affine=try DefaultOriginalParameterImageDomainIssuer<Source,OriginalBSplineDomainCover<BSplineSurface3D,Base>>()
+ 48 |             .issue(source:source,child:childCover,requested:[[interval(1,1,f,&a)],[interval(0,1,f,&a)]],limits:l,using:&a)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DefaultOriginalParameterIdentityIssuer+SourceLaws.swift:75:17: note: in call to function 'collapsed(law:on:limits:using:)'
+ 73 |         return true
+ 74 |     }
+ 75 |     public func collapsed<Selection: Sendable,A: ExactScalarAdmission & ~Copyable>(law: borrowing OriginalRationalChartReceipt<S,Selection,F>,
+    |                 `- note: in call to function 'collapsed(law:on:limits:using:)'
+ 76 |         on scope: borrowing OriginalParameterSelection<S,F>,limits: OriginalDomainIdentityLimits,using admission: inout A)
+ 77 |         throws(OriginalDomainIdentityFailure) -> OriginalParameterIdentity<S,F> {
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:53:23: error: generic parameter 'Source' could not be inferred
+ 51 |         let laws=try DefaultOriginalFiniteParameterImageChartPreparer<Source,OriginalBSplineChartSelection,Base>()
+ 52 |             .prepare(source:source,children:[childLaw],field:f,maximumCharts:1,limits:l.source,using:&a)
+ 53 |         let cover=try DefaultOriginalIssuedDomainBinder().bind(laws:laws,request:affine.effective,limits:l,using:&a)
+    |                       `- error: generic parameter 'Source' could not be inferred
+ 54 |         let algebraic=try Field.base(field:f,maximumExtensionLevel:32,using:&a)
+ 55 |         let family=try DefaultOriginalRationalGraphFamilyPreparer().prepare(cover:cover,field:algebraic,maximumGraphs:1,limits:l,using:&a)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:53:23: error: generic parameter 'Selection' could not be inferred
+ 51 |         let laws=try DefaultOriginalFiniteParameterImageChartPreparer<Source,OriginalBSplineChartSelection,Base>()
+ 52 |             .prepare(source:source,children:[childLaw],field:f,maximumCharts:1,limits:l.source,using:&a)
+ 53 |         let cover=try DefaultOriginalIssuedDomainBinder().bind(laws:laws,request:affine.effective,limits:l,using:&a)
+    |                       `- error: generic parameter 'Selection' could not be inferred
+ 54 |         let algebraic=try Field.base(field:f,maximumExtensionLevel:32,using:&a)
+ 55 |         let family=try DefaultOriginalRationalGraphFamilyPreparer().prepare(cover:cover,field:algebraic,maximumGraphs:1,limits:l,using:&a)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:53:23: error: generic parameter 'Field' could not be inferred
+ 51 |         let laws=try DefaultOriginalFiniteParameterImageChartPreparer<Source,OriginalBSplineChartSelection,Base>()
+ 52 |             .prepare(source:source,children:[childLaw],field:f,maximumCharts:1,limits:l.source,using:&a)
+ 53 |         let cover=try DefaultOriginalIssuedDomainBinder().bind(laws:laws,request:affine.effective,limits:l,using:&a)
+    |                       |- error: generic parameter 'Field' could not be inferred
+    |                       `- note: explicitly specify the generic arguments to fix this issue
+ 54 |         let algebraic=try Field.base(field:f,maximumExtensionLevel:32,using:&a)
+ 55 |         let family=try DefaultOriginalRationalGraphFamilyPreparer().prepare(cover:cover,field:algebraic,maximumGraphs:1,limits:l,using:&a)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:55:24: error: generic parameter 'S' could not be inferred
+ 53 |         let cover=try DefaultOriginalIssuedDomainBinder().bind(laws:laws,request:affine.effective,limits:l,using:&a)
+ 54 |         let algebraic=try Field.base(field:f,maximumExtensionLevel:32,using:&a)
+ 55 |         let family=try DefaultOriginalRationalGraphFamilyPreparer().prepare(cover:cover,field:algebraic,maximumGraphs:1,limits:l,using:&a)
+    |                        `- error: generic parameter 'S' could not be inferred
+ 56 |         try require(family.graphs.count==1 && child.sourceDepth==0 && source.sourceDepth==1)
+ 57 |         // Local coordinates remain original child (a,b); parent UV is (1-b,a).
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:55:24: error: generic parameter 'C' could not be inferred
+ 53 |         let cover=try DefaultOriginalIssuedDomainBinder().bind(laws:laws,request:affine.effective,limits:l,using:&a)
+ 54 |         let algebraic=try Field.base(field:f,maximumExtensionLevel:32,using:&a)
+ 55 |         let family=try DefaultOriginalRationalGraphFamilyPreparer().prepare(cover:cover,field:algebraic,maximumGraphs:1,limits:l,using:&a)
+    |                        |- error: generic parameter 'C' could not be inferred
+    |                        `- note: explicitly specify the generic arguments to fix this issue
+ 56 |         try require(family.graphs.count==1 && child.sourceDepth==0 && source.sourceDepth==1)
+ 57 |         // Local coordinates remain original child (a,b); parent UV is (1-b,a).
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:67:21: error: generic parameter 'S' could not be inferred
+ 65 |             try require(try r.equals(g.parameterTransport.denominators[i],one,using:&a))
+ 66 |         }
+ 67 |         let raw=try DefaultOriginalIssuedGraphRelationResolver().resolve(kind:.surfaceSurface,first:family,second:family,
+    |                     `- error: generic parameter 'S' could not be inferred
+ 68 |             maximumPairs:1,limits:l,cellLimits:Common.cellLimits(),topologyLimits:Common.topologyLimits(),using:&a)
+ 69 |         return (raw,identity)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:67:21: error: generic parameter 'E' could not be inferred
+ 65 |             try require(try r.equals(g.parameterTransport.denominators[i],one,using:&a))
+ 66 |         }
+ 67 |         let raw=try DefaultOriginalIssuedGraphRelationResolver().resolve(kind:.surfaceSurface,first:family,second:family,
+    |                     `- error: generic parameter 'E' could not be inferred
+ 68 |             maximumPairs:1,limits:l,cellLimits:Common.cellLimits(),topologyLimits:Common.topologyLimits(),using:&a)
+ 69 |         return (raw,identity)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:67:21: error: generic parameter 'C' could not be inferred
+ 65 |             try require(try r.equals(g.parameterTransport.denominators[i],one,using:&a))
+ 66 |         }
+ 67 |         let raw=try DefaultOriginalIssuedGraphRelationResolver().resolve(kind:.surfaceSurface,first:family,second:family,
+    |                     `- error: generic parameter 'C' could not be inferred
+ 68 |             maximumPairs:1,limits:l,cellLimits:Common.cellLimits(),topologyLimits:Common.topologyLimits(),using:&a)
+ 69 |         return (raw,identity)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:67:21: error: generic parameter 'T' could not be inferred
+ 65 |             try require(try r.equals(g.parameterTransport.denominators[i],one,using:&a))
+ 66 |         }
+ 67 |         let raw=try DefaultOriginalIssuedGraphRelationResolver().resolve(kind:.surfaceSurface,first:family,second:family,
+    |                     `- error: generic parameter 'T' could not be inferred
+ 68 |             maximumPairs:1,limits:l,cellLimits:Common.cellLimits(),topologyLimits:Common.topologyLimits(),using:&a)
+ 69 |         return (raw,identity)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:67:21: error: generic parameter 'F' could not be inferred
+ 65 |             try require(try r.equals(g.parameterTransport.denominators[i],one,using:&a))
+ 66 |         }
+ 67 |         let raw=try DefaultOriginalIssuedGraphRelationResolver().resolve(kind:.surfaceSurface,first:family,second:family,
+    |                     `- error: generic parameter 'F' could not be inferred
+ 68 |             maximumPairs:1,limits:l,cellLimits:Common.cellLimits(),topologyLimits:Common.topologyLimits(),using:&a)
+ 69 |         return (raw,identity)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:67:21: error: generic parameter 'D' could not be inferred
+ 65 |             try require(try r.equals(g.parameterTransport.denominators[i],one,using:&a))
+ 66 |         }
+ 67 |         let raw=try DefaultOriginalIssuedGraphRelationResolver().resolve(kind:.surfaceSurface,first:family,second:family,
+    |                     |- error: generic parameter 'D' could not be inferred
+    |                     `- note: explicitly specify the generic arguments to fix this issue
+ 68 |             maximumPairs:1,limits:l,cellLimits:Common.cellLimits(),topologyLimits:Common.topologyLimits(),using:&a)
+ 69 |         return (raw,identity)

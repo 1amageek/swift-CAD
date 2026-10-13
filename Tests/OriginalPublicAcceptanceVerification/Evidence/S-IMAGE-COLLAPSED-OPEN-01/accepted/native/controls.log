@@ -1,0 +1,3 @@
+METRIC preparedQueryBoundary 1513232 48184021 280072 
+METRIC identity depth/count/source 4 2 1 
+PASS image swapped open scope both directions, owner/depth/count/source refusal and detached COW lifetime

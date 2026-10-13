@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/image-collapsed-open-20261013/native/Proof"
+  ],
+  "exitCode": 2,
+  "elapsedSeconds": 1.6533160839462653,
+  "peakRSSBytes": 18382848,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "2b3e205dccbdad1d2269ba73b1f30895b48e3917b9a17c0a1d3febd401252441"
+}

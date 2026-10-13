@@ -1,0 +1,23 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:104:49: error: cannot convert value of type 'ExactSign' to closure result type 'RobustSign'
+102 |             for cell in partition.cells where cell.axis==3 {
+103 |                 terminal+=1;let signs=try proofs.map { proof -> RobustSign in
+104 |                     if let proof { return try c.sign(of:proof,at:cell,using:&a) };return .zero
+    |                                                 `- error: cannot convert value of type 'ExactSign' to closure result type 'RobustSign'
+105 |                 }
+106 |                 var expected=empty ? signs.allSatisfy { $0 == .zero }:signs[0] == .zero && signs[1] == .zero
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:108:100: error: cannot infer contextual base in reference to member 'negative'
+106 |                 var expected=empty ? signs.allSatisfy { $0 == .zero }:signs[0] == .zero && signs[1] == .zero
+107 |                 if empty && isRefined { expected=false }
+108 |                 if isRefined && !empty { expected = expected && signs[2] != .zero && (signs[3] != .negative || signs[4] != .negative) }
+    |                                                                                                    `- error: cannot infer contextual base in reference to member 'negative'
+109 |                 if isRefined {
+110 |                     guard let i=refined.region.cells.firstIndex(of:cell) else { throw Failure.assertion(#line) }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImageCollapsedOpenAcceptance.swift:108:125: error: cannot infer contextual base in reference to member 'negative'
+106 |                 var expected=empty ? signs.allSatisfy { $0 == .zero }:signs[0] == .zero && signs[1] == .zero
+107 |                 if empty && isRefined { expected=false }
+108 |                 if isRefined && !empty { expected = expected && signs[2] != .zero && (signs[3] != .negative || signs[4] != .negative) }
+    |                                                                                                                             `- error: cannot infer contextual base in reference to member 'negative'
+109 |                 if isRefined {
+110 |                     guard let i=refined.region.cells.firstIndex(of:cell) else { throw Failure.assertion(#line) }

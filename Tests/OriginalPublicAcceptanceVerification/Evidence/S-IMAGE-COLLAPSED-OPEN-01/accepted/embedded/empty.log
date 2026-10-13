@@ -1,0 +1,5 @@
+(node:86347) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+METRIC image raw/refined terminal/included 147 1 121 0 
+PASS complete image empty singleton requested product
+PASS complete image empty final-publication cancellation

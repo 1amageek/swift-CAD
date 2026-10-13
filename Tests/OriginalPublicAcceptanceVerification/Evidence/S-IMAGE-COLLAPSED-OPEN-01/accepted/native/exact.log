@@ -1,0 +1,3 @@
+METRIC image raw/refined terminal/included 147 9 319 20 
+PASS complete image singular terminal iff in original parent UV
+PASS image exact query workN/storageN

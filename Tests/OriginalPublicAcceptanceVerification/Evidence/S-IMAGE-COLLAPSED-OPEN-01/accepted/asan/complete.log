@@ -1,0 +1,3 @@
+METRIC image query work/storage 1513232 48184021 
+METRIC image raw/refined terminal/included 147 9 319 20 
+PASS complete image singular terminal iff in original parent UV
