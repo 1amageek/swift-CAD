@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-conecone-full-20261014-v2/wasm/spherecone-regression.wasm",
+    "caller"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 65.85009550000541,
+  "peakRSSBytes": 429146112,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "63e5ee3c8ce5781da112e072381ef030eb81e6789767d889ef98a84f48f5969b"
+}

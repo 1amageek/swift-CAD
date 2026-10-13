@@ -2950,3 +2950,29 @@ rather than a rounded scalar. All its witnesses denote the same source position.
 Consumers retain these owners and restrict the actual domains with the same
 admission. Full-branch cells and the affected physical/coaxial paths own focused
 verification; other certified variants remain independent obligations.
+
+### Cone-cone full-branch exact cardinal contacts
+
+For the frozen reference cone0/Z and parameterized cone4Z/Y, retain both
+original physical angles as separate coefficient owners. Exact bounds on their
+sines/cosines prove q>0, k<0, discriminant>0, nonzero selected slant and positive
+reference height over the whole theta=B*T support. Therefore planeX0 contacts
+are exactly theta0 andpi, T0 andpi/B; thetaB is excluded by B<2*pi.
+
+At tau=cos(theta)=+1/-1 put A=cos(alpha)*cos(beta),
+C=sin(alpha)*sin(beta). The declared positive root is lambda=4sin(alpha)/(A+tau*C),
+the negative root is lambda=-4sin(alpha)/(A-tau*C). This follows from
+q=(A-C)(A+C) and sqrt(discriminant)=4sin(alpha)A; both denominators are positive.
+Retain a sealed symbolic coordinate relation for these original products and
+ratios. No foreign coefficient import, rounded mixed field or invented algebraic
+independence is needed. Source-owned outward localization proves numeric output
+bounds and finite target guards only; it never establishes original equality.
+
+Both parent UV retain independent arbitrary-integer intrinsic lifts. Reference
+U is0 for the positive root andB/2 for the negative root; parameterized U is0
+orB/2 by phase ordinal. Slants and planeUV are sealed coordinate expressions
+retaining the original pair/branch and both coefficient owners. Existing Pi
+arithmetic and DI transport own exact T support/request/selection. Same-admission
+depth/work/storage/cancel and retained-source lifetime apply to every query.
+Verification includes the observed erroneous extra endpoint and full positive
+contact publication, resources/failures/cancel/lifetime on the fixed targets.

@@ -923,3 +923,21 @@ not an unnecessary sign query on an already certified real coordinate. Finite
 endpoints use exact algebraic comparisons; unresolved comparisons remain failures.
 All cone/sphere integer labels and the canonical symbolic latitude accompany
 the isolated result. This owner solves no original problem again.
+
+### Cone-cone cardinal contact selection
+
+Consume the sealed original two-angle full-branch source theorem without
+re-solving the original pair. Existing Pi-valued DI frame owns T[0,1], exact
+request/effective, open/singleton/disconnected selections and all root ordinals.
+Retain the actual planeX0/origin0/uZ authority and binary64 target box separately.
+Each constant coordinate's certified enclosure proves inclusion/exclusion; an
+undecidable finite-boundary guard fails unresolved, never empties the result.
+No synthetic common field is assigned to the two source-angle owners.
+Immutable coordinate descriptors retain complete parent slants, integer lifts,
+source/branch/ordinal/owner and proof depth. Readmission checks all retained
+scopes and limits; source preparation is not repeated by retained queries.
+
+For both sphere-cone and cone-cone selected-ordinal owners, admit each actual
+output payload before append. Do not reserve unadmitted slots for empty/partial
+selection; complete empty retains no speculative ordinal buffer. Full and empty
+N/N-1 work/storage fixtures verify this shared output-ownership invariant.

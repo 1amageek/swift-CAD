@@ -864,3 +864,15 @@ and exact source-selected radical bounds; they establish no equality. Every
 publication/query retains source/field owners and the original caller admission.
 The public cell fixture owns complete roots, all UV, strict/open/disconnected
 scopes, empty results, independent depth/resource/cancel/lifetime and four targets.
+
+### Cone-cone full-branch public plane contacts
+
+Ordinary/callback bare and rich CS entries consume the source/DI cardinal
+contact owner before the tolerance-based certified reducer. The concrete source
+pair, branch, original angles/traversal and target frame are checked. Complete
+T0,pi/B and both-parent UV survive publication; approximate localization serves
+only numerical representatives. The false T1 seam is excluded by the exact
+phase theorem. Finite guards, output accuracy, resources and cancellation can
+fail explicitly; no old solver retry follows a selected source failure.
+Other target frames/branches remain marked incomplete and are not generalized
+from the two fixed direct-CS cells.

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-conecone-full-20261014-v3/asan/Public"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 19.49477991706226,
+  "peakRSSBytes": 561381376,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "f7df653cad53629534442c447a1d2fed0b19825138bf307e5a55c2ddaa4d9325"
+}

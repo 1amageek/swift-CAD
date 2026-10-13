@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-conecone-full-20261014-v4/native/spherecone-regression"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 34.73002241598442,
+  "peakRSSBytes": 14811136,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "00ea5156bf41c944ecf510965e2e821c788527bc717f04abc66745c8b2b78eee"
+}

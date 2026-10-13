@@ -179,7 +179,14 @@ import WASILibc
         }
         try rejects { _ = try admitted(curve, plane, request: request, counter: Counter(), sourceDepth: 0) }
         try rejects { _ = try admitted(curve, plane, request: request, counter: Counter(), scalarDepth: 0) }
-        print("PASS original caller N/N-1 work/storage, depth and cancellation")
+        let empty = try ScalarInterval(lower: 0, upper: 0.125)
+        let emptyMeasured = Counter(); let emptyResult = try admitted(curve, plane, request: empty, counter: emptyMeasured)
+        try require(owner(emptyResult).isEmpty)
+        let ec = emptyMeasured.totals
+        _ = try admitted(curve, plane, request: empty, counter: Counter(work: ec.work, bytes: ec.bytes))
+        try rejects { _ = try admitted(curve, plane, request: empty, counter: Counter(work: ec.work - 1, bytes: ec.bytes)) }
+        try rejects { _ = try admitted(curve, plane, request: empty, counter: Counter(work: ec.work, bytes: ec.bytes - 1)) }
+        print("PASS original caller N/N-1 work/storage for full and empty, depth and cancellation")
     }
     static func publicationCancellation() async throws {
         for empty in [false, true] {

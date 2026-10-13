@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-conecone-20261014/native/Observe"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.8247297499328852,
+  "peakRSSBytes": 32768,
+  "wallLimitSeconds": 60,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "74abae65e9ae5f2711b1ecd62a548e67731517d10609667bc0bc40411030fbba"
+}

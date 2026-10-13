@@ -1,0 +1,10 @@
+{
+  "sourceReceipt": "87b04b52774c2d8d9d347a7817a9c7f0182196e07e965d55b070324056d3846b",
+  "products": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-full-20261014/native/CADGeometry.swiftmodule": "f507e3632dd57039c435b7be9b5c9f648a630a436fdb0ad2931cbf02bc262d53",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-full-20261014/native/libCADGeometry.a": "8ce880de3ff1ca2991294ffdb69cc83511f8f0abcb2470b716ea4e1cdec26583",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-full-20261014/native/Public": "b9177218b53a1d812f1707aad6f9050e98fb74e5b0edf6301bbc9c9663bc48d1"
+  },
+  "fixtureSHA256": "2b9a5d063f6fb86813692474b9db0bc50e0416302926f1b1302090afdeeb1729",
+  "executableSHA256": "e50652a2c237093070eeb721128a3d09d8e764e14de0a5b5ad0a642a21ad697d"
+}

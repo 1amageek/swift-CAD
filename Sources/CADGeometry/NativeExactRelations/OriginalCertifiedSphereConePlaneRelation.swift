@@ -56,7 +56,7 @@ public final class OriginalCertifiedSphereConePlaneRelation: Sendable {
         let effective = try request.intersection(support, limits: limits, using: &a)
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: PlaneSelection.self))
         var selections: [PlaneSelection] = []; selections.reserveCapacity(2)
-        var ordinals: [Int] = []; ordinals.reserveCapacity(min(2, maximumPoints))
+        var ordinals: [Int] = []
         for root in snapshot.roots {
             let field = root.field
             let whole = try ExactParameterInterval<Field.Value>.checked(field: field,
