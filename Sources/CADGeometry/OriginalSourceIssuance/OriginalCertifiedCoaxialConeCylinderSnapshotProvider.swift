@@ -34,25 +34,17 @@ public struct OriginalCertifiedCoaxialConeCylinderSnapshotProvider: OriginalSour
             guard limits.remainingSourceDepth>=1 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
             guard angle==field.originalRadians else { throw OriginalSourceIssuanceFailure.foreignBinding }
             try original.validate(tolerance:tolerance)
-            let sine=try field.sine(using:&a), cosine=try field.cosine(using:&a)
-            guard try field.sign(of:sine,using:&a) == .positive,
-                try field.sign(of:cosine,using:&a) == .positive else { throw OriginalSourceIssuanceFailure.invalidSource }
-            let one=try field.integer(1,using:&a),zero=try field.integer(0,using:&a)
-            let sign=try field.integer(original.componentKind == .negativeFullBranch ? 1:-1,using:&a)
-            let slant=try field.dividing(sign,sine,using:&a)
-            let height=try field.multiplying(cosine,slant,using:&a)
-            let period=try field.binary64(exactly:2*Double.pi,using:&a)
-            let offset=original.componentKind == .negativeFullBranch ? zero:
-                try field.dividing(period,field.integer(2,using:&a),using:&a)
-            // Verify the original cone metric and cylinder radius at the selected root.
-            let radius=try field.multiplying(sine,slant,using:&a)
-            guard try field.compare(field.multiplying(radius,radius,using:&a),one,using:&a) == .equal else {
-                throw OriginalSourceIssuanceFailure.invalidSource
-            }
+            let coefficients = try OriginalCoaxialConeCylinderCoefficients.prepare(radius: 1, field: field, using: &a)
+            let positive = original.componentKind == .negativeFullBranch
+            let slant = positive ? coefficients.positiveSlant : try field.negated(coefficients.positiveSlant, using: &a)
+            let height = positive ? coefficients.positiveHeight : try field.negated(coefficients.positiveHeight, using: &a)
+            let period = coefficients.labelPeriod
+            let offset = positive ? try field.integer(0, using: &a) :
+                try field.dividing(period, field.integer(2, using: &a), using: &a)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalCertifiedCoaxialConeCylinderSnapshot.self))
             let h=try height.depth, v=try slant.depth, p=try period.depth, o=try offset.depth
-            let depth=try ExactScalarDepth(value:max(h.value,v.value,p.value,o.value),
-                coefficient:max(h.coefficient,v.coefficient,p.coefficient,o.coefficient))
+            let depth=try ExactScalarDepth(value:max(h.value,v.value,p.value,o.value,coefficients.proofDepth.value),
+                coefficient:max(h.coefficient,v.coefficient,p.coefficient,o.coefficient,coefficients.proofDepth.coefficient))
             try a.admitDepth(value:depth.value,coefficient:depth.coefficient)
             let result=OriginalCertifiedCoaxialConeCylinderSnapshot(original:original,field:field,
                 height:height,coneSlant:slant,labelPeriod:period,conePhaseOffset:offset,proofDepth:depth)

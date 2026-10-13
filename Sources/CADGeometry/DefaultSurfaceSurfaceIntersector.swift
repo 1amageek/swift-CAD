@@ -17,6 +17,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
       let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
         maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
         consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
+          options: options, tolerance: tolerance, admission: admission) { return coaxial.intersections }
       if let issued = try OriginalRetainedRollingPlanePublicProducer().resolve(first: first, second: second,
         options: options, tolerance: tolerance, admission: admission) { return issued.intersections }
       if let issued = try OriginalRetainedCoonsPlanePublicProducer().resolve(first: first, second: second,
@@ -47,6 +49,9 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
       let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
         maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
         consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
+          firstBox: firstBox, secondBox: secondBox,
+          options: options, tolerance: tolerance, admission: admission) { return coaxial.intersections }
       if let issued = try OriginalRetainedRollingPlanePublicProducer().resolve(first: first, second: second,
         firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance,
         admission: admission) { return issued.intersections }
@@ -107,6 +112,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
     tolerance: ModelingTolerance
   ) throws -> [SurfaceSurfaceIntersection] {
     return try GeometryExactScalarFailure.withPublication {
+      if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
+          options: options, tolerance: tolerance) { return coaxial.intersections }
       if let issued = try OriginalRetainedRollingPlanePublicProducer().resolve(first: first, second: second,
         options: options, tolerance: tolerance) { return issued.intersections }
       if let issued = try OriginalRetainedCoonsPlanePublicProducer().resolve(first: first, second: second,

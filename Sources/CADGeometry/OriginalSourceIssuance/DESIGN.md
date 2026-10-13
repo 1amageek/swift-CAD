@@ -2997,3 +2997,22 @@ integer indices. Other certified pairs and fraction windows remain required
 capabilities; this supply does not infer their source laws. Shared numeric height
 localization belongs to the existing coaxial source owner and uses the same
 admission. No original shape formula or separate solver is duplicated.
+
+### Coaxial primitive pair whole-source law
+
+Exact equal radial origins and positive unit-Z axes select this capability;
+coincidence is never admitted by distance/angle tolerance. Both axial origins,
+positive authored radius and original physical cone angle remain independent
+source data. The shared coefficient producer issues sin(alpha)>0, cos(alpha)>0,
+positive slant R/sin(alpha), relative height R*cos(alpha)/sin(alpha), and intrinsic
+label periodB. Existing certified unit-coaxial source issuance consumes the same
+producer; no duplicate original quadratic or new lower solver is introduced.
+
+Whole primitive SSI consists of both signed circles: coneV=+/-R/sin(alpha),
+cylinderV=coneApexZ-cylinderOriginZ+/-R*cot(alpha), XYZ=(cx-R*sin(2*pi*s),
+cy+R*cos(2*pi*s),coneApexZ+/-R*cot(alpha)). Independent cone/cylinder U lifts are
+B*s+mB+offset andB*s+nB, offset0 on positive slant andB/2 on negative slant.
+Fundamental s in[0,1) plus all integer pairs covers every original tuple; both
+seam incidents remain source-period meaning. Source fields/guard proof depth
+are tracked and retained with both original primitive bindings. Coordinate
+expressions retain their source rather than substituting rounded circle centers.

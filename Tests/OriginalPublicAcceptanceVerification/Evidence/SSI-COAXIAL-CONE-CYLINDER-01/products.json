@@ -1,0 +1,20 @@
+{
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/native/CADGeometry.swiftmodule": "139e5aecea815c9e4fdc78e22bbfb046ecd7466e6122cb6c7a4b3a501c6a802e",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/native/libCADGeometry.a": "7d2ccaf421f3968f87194f2a6558a663599b57ff0dfc07c504474b2210d044c6",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/native/Public": "192ec8e119519cc74372d8ae5567a0d9ecf296ead25c83c7164f93fce05d995c",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/native/coaxial-regression": "21eb9c720b946dcf6eebcf383c9f6f75a49c0f41d1ef7783df736fd8b832146f",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/inputs/Tests/OriginalPublicAcceptanceVerification/CertifiedCoaxialPublicAcceptance.swift": "782268d01a94de3e786b06915a047018a33e28f84a33a96b836763af57c2f615",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/native/pairlift-regression": "a8c39b1ea9d22c888854ef4f2b238e6d405ccee03a6162c44eb23506c7946fe0",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/inputs/Tests/OriginalPublicAcceptanceVerification/CertifiedPairLiftAcceptance.swift": "5fcadae56c84a9ea1736e7352509d0e06534f051bba8ebe9dcfaded40f248373",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/asan/CADGeometry.swiftmodule": "139e5aecea815c9e4fdc78e22bbfb046ecd7466e6122cb6c7a4b3a501c6a802e",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/asan/libCADGeometry.a": "2e4f192ec4e77a9c27f38edf30978fcf28400621297078c18ee8d6f210657fc8",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/asan/Public": "485f39218e353bbe6ec45105644de6c55ed44777a46f9448c32a1076a3a0dac2",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/asan/coaxial-regression": "91711e239ecba0e683236cccb2a21e2faab21d6d87ec067f50cf02da735bda2a",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/asan/pairlift-regression": "fc960911260617193baa3714587f1f2271c0972e22f42161d28a28223aab59d6",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/wasm/CADGeometry.swiftmodule": "f8a2346f6d4801faa9c9c0db9c21394ec774911b38d97f88a65dccf40eb69874",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/wasm/libCADGeometry.a": "7571de6df25cad2ccc4114276e304bf904e19b50dbf2e6d9de1266325caa54a1",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/wasm/Public.wasm": "83fac8b34d01b9d9be9d3c945515cf342529ddff85f982ce97bc7c742d8ab96a",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/wasm/coaxial-regression.wasm": "f0d936558cfa4d29076e6953d1b616eb894176f6f6c7dabfec1a9faff8bf4dbd",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/wasm/pairlift-regression.wasm": "bcfc89e6dd0fdf071f0e210b457b17dac2e10d6fc841e8fd0791f39c2f03e8d8",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/embedded/Public-composed.wasm": "fe5311d9cf4f028352f7dc749aa7096e38e1e57e0e91e62495a9f00404941b42"
+}

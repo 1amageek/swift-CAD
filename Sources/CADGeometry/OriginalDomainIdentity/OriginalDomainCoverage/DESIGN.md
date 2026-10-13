@@ -2919,3 +2919,20 @@ constructors, request/oracle fields and first unavailable receipt without treati
 historical UNMAPPED or generic suffix references as a current executable cell.
 Mapping completion is an acceptance-definition gate; it changes no whole-family
 implementation count. PROGRESS.md remains the only execution record.
+
+### Coaxial primitive cone-cylinder rich SSI family
+
+The existing primitive cylinder/cone and certified coneCylinder parent-SSI
+cells consume the original unit-Z coaxial source pair in both orders, with
+exact shared radial origin, independent axial origins, authored positive radius
+and physical cone angle. Both signed slants R/sin(alpha) and heights
+apexZ +/- R*cot(alpha) retain complete independent cone/cylinder integer lifts.
+Exact request restriction yields whole phase intervals, singleton image0 strata
+or complete exclusion; no finite cycle window or rounded circle proves equality.
+
+[The scoped evidence](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/SSI-COAXIAL-CONE-CYLINDER-01/VERIFICATION.md)
+owns four-target rich/prepared execution and bare empty/failure contracts.
+Nonempty bare geometric arrays still stop at nonDiscreteIntersection in the
+public producer; source-backed curve/point publication is the remaining
+COAXSSI01.ARRAY obligation. This limited rich family does not complete all
+primitive SSI, other axes/noncoaxial inputs, full M4-M8 or whole-seven requirements.

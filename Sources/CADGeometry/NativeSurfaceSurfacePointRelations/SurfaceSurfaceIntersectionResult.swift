@@ -11,9 +11,12 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
     /// Complete source/DI-bound graph contacts, all auxiliary lifts and L6 image/fiber evidence.
     public let originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)?
 
+    /// Complete coaxial primitive phase/integer families, original UV and symbolic XYZ.
+    public let originalCoaxialSurfaceRelation: (any OriginalCoaxialSurfaceRelationReading)?
+
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
-        originalIssuedGeometricRelation == nil ? .numericalRepresentatives : .exactRelation
+        originalIssuedGeometricRelation == nil && originalCoaxialSurfaceRelation == nil ? .numericalRepresentatives : .exactRelation
     }
 
 
@@ -21,12 +24,14 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
         originalNativePoints: OriginalNativeSurfaceSurfacePoints? = nil,
         originalNativeRelations: OriginalNativeSurfaceSurfaceRelations? = nil,
         originalExactGeometricRelation: NativeExactGeometricRelation? = nil,
-        originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)? = nil) {
+        originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)? = nil,
+        originalCoaxialSurfaceRelation: (any OriginalCoaxialSurfaceRelationReading)? = nil) {
         self.intersections = intersections
         self.originalNativePoints = originalNativePoints
         self.originalNativeRelations = originalNativeRelations
         self.originalExactGeometricRelation = originalExactGeometricRelation
         self.originalIssuedGeometricRelation = originalIssuedGeometricRelation
+        self.originalCoaxialSurfaceRelation = originalCoaxialSurfaceRelation
     }
 
 }

@@ -4,6 +4,7 @@ import CADCore
 public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairIntersecting {
     private let first: PreparedSurfaceDifferentialEncloser
     private let second: PreparedSurfaceDifferentialEncloser
+    private let coaxial: OriginalSourceBinding<OriginalCoaxialSurfacePairSnapshot>?
     private let admission: SurfaceSurfaceQueryAdmission
     public let tolerance: ModelingTolerance
     public var firstSurface: Surface3D { first.surface }
@@ -14,6 +15,7 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
         try tolerance.validate(); try admission.step()
         self.first = try admission.prepare(first, tolerance: tolerance)
         self.second = try admission.prepare(second, tolerance: tolerance)
+        self.coaxial = try OriginalCoaxialSurfacePublicProducer().prepare(first: first, second: second, options: .init(), tolerance: tolerance, admission: admission)
         self.tolerance = tolerance
         self.admission = admission
     }
@@ -24,6 +26,7 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
         let prepared = try admission.prepare(surface, tolerance: tolerance)
         self.first = prepared
         self.second = prepared
+        self.coaxial = nil
         self.tolerance = tolerance
         self.admission = admission
     }
@@ -48,6 +51,10 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
     // the session represents the entire required self-contact domain.
     public func intersections(firstBox: SurfaceParameterBox, secondBox: SurfaceParameterBox,
         options: SurfaceSurfaceIntersectionOptions) throws -> [SurfaceSurfaceIntersection] {
+        if let coaxial, let result = try OriginalCoaxialSurfacePublicProducer().resolve(first: firstSurface, second: secondSurface,
+            firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, admission: admission, retained: coaxial) {
+            return result.intersections
+        }
         if let exact = try NativeExactPublicSurfaceSurfaceProducer().resolve(first: firstSurface,second: secondSurface,
             firstBox: firstBox,secondBox: secondBox,options: options,tolerance: tolerance,admission: admission) {
             return exact.intersections
@@ -68,6 +75,10 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
 
     public func intersectionResult(firstBox: SurfaceParameterBox, secondBox: SurfaceParameterBox,
         options: SurfaceSurfaceIntersectionOptions) throws -> SurfaceSurfaceIntersectionResult {
+        if let coaxial, let result = try OriginalCoaxialSurfacePublicProducer().resolve(first: firstSurface, second: secondSurface,
+            firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, includeRelations: true, admission: admission, retained: coaxial) {
+            return result
+        }
         if let exact = try NativeExactPublicSurfaceSurfaceProducer().resolve(first: firstSurface, second: secondSurface,
             firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, includeRelations: true, admission: admission) {
             return exact

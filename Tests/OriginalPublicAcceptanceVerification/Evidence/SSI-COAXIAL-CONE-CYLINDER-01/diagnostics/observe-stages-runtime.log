@@ -1,0 +1,13 @@
+ENTRY false
+RESULT false 2 numericalRepresentatives
+TRUTH parametric(CADGeometry.Curve3D.circle(CADGeometry.Circle3D(center: CADCore.Point3D(x: 0.0, y: 0.0, z: -1.9999999999999996), normal: CADCore.Vector3D(x: 0.0, y: 0.0, z: 1.0), radius: 1.0)))
+POINT 1.0 0.0 -1.9999999999999996
+TRUTH parametric(CADGeometry.Curve3D.circle(CADGeometry.Circle3D(center: CADCore.Point3D(x: 0.0, y: 0.0, z: 1.9999999999999996), normal: CADCore.Vector3D(x: 0.0, y: 0.0, z: 1.0), radius: 1.0)))
+POINT 1.0 0.0 1.9999999999999996
+ENTRY true
+RESULT true 2 numericalRepresentatives
+TRUTH parametric(CADGeometry.Curve3D.circle(CADGeometry.Circle3D(center: CADCore.Point3D(x: 0.0, y: 0.0, z: -1.9999999999999996), normal: CADCore.Vector3D(x: 0.0, y: 0.0, z: 1.0), radius: 1.0)))
+POINT 1.0 0.0 -1.9999999999999996
+TRUTH parametric(CADGeometry.Curve3D.circle(CADGeometry.Circle3D(center: CADCore.Point3D(x: 0.0, y: 0.0, z: 1.9999999999999996), normal: CADCore.Vector3D(x: 0.0, y: 0.0, z: 1.0), radius: 1.0)))
+POINT 1.0 0.0 1.9999999999999996
+HEIGHT COMPARISON FAILURE resourceLimit(CADGeometry.ExactResource.work)

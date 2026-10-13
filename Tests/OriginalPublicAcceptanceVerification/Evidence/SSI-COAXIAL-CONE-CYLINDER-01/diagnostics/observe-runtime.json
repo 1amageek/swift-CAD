@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-20261014/observation/Observe"
+  ],
+  "exitCode": -5,
+  "elapsedSeconds": 1.1325582079589367,
+  "peakRSSBytes": 11223040,
+  "wallLimitSeconds": 60,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "b9ee8e276e80f2bfa287beb9c93af142a7a6ce1b9b3fb46ae6e80093bb281c91"
+}

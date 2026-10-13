@@ -960,3 +960,21 @@ The lift retains transportDepth2: direct affine correspondence depth1 and its
 checked inverse/pullback depth2. Readmission rejects depth1 even when only the
 forward map is queried. Fixture expectations admit the actual depth2; caller
 source/value/coefficient/transport ceilings are unchanged.
+
+### Whole coaxial primitive SSI family and UV requests
+
+Retain both complete original surface selections and the two signed source
+branches. V guards select the exact constant slants/heights. For each U interval,
+normalize (U-offset)/B and reduce its complete image modulo1 using existing exact
+integer floor and parameter-domain operations. A finite interval yields at most
+two residue intervals; long/half-infinite intervals cover the full fundamental
+domain, with open length-one seam exclusion preserved. Intersect both residues
+without enumerating lift indices. Member queries keep the independent all-integer
+index domain and apply both original U/V selections exactly.
+
+The family retains all phase/UV/XYZ expressions and source owners, plus rank1
+curve or rank0 singleton strata and complete empty exclusion. Half-open phase
+is only a fundamental cover; period endpoints/left-right incidents remain explicit
+meaning and no source UV is merged. Readmission preserves request/source/field/
+transport/family/result-depth and cancellation. No coefficient ordering failure
+can become empty, and no finite-window or bounding-box shortcut is used.

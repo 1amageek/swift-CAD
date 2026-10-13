@@ -886,3 +886,15 @@ incidents. Numeric point/T localization serves only output accuracy, with the
 same caller admission through source, child relation and result publication.
 A selected source failure is explicit and never retries a different solver.
 Other certified role/source families remain independently marked incomplete.
+
+### Coaxial whole-family ordinary SSI publication
+
+All six ordinary/admitted/box bare/rich SSI entries consume the original primitive
+family before tolerance-based coaxial dispatch. Rich output retains complete
+symbolic XYZ/UV families on finite/unbounded requests. The current bare curve-array route rejects every nonempty selection with
+nonDiscreteIntersection; exact empty selections succeed. Source-backed geometric
+curve/point publication remains an explicit M7 obligation. Rich family publication
+retains the complete selected symbolic relation without claiming array completion.
+The same caller allowance flows through source, exact DI selection, coefficient/
+period queries, output and final cancellation; retained queries reuse preparation.
+Other axes/noncoaxial families remain separate mandatory capabilities.

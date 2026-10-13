@@ -1,0 +1,3 @@
+PASS coaxial SSI full/empty N/N-1 work/storage, source/scalar and cancellation
+PASS terminal complete SSI family/empty cancellation
+PASS complete coaxial primitive SSI, both UV/integer families, symbolic XYZ, selections and lifetime
