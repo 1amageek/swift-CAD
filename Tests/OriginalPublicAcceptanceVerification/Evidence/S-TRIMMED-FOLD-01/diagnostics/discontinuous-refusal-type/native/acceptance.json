@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-20261013/edge-native/Proof"
+  ],
+  "exitCode": -5,
+  "elapsedSeconds": 0.8317684589419514,
+  "peakRSSBytes": 32768,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "179bacaa1ba43c9c4672d751ddf13ed23c3baf5ca2090c429bb5cc91891e2a40"
+}

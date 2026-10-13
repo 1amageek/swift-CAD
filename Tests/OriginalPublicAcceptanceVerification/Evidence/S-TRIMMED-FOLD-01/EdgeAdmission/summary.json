@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "sourceCount": 2256,
+  "topologySwiftInputs": 143,
+  "productCount": 8672,
+  "inheritedProductsSHA256": "af06840cef1d664d950cccbacd75946bc68717739e52348466c9825bdca8fb4f",
+  "lanes": {
+    "native": {
+      "runtimeSeconds": 0.8432012499542907,
+      "logSHA256": "f08c093cfff0f583521b3e547413bb4c03bd53974413470fd7b33b710bab9213"
+    },
+    "asan": {
+      "runtimeSeconds": 1.5119505419861525,
+      "logSHA256": "f08c093cfff0f583521b3e547413bb4c03bd53974413470fd7b33b710bab9213"
+    },
+    "wasm": {
+      "runtimeSeconds": 0.2812235829187557,
+      "logSHA256": "59342e95e71ebad71fe1f4fd4189b39fbdac57d37be4028220dbcbbb6f4f1637"
+    },
+    "embedded": {
+      "runtimeSeconds": 0.6890313749900088,
+      "logSHA256": "89e2b190a56fa78b50f66ea73e818d4f08f15556cf40ade355fe47a7c91345e3"
+    }
+  },
+  "wholeSevenCompleted": 1,
+  "full87Complete": false,
+  "cellComplete": false
+}

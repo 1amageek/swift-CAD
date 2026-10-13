@@ -1,0 +1,8 @@
+(node:53073) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS exact Native folded face admission preserves original non-symmetric hole and reversed coedges
+PASS exact lifted endpoints, rational weights, both outer sides and least-positive near-closure remain distinct
+PASS discontinuous original Native lift is rejected before position closure
+PASS caller exactN, independent workN-1/storageN-1 and source-depth refusal
+PASS final caller callback cancellation propagates before closure publication
+PASS immutable exact model survives source construction scope and COW mutation

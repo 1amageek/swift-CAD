@@ -1,0 +1,7 @@
+{
+  "fixtureSHA256": "e76aa25514b739ae85bfe714eb3116898416bbb47e249db51f67a282e27af3a5",
+  "executableSHA256": "39ca1905ed077513226d8b1b4d4bb8c1f3ec744d821b36a1c6477e276392bc84",
+  "classifierSHA256": "3ded08ca75e39471f6e2e199698198bf31865d0bfef75d3c61e310a78d1e21c9",
+  "sourceRootCommit": "020809dc",
+  "observed": "Exact authored folded face fails invalidEdge before any result-validator material query."
+}

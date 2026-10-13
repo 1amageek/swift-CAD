@@ -1,0 +1,103 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:32:17: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 30 |                 let next = (i+1)%curves.count, id = CurveID()
+ 31 |                 let canonical = try curves[i].reversed(tolerance:.standard)
+ 32 |                 model.geometry.curves[id] = .surfaceLift(.init(surface:support,parameterCurve:canonical))
+    |                 `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 33 |                 let edge = Edge(curveID:id,startVertexID:vertices[next].id,endVertexID:vertices[i].id,
+ 34 |                     trim:.init(startParameter:0,endParameter:1))
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:35:17: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 33 |                 let edge = Edge(curveID:id,startVertexID:vertices[next].id,endVertexID:vertices[i].id,
+ 34 |                     trim:.init(startParameter:0,endParameter:1))
+ 35 |                 model.edges[edge.id] = edge
+    |                 `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 36 |                 coedges.append(.init(edgeID:edge.id,orientation:.reversed,surfaceParameterCurve:curves[i]))
+ 37 |             }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:38:38: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 36 |                 coedges.append(.init(edgeID:edge.id,orientation:.reversed,surfaceParameterCurve:curves[i]))
+ 37 |             }
+ 38 |             for vertex in vertices { model.vertices[vertex.id] = vertex }
+    |                                      `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 39 |             let loop = Loop(role:role,coedges:coedges)
+ 40 |             model.loops[loop.id] = loop; loops.append(loop.id)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:40:13: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 38 |             for vertex in vertices { model.vertices[vertex.id] = vertex }
+ 39 |             let loop = Loop(role:role,coedges:coedges)
+ 40 |             model.loops[loop.id] = loop; loops.append(loop.id)
+    |             `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 41 |         }
+ 42 |         let face = Face(surfaceID:surfaceID,loops:loops), shell = Shell(faceIDs:[face.id])
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:44:9: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 42 |         let face = Face(surfaceID:surfaceID,loops:loops), shell = Shell(faceIDs:[face.id])
+ 43 |         let body = Body(sheetShellIDs:[shell.id])
+ 44 |         model.geometry.surfaces[surfaceID] = support; model.faces[face.id] = face
+    |         `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 45 |         model.shells[shell.id] = shell; model.bodies[body.id] = body
+ 46 |         return (try ValidatedBRepModel(model,tolerance:.standard,validationLevel:.exact),face.id,body.id)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:44:55: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 42 |         let face = Face(surfaceID:surfaceID,loops:loops), shell = Shell(faceIDs:[face.id])
+ 43 |         let body = Body(sheetShellIDs:[shell.id])
+ 44 |         model.geometry.surfaces[surfaceID] = support; model.faces[face.id] = face
+    |                                                       `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 45 |         model.shells[shell.id] = shell; model.bodies[body.id] = body
+ 46 |         return (try ValidatedBRepModel(model,tolerance:.standard,validationLevel:.exact),face.id,body.id)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:45:9: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 43 |         let body = Body(sheetShellIDs:[shell.id])
+ 44 |         model.geometry.surfaces[surfaceID] = support; model.faces[face.id] = face
+ 45 |         model.shells[shell.id] = shell; model.bodies[body.id] = body
+    |         `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 46 |         return (try ValidatedBRepModel(model,tolerance:.standard,validationLevel:.exact),face.id,body.id)
+ 47 |     }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:45:41: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 43 |         let body = Body(sheetShellIDs:[shell.id])
+ 44 |         model.geometry.surfaces[surfaceID] = support; model.faces[face.id] = face
+ 45 |         model.shells[shell.id] = shell; model.bodies[body.id] = body
+    |                                         `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 46 |         return (try ValidatedBRepModel(model,tolerance:.standard,validationLevel:.exact),face.id,body.id)
+ 47 |     }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:92:61: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 90 |     static func main() async throws {
+ 91 |         let original = try face()
+ 92 |         try require(original.0.validationLevel == .exact && original.0.model.faces[original.1]?.loops.count == 2)
+    |                                                             `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 93 |         print("PASS exact Native folded face admission preserves original non-symmetric hole and reversed coedges")
+ 94 |         for v in [0.0,0.5,1.0] {
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:122:26: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+120 |         print("PASS final caller callback cancellation propagates before closure publication")
+121 |         var changed = original.0.model
+122 |         guard let face = changed.faces[original.1] else { throw Failure() }
+    |                          `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+123 |         changed.geometry.surfaces[face.surfaceID] = .plane(.init(origin:.origin,normal:.unitZ))
+124 |         try require(original.0.model.geometry.surfaces[face.surfaceID] != changed.geometry.surfaces[face.surfaceID])
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:123:9: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+121 |         var changed = original.0.model
+122 |         guard let face = changed.faces[original.1] else { throw Failure() }
+123 |         changed.geometry.surfaces[face.surfaceID] = .plane(.init(origin:.origin,normal:.unitZ))
+    |         `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+124 |         try require(original.0.model.geometry.surfaces[face.surfaceID] != changed.geometry.surfaces[face.surfaceID])
+125 |         print("PASS immutable exact model survives source construction scope and COW mutation")
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:124:21: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+122 |         guard let face = changed.faces[original.1] else { throw Failure() }
+123 |         changed.geometry.surfaces[face.surfaceID] = .plane(.init(origin:.origin,normal:.unitZ))
+124 |         try require(original.0.model.geometry.surfaces[face.surfaceID] != changed.geometry.surfaces[face.surfaceID])
+    |                     `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+125 |         print("PASS immutable exact model survives source construction scope and COW mutation")
+126 |     }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/TrimmedFoldObservation.swift:124:75: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+122 |         guard let face = changed.faces[original.1] else { throw Failure() }
+123 |         changed.geometry.surfaces[face.surfaceID] = .plane(.init(origin:.origin,normal:.unitZ))
+124 |         try require(original.0.model.geometry.surfaces[face.surfaceID] != changed.geometry.surfaces[face.surfaceID])
+    |                                                                           `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+125 |         print("PASS immutable exact model survives source construction scope and COW mutation")
+126 |     }

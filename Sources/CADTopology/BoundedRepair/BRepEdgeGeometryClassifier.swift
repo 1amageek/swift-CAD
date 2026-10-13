@@ -132,6 +132,7 @@ public struct BRepEdgeGeometryClassifier: Sendable {
                     let b = try lift.parameterCurve.endParameter(tolerance:tolerance)
                     if try originalChartPeriodCloses(from: a, to: b, on: lift.surface)
                         || originalGeneratorCloses(from: a, to: b, on: lift.surface, tolerance: tolerance) { return .closed }
+                    if try originalNativeLiftCloses(lift, tolerance: tolerance) { return .closed }
                 default: break
                 }
             }
@@ -252,6 +253,77 @@ public struct BRepEdgeGeometryClassifier: Sendable {
             }
         default: return false
         }
+    }
+
+    /// Position closure consumes the original producer and every incident endpoint side.
+    private func originalNativeLiftCloses(_ lift: SurfaceLiftCurve3D,
+        tolerance: ModelingTolerance) throws -> Bool {
+        guard lift.exactBSplineImage == nil, case .bSpline(let surface) = lift.surface,
+            !surface.isUPeriodic, !surface.isVPeriodic else { return false }
+        switch lift.parameterCurve {
+        case .constantU, .constantV: break
+        default: return false
+        }
+        guard remainingSourceDepth > 0 else {
+            throw GeometryConversionError.resourceLimitExceeded("Original Native lifted endpoints exhausted source depth.")
+        }
+        let first = try lift.parameterCurve.startParameter(tolerance:tolerance)
+        let last = try lift.parameterCurve.endParameter(tolerance:tolerance)
+        var usage = OriginalSourceProofAdmission(consumeWork:consumeWork,consumeStorage:consumeStorage,
+            maximumAlgebraicDepth:maximumAlgebraicDepth)
+        func position(_ point: SurfaceParameter, using usage: inout OriginalSourceProofAdmission)
+            throws -> [ExactRationalCoefficient] {
+            let u = try ExactRationalCoefficient.originalDouble(point.u,usage:&usage)
+            let v = try ExactRationalCoefficient.originalDouble(point.v,usage:&usage)
+            var retained: [ExactRationalCoefficient]?
+            for ui in surface.uDegree..<surface.uControlPointCount {
+                for vi in surface.vDegree..<surface.vControlPointCount {
+                    try usage.consumeExactWork(1)
+                    guard surface.uKnots[ui] < surface.uKnots[ui+1],
+                        surface.vKnots[vi] < surface.vKnots[vi+1] else { continue }
+                    let ul = try ExactRationalCoefficient.originalDouble(surface.uKnots[ui],usage:&usage)
+                    let uh = try ExactRationalCoefficient.originalDouble(surface.uKnots[ui+1],usage:&usage)
+                    let vl = try ExactRationalCoefficient.originalDouble(surface.vKnots[vi],usage:&usage)
+                    let vh = try ExactRationalCoefficient.originalDouble(surface.vKnots[vi+1],usage:&usage)
+                    if try u.subtracting(ul,usage:&usage).isNegative || uh.subtracting(u,usage:&usage).isNegative
+                        || v.subtracting(vl,usage:&usage).isNegative || vh.subtracting(v,usage:&usage).isNegative { continue }
+                    let law = try OriginalRationalSurfaceHomogeneous(source:surface,uSpanIndex:ui,vSpanIndex:vi,
+                        tolerance:tolerance,usage:&usage)
+                    let weight = try law.homogeneous[3].evaluated(atU:u,v:v,usage:&usage)
+                    guard weight.isPositive else {
+                        throw GeometryConversionError.invalidInput("Original lifted endpoint has no positive homogeneous weight.")
+                    }
+                    try RationalAlgebraStorage.retain(3,of:ExactRationalCoefficient.self,usage:&usage)
+                    var coordinates: [ExactRationalCoefficient] = []; coordinates.reserveCapacity(3)
+                    for axis in 0..<3 {
+                        coordinates.append(try law.homogeneous[axis].evaluated(atU:u,v:v,usage:&usage)
+                            .divided(by:weight,usage:&usage))
+                    }
+                    if let retained {
+                        for axis in 0..<3 {
+                            try usage.consumeExactWork(1)
+                            guard try retained[axis].subtracting(coordinates[axis],usage:&usage).isZero else {
+                                throw GeometryConversionError.invalidInput("Original lifted endpoint incident position laws disagree.")
+                            }
+                        }
+                    } else { retained = coordinates }
+                }
+            }
+            guard let retained else {
+                throw GeometryConversionError.invalidInput("Original lifted endpoint has no complete Native chart.")
+            }
+            return retained
+        }
+        let a = try position(first,using:&usage), b = try position(last,using:&usage)
+        for axis in 0..<3 {
+            try usage.consumeExactWork(1)
+            if try !a[axis].subtracting(b[axis],usage:&usage).isZero {
+                try CurrentTaskCancellationChecker().checkCancellation()
+                return false
+            }
+        }
+        try CurrentTaskCancellationChecker().checkCancellation()
+        return true
     }
 
     private func originalGeneratorCloses(from first: SurfaceParameter, to last: SurfaceParameter,

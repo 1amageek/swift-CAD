@@ -1,0 +1,20 @@
+(node:50840) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS exact Native folded face admission preserves original non-symmetric hole and reversed coedges
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: CADCore.GeometryError.invalidDistance(2.0)
+wasm://wasm/Proof.wasm-26765be2:1
+
+
+RuntimeError: unreachable
+    at Proof.wasm.$ss17_assertionFailure__4file4line5flagss5NeverOs12StaticStringV_SSAHSus6UInt32VtF (wasm://wasm/Proof.wasm-26765be2:wasm-function[73580]:0x367d532)
+    at Proof.wasm.swift_errorInMain (wasm://wasm/Proof.wasm-26765be2:wasm-function[77518]:0x378ec08)
+    at Proof.wasm.async_MainTQ0_ (wasm://wasm/Proof.wasm-26765be2:wasm-function[224]:0x872ce)
+    at Proof.wasm.$s25TrimmedFoldEdgeAcceptance0aB11ObservationV5$mainyyYaKFZTY2_ (wasm://wasm/Proof.wasm-26765be2:wasm-function[221]:0x87231)
+    at Proof.wasm.swift_task_switch (wasm://wasm/Proof.wasm-26765be2:wasm-function[100579]:0x3af50f4)
+    at Proof.wasm.$s25TrimmedFoldEdgeAcceptance0aB11ObservationV5$mainyyYaKFZTQ0_ (wasm://wasm/Proof.wasm-26765be2:wasm-function[219]:0x871ad)
+    at Proof.wasm.$s25TrimmedFoldEdgeAcceptance0aB11ObservationV4mainyyYaKFZTY0_ (wasm://wasm/Proof.wasm-26765be2:wasm-function[187]:0x816d1)
+    at Proof.wasm.swift_task_switch (wasm://wasm/Proof.wasm-26765be2:wasm-function[100579]:0x3af50f4)
+    at Proof.wasm.$s25TrimmedFoldEdgeAcceptance0aB11ObservationV4mainyyYaKFZ (wasm://wasm/Proof.wasm-26765be2:wasm-function[186]:0x7f7d8)
+    at Proof.wasm.$s25TrimmedFoldEdgeAcceptance0aB11ObservationV5$mainyyYaKFZ (wasm://wasm/Proof.wasm-26765be2:wasm-function[218]:0x870ab)
+
+Node.js v24.19.0

@@ -136,3 +136,23 @@ their canonical description directly. Every call uses a TaggedID whose existing
 description is the original PortableIdentity128 canonical string. Generated,
 deleted and changed entity audit labels preserve their kind prefix and exact
 identifier format without requiring runtime reflection.
+
+
+### Native lifted closed endpoints
+
+For a full normalized constant-U/V pcurve on a nonperiodic Native host, edge
+classification consumes Geometry's existing OriginalRationalSurfaceHomogeneous
+position producer on every incident original endpoint chart. Both original UV
+endpoints come directly from retained constant-coordinate laws; no evaluated XYZ,
+distance, sample or inverse establishes closure. Every positive-weight homogeneous
+endpoint must agree exactly across incident sides before two endpoint positions
+are compared. Equality certifies position closure only, preserving different
+UV, edge/vertex owners and any C0 crease or retraced interior. Priority exact XYZ
+images and other pcurve/host families retain their existing classification route.
+
+The same OriginalSourceProofAdmission forwards caller work/storage/source and
+algebra capabilities; missing chart, pole/weight, disagreement, cancellation or
+resource exhaustion is explicit. S-TRIMMED-FOLD-01 owns the actual previous
+invalidEdge counterexample and exact folded-face model admission. Native lifted
+closure is a prerequisite; both material predicates and actual offset feasibility
+remain separate uncompleted parts of that cell.

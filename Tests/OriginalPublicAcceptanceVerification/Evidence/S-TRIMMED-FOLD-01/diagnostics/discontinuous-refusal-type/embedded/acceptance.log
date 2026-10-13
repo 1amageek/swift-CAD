@@ -1,0 +1,19 @@
+(node:51333) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS exact Native folded face admission preserves original non-symmetric hole and reversed coedges
+wasm://wasm/Proof.wasm-131aa6da:1
+
+
+RuntimeError: unreachable
+    at Proof.wasm.swift_errorInMain (wasm://wasm/Proof.wasm-131aa6da:wasm-function[349]:0x53660)
+    at Proof.wasm.async_MainTQ0_ (wasm://wasm/Proof.wasm-131aa6da:wasm-function[348]:0x53656)
+    at Proof.wasm.$e25TrimmedFoldEdgeAcceptance0aB11ObservationV5$mainyyYaKFZTY2_ (wasm://wasm/Proof.wasm-131aa6da:wasm-function[346]:0x535bd)
+    at Proof.wasm.swift_task_switch (wasm://wasm/Proof.wasm-131aa6da:wasm-function[77701]:0x3d98663)
+    at Proof.wasm.$e25TrimmedFoldEdgeAcceptance0aB11ObservationV5$mainyyYaKFZTQ0_ (wasm://wasm/Proof.wasm-131aa6da:wasm-function[344]:0x53539)
+    at Proof.wasm.$e25TrimmedFoldEdgeAcceptance0aB11ObservationV4mainyyYaKFZTY0_ (wasm://wasm/Proof.wasm-131aa6da:wasm-function[304]:0x4e2d1)
+    at Proof.wasm.swift_task_switch (wasm://wasm/Proof.wasm-131aa6da:wasm-function[77701]:0x3d98663)
+    at Proof.wasm.$e25TrimmedFoldEdgeAcceptance0aB11ObservationV4mainyyYaKFZ (wasm://wasm/Proof.wasm-131aa6da:wasm-function[302]:0x4c99d)
+    at Proof.wasm.$e25TrimmedFoldEdgeAcceptance0aB11ObservationV5$mainyyYaKFZ (wasm://wasm/Proof.wasm-131aa6da:wasm-function[343]:0x533f2)
+    at Proof.wasm.async_Main (wasm://wasm/Proof.wasm-131aa6da:wasm-function[347]:0x53613)
+
+Node.js v24.19.0
