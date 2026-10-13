@@ -1,0 +1,3 @@
+PASS coaxial SSI full/empty N/N-1 work/storage, source/scalar and cancellation
+PASS terminal complete SSI family/empty cancellation
+PASS source-backed coaxial SSI arrays, exact images/UV, selections and lifetime
