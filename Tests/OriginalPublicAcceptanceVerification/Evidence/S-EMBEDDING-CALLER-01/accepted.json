@@ -1,0 +1,233 @@
+{
+  "scope": "S-EMBEDDING-CALLER-01 bounded actual caller; whole-seven1/7",
+  "records": {
+    "native": {
+      "CADGeometry.json": {
+        "elapsedSeconds": 338.45916904101614,
+        "peakRSSBytes": 2991718400,
+        "logSHA256": "3b2d6a4cf63052ec82281ca8593a10d2808563c9a881bf7bee7f955bdea87d4d"
+      },
+      "caller.json": {
+        "elapsedSeconds": 59.236141457920894,
+        "peakRSSBytes": 52281344,
+        "logSHA256": "4386cb27a52bb071edb614f930b53ce5f0e747aa3a029a2551c48b4b379debd9"
+      },
+      "cancel.json": {
+        "elapsedSeconds": 91.82628979207948,
+        "peakRSSBytes": 45973504,
+        "logSHA256": "cd962057d12dbfa8bd9f05769331e15c2759e5d3c88f5c91288033e062a440c2"
+      },
+      "depth.json": {
+        "elapsedSeconds": 116.71468604193069,
+        "peakRSSBytes": 45973504,
+        "logSHA256": "fe988b8439b55581c7176c345d2a9cf5ac9e80408b9771dc74a333bd35a73c2d"
+      },
+      "fixture.json": {
+        "elapsedSeconds": 6.393538457923569,
+        "peakRSSBytes": 428064768,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-CADKernel.json": {
+        "elapsedSeconds": 3.780574166914448,
+        "peakRSSBytes": 193855488,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-CADModeling.json": {
+        "elapsedSeconds": 3.2087992089800537,
+        "peakRSSBytes": 134217728,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-caller.json": {
+        "elapsedSeconds": 228.55144570802804,
+        "peakRSSBytes": 61325312,
+        "logSHA256": "049df5a4afd6823534b6675f25446a8e173770c589edce5e6ae5d46cbd737afe"
+      },
+      "offset-fixture.json": {
+        "elapsedSeconds": 3.091278624953702,
+        "peakRSSBytes": 475774976,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-receipt.json": {
+        "elapsedSeconds": 45.955240125069395,
+        "peakRSSBytes": 45875200,
+        "logSHA256": "8f672cc9398bcda63e227a8f9f528e07bed3c4238de003a843400ed308e6deb5"
+      },
+      "resources.json": {
+        "elapsedSeconds": 191.69219824997708,
+        "peakRSSBytes": 47218688,
+        "logSHA256": "ad9cdfc3b21856f28f7259219f7981200edc4e856bf74b65686c8025ad11b006"
+      }
+    },
+    "asan": {
+      "CADGeometry.json": {
+        "elapsedSeconds": 414.97182075004093,
+        "peakRSSBytes": 3937943552,
+        "logSHA256": "3b2d6a4cf63052ec82281ca8593a10d2808563c9a881bf7bee7f955bdea87d4d"
+      },
+      "caller.json": {
+        "elapsedSeconds": 210.50384487502743,
+        "peakRSSBytes": 537739264,
+        "logSHA256": "4386cb27a52bb071edb614f930b53ce5f0e747aa3a029a2551c48b4b379debd9"
+      },
+      "cancel.json": {
+        "elapsedSeconds": 88.47519133402966,
+        "peakRSSBytes": 537772032,
+        "logSHA256": "cd962057d12dbfa8bd9f05769331e15c2759e5d3c88f5c91288033e062a440c2"
+      },
+      "depth.json": {
+        "elapsedSeconds": 72.92245866695885,
+        "peakRSSBytes": 571244544,
+        "logSHA256": "fe988b8439b55581c7176c345d2a9cf5ac9e80408b9771dc74a333bd35a73c2d"
+      },
+      "fixture.json": {
+        "elapsedSeconds": 2.558041666983627,
+        "peakRSSBytes": 613629952,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-CADKernel.json": {
+        "elapsedSeconds": 1.549972000066191,
+        "peakRSSBytes": 191774720,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-CADModeling.json": {
+        "elapsedSeconds": 0.6267428330611438,
+        "peakRSSBytes": 42074112,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-caller.json": {
+        "elapsedSeconds": 452.2618215000257,
+        "peakRSSBytes": 681328640,
+        "logSHA256": "049df5a4afd6823534b6675f25446a8e173770c589edce5e6ae5d46cbd737afe"
+      },
+      "offset-fixture.json": {
+        "elapsedSeconds": 10.171053583966568,
+        "peakRSSBytes": 657276928,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-receipt.json": {
+        "elapsedSeconds": 131.15830162505154,
+        "peakRSSBytes": 507019264,
+        "logSHA256": "8f672cc9398bcda63e227a8f9f528e07bed3c4238de003a843400ed308e6deb5"
+      },
+      "resources.json": {
+        "elapsedSeconds": 162.79326087492518,
+        "peakRSSBytes": 563118080,
+        "logSHA256": "ad9cdfc3b21856f28f7259219f7981200edc4e856bf74b65686c8025ad11b006"
+      }
+    },
+    "wasm": {
+      "CADGeometry.json": {
+        "elapsedSeconds": 351.4835843750043,
+        "peakRSSBytes": 3235676160,
+        "logSHA256": "3b2d6a4cf63052ec82281ca8593a10d2808563c9a881bf7bee7f955bdea87d4d"
+      },
+      "caller.json": {
+        "elapsedSeconds": 82.05708020809107,
+        "peakRSSBytes": 439517184,
+        "logSHA256": "eaa4cf56c79bf6632556d40d3f4549d4d8672e87bb469411afc2740f475851bb"
+      },
+      "cancel.json": {
+        "elapsedSeconds": 58.701879458036274,
+        "peakRSSBytes": 449757184,
+        "logSHA256": "950433728e00246dfb80c60cfb9d27b3b2fe3812bbe4448ae0e2693fbd155b13"
+      },
+      "depth.json": {
+        "elapsedSeconds": 36.21360254206229,
+        "peakRSSBytes": 439140352,
+        "logSHA256": "b7b436204ca4bb21d6037ff576f774f0a84b01273b5f1564e2667244e59429aa"
+      },
+      "fixture.json": {
+        "elapsedSeconds": 7.7460830410709605,
+        "peakRSSBytes": 689340416,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-CADKernel.json": {
+        "elapsedSeconds": 3.6069106250070035,
+        "peakRSSBytes": 187449344,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-CADModeling.json": {
+        "elapsedSeconds": 3.222764417063445,
+        "peakRSSBytes": 45105152,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-caller.json": {
+        "elapsedSeconds": 323.86943866708316,
+        "peakRSSBytes": 466255872,
+        "logSHA256": "7a888bb9cd78ae3cd0d4e4b8a87e5bb45c87dac293a2b5298af536b5bcd6ba75"
+      },
+      "offset-fixture.json": {
+        "elapsedSeconds": 3.994630000088364,
+        "peakRSSBytes": 728039424,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-receipt.json": {
+        "elapsedSeconds": 66.14213837508578,
+        "peakRSSBytes": 451297280,
+        "logSHA256": "1d056871938ddfbb304bfd91ef0ca2de1a2478ed0446de157c917469260585f4"
+      },
+      "resources.json": {
+        "elapsedSeconds": 138.81255262496416,
+        "peakRSSBytes": 440385536,
+        "logSHA256": "42c7dac4bf54f82951ea9ea2e9bed74a1cc80b1b8f9fcda36ec5a29e0189a4a3"
+      }
+    },
+    "embedded": {
+      "CADGeometry.json": {
+        "elapsedSeconds": 476.1354830840137,
+        "peakRSSBytes": 5626068992,
+        "logSHA256": "ca340e5360c05da90b206696826119771bb819a9800ad3d2f6f17cac814c8e8b"
+      },
+      "caller.json": {
+        "elapsedSeconds": 13.353267375030555,
+        "peakRSSBytes": 327892992,
+        "logSHA256": "114b2762068b8b6b80eca5161af96545d1ce34102265fece3dc03dfb361dcf66"
+      },
+      "cancel.json": {
+        "elapsedSeconds": 21.087368124979548,
+        "peakRSSBytes": 321798144,
+        "logSHA256": "5f3eeec8beecfffa6b4280273a90c8c474c6b72b230cb9484ae519791153ad62"
+      },
+      "fixture.json": {
+        "elapsedSeconds": 98.74465783301275,
+        "peakRSSBytes": 7077658624,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-CADKernel.json": {
+        "elapsedSeconds": 329.2136737080291,
+        "peakRSSBytes": 4377411584,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-CADModeling.json": {
+        "elapsedSeconds": 0.7437648749910295,
+        "peakRSSBytes": 149798912,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-caller.json": {
+        "elapsedSeconds": 118.85403312498238,
+        "peakRSSBytes": 336887808,
+        "logSHA256": "f9853f6664c69896280d31c9518f6e5d8f887b2e28b8303cafa3d138f2a91e27"
+      },
+      "offset-fixture.json": {
+        "elapsedSeconds": 387.19913974998053,
+        "peakRSSBytes": 4903682048,
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "offset-receipt.json": {
+        "elapsedSeconds": 28.171624999959022,
+        "peakRSSBytes": 333758464,
+        "logSHA256": "6bcfda79a5880e648216d759cdd405c89bbff2d51788f999fb290777a1ed35c8"
+      },
+      "resources.json": {
+        "elapsedSeconds": 53.08407479105517,
+        "peakRSSBytes": 323387392,
+        "logSHA256": "3bb2d4e3a1aae1584190dde629fd8a2a5fa6983032d03b19fbc48bb0b6d656a8"
+      }
+    }
+  },
+  "sourcePremises": "source-premises.json",
+  "readerInputs": "reader-inputs.json",
+  "products": "products.json",
+  "unchangedLower": "Core/Topology/Collections and L2-L6 reused; Kernel8/Modeling1 only, no whole Kernel",
+  "embeddedFixture": "Existing OriginalRelationUsage; same four-chart source and actual validator. Value-type writeback and attained-depth controls additionally verified in other three targets."
+}

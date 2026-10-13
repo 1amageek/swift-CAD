@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/embedding-caller-v2-20261014/asan/caller-818fb3d9e565d4ea/Proof"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 72.92245866695885,
+  "peakRSSBytes": 571244544,
+  "wallLimitSeconds": 240,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "fe988b8439b55581c7176c345d2a9cf5ac9e80408b9771dc74a333bd35a73c2d"
+}

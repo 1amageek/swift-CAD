@@ -21,6 +21,16 @@ public struct DefaultOriginalSurfaceEmbeddingValidator: SourceBoundedOriginalSur
     public func validate<B: RationalAlgebraAdmitting>(_ surface: Surface3D, over domain: SurfaceParameterBox,
         maximumLocalSubdivisionDepth: Int, maximumLocalCellCount: Int,
         maximumPairSubdivisionDepth: Int, remainingSourceDepth: Int, tolerance: ModelingTolerance, usage: inout B) throws {
+        try CurrentTaskCancellationChecker().checkCancellation()
+        try validateOriginal(surface,over:domain,maximumLocalSubdivisionDepth:maximumLocalSubdivisionDepth,
+            maximumLocalCellCount:maximumLocalCellCount,maximumPairSubdivisionDepth:maximumPairSubdivisionDepth,
+            remainingSourceDepth:remainingSourceDepth,tolerance:tolerance,usage:&usage)
+        try CurrentTaskCancellationChecker().checkCancellation()
+    }
+
+    private func validateOriginal<B: RationalAlgebraAdmitting>(_ surface: Surface3D, over domain: SurfaceParameterBox,
+        maximumLocalSubdivisionDepth: Int, maximumLocalCellCount: Int,
+        maximumPairSubdivisionDepth: Int, remainingSourceDepth: Int, tolerance: ModelingTolerance, usage: inout B) throws {
         try limits(localDepth: maximumLocalSubdivisionDepth, localCount: maximumLocalCellCount,
             pairDepth: maximumPairSubdivisionDepth, tolerance: tolerance)
         let prepared = try prepare(surface, remainingSourceDepth: remainingSourceDepth,
@@ -45,6 +55,9 @@ public struct DefaultOriginalSurfaceEmbeddingValidator: SourceBoundedOriginalSur
             }
         }
         try domain.validateAssumingSurfaceValidated(for: surface, tolerance: tolerance)
+        try OriginalExactEmbeddingSelfContactConsumer.validate(surface:surface,domain:domain,
+            remainingSourceDepth:remainingSourceDepth,maximumCharts:maximumLocalCellCount,
+            tolerance:tolerance,usage:&usage)
         if domain.u.lower == 0, domain.u.upper == 1, domain.v.lower == 0, domain.v.upper == 1,
            let image = try exactBilinearImage(surface, usage: &usage),
            try OriginalBilinearEmbeddingCertificate.proven(image, usage: &usage) != nil { return }

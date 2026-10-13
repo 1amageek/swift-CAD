@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/embedding-offset-regression-v2-20261014/embedded/caller/Proof.wasm",
+    "receipt"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 28.171624999959022,
+  "peakRSSBytes": 333758464,
+  "wallLimitSeconds": 481.6685457089916,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "6bcfda79a5880e648216d759cdd405c89bbff2d51788f999fb290777a1ed35c8"
+}

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/embedding-offset-regression-v2-20261014/native/caller/Proof"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 45.955240125069395,
+  "peakRSSBytes": 45875200,
+  "wallLimitSeconds": 1189.5693345000036,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "8f672cc9398bcda63e227a8f9f528e07bed3c4238de003a843400ed308e6deb5"
+}

@@ -14,29 +14,8 @@ enum OriginalOffsetCoonsSelfContact {
         tolerance: ModelingTolerance, limits: OriginalDomainIdentityLimits, maximumPairs: Int,
         cellLimits: ExactRealCellLimits, topologyLimits: ExactRealTopologyLimits, using a: inout A
     ) throws -> Contacts {
-        try a.checkpoint()
-        let field = try Base(maximumValueDepth:limits.maximumTransportDepth,
-            maximumCoefficientDepth:limits.maximumTransportDepth,using:&a)
-        let source = try DefaultOriginalSourceBindingIssuer(provider:
-            OriginalCoonsAtlasSnapshotProvider(field:field,tolerance:tolerance))
-            .bind(surface,limits:limits.source,using:&a)
-        let charts = try DefaultOriginalFiniteRetainedSurfaceChartPreparer<Source>()
-            .prepare(source:source,maximumCharts:limits.maximumCharts,limits:limits.source,using:&a)
-        let frame = try DefaultOriginalRetainedSurfaceDomainIssuer<Source>()
-            .frame(family:charts,limits:limits,using:&a)
-        let cover = try DefaultOriginalIssuedDomainBinder().bind(laws:charts.laws,
-            request:frame.fullSelection(limits:limits,using:&a),limits:limits,using:&a)
-        let algebraic = try ExactAlgebraicScalarDomain.base(field:field,
-            maximumExtensionLevel:limits.maximumTransportDepth,using:&a)
-        let family = try DefaultOriginalRationalGraphFamilyPreparer().prepare(cover:cover,
-            field:algebraic,maximumGraphs:limits.maximumCharts,limits:limits,using:&a)
-        let raw = try DefaultOriginalIssuedGraphRelationResolver().resolve(kind:.surfaceSurface,
-            first:family,second:family,maximumPairs:maximumPairs,limits:limits,
-            cellLimits:cellLimits,topologyLimits:topologyLimits,using:&a)
-        let result = try DefaultOriginalIssuedGraphSelfContactQuery<Source,Evidence,Cover,Evidence,Cover>()
-            .contacts(in:raw,domainLimits:limits,cellLimits:cellLimits,topologyLimits:topologyLimits,using:&a)
-        try a.checkpoint()
-        return result
+        try OriginalExactSurfaceSelfContactPreparer.coons(surface:surface,tolerance:tolerance,
+            limits:limits,maximumPairs:maximumPairs,cellLimits:cellLimits,topologyLimits:topologyLimits,using:&a)
     }
 
     static func validate(surface: OriginalCoonsSurface3D, tolerance: ModelingTolerance,

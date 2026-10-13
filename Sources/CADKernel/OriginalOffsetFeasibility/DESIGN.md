@@ -9,6 +9,10 @@ Consume the immutable exact/volumetric result model, enumerate its owned faces,
 and reject any nonstructural contact in both selected material domains. Geometry
 owns source binding, complete DI products, identity exclusion and material
 refinement. This owner binds the actual face and shares the caller admission.
+The package-level OriginalExactSurfaceSelfContactPreparer is the shared positional
+preparation owner for this validator and original embedding. Kernel's Native and
+Coons adapters delegate to it before applying their existing material obligations.
+No source equality or DI orchestration is duplicated across the two callers.
 
 ## Related Designs
 | Design | Relationship | Contract Used | Summary | Cautions |

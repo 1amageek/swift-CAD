@@ -317,3 +317,40 @@ role, raw context or incomplete correspondence, resources and cancellation fail
 explicitly. Scratch is invocation-local; all retained owners are immutable Sendable
 with the same Native/WASM/Embedded contract. S-TRIMMED-FOLD-01 owns the whole-cell
 fold/asymmetric-hole oracle, policy/empty/failure/resource/cancel/lifetime evidence.
+
+## Exact receipt consumption by the embedding caller
+
+The next owned caller migration is S-EMBEDDING-CALLER-01. A shared package
+preparer owns source/DI/full Native or issued-Coons products and scoped self
+refinement for both Kernel offset admission and the actual original embedding
+validator. Every requested closed UV box is restricted in original coordinates;
+only the authored diagonal is excluded unless additional checked identities are
+explicitly supplied. Nonempty residual contact is topologyFailure. Empty contact
+is a necessary global condition, not a local regularity certificate: the existing
+source continuity and derivative-based local proof remain separate obligations.
+
+The existing word-based RationalAlgebraAdmitting caller is borrowed through the
+existing exact bridge. The bridge's updated usage is returned on normal and
+throwing exits; no fresh work/storage allowance or scalar/spatial-depth conversion
+is introduced. Both embedding validate overloads check terminal task cancellation
+after the final proof callback. The shared preparer owns positional source/DI
+preparation; differential enclosure work retains the same authored surface and
+owns its separate local theorem. Kernel consumes the same Coons preparation.
+Periodic/general-source caller migration remains explicitly incomplete.
+
+The pair quota is the square of the admitted chart ceiling. If this mathematical
+ceiling exceeds Int.max on a target, use Int.max, the largest representable array
+count. Every representable count is already below that mathematical ceiling;
+actual count/allocation overflow still fails. Work/storage and source/chart
+ceilings remain binding. A 65,536-cell caller with sixteen actual pairs must
+therefore succeed on 32-bit WASM as on Native.
+
+Verification owns actual DefaultOriginalSurfaceEmbeddingValidator calls on the
+existing four-chart planar Coons and Native fold, original domain restrictions,
+attained independent scalar depths, remaining-source/chart refusals, N/N-1 costs,
+entry/mid/final cancellation and immutable retained result lifetime. Complete
+production metadata/object generation must match the fixed snapshot; an isolated
+renamed port does not discharge the real CADGeometry caller obligation.
+The planar source attains depth zero on both scalar axes; no negative depth is
+invented to claim a one-below refusal. Unchanged lower receipt limits, guards and
+foreign-owner refusals retain their existing verification authority.

@@ -1,0 +1,4 @@
+(node:81822) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+RESOURCE complete embedding work/words 16481404 60745658
+PASS exact N/N-1 work/storage and value-admission writeback
