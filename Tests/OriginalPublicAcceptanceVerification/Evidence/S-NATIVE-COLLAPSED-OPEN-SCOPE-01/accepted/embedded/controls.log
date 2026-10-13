@@ -1,0 +1,4 @@
+(node:72605) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+METRIC preparedQueryBoundary 159335 4729576 45069 
+PASS open half boundary both directions, nonconstant/foreign scope refusal and detached lifetime

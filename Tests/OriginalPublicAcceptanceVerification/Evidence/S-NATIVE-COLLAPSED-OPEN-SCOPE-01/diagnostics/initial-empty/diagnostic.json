@@ -1,0 +1,5 @@
+{
+  "status": "REJECTED_ORACLE",
+  "reason": "Public query returned; empty singleton oracle requested a nonretained general sign invariant",
+  "fixtureSHA256": "3b10264f7c46c9d275600cc03bcbb55229472b34dd2dd0a3de42770070390f3e"
+}

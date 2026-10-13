@@ -1,0 +1,13 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/NativeCollapsedOpenAcceptance.swift:88:71: error: referencing operator function '==' on 'Equatable' requires that 'ExactRealCellView<ExactRationalScalarDomain>' conform to 'Equatable'
+ 86 |             try require(selected.cells.count==1 && selected.cells[0].dimension==0)
+ 87 |             let pb=result.refinements[0].pullback,region=pb.region
+ 88 |             try require(pb.coordinateMap==[0,1,2,3] && pb.source.cells==selected.cells)
+    |                                                                       `- error: referencing operator function '==' on 'Equatable' requires that 'ExactRealCellView<ExactRationalScalarDomain>' conform to 'Equatable'
+ 89 |             try require(region.cells.count==1 && region.cells[0].dimension==0 && region.included==[false] && pb.sourceCellOrdinals==[-1])
+ 90 |             Common.marker("PASS complete empty singleton requested product");return
+
+Swift.Equatable:1:17: note: where 'Self' = 'ExactRealCellView<ExactRationalScalarDomain>'
+1 | public protocol Equatable : ~Copyable, ~Escapable {
+  |                 `- note: where 'Self' = 'ExactRealCellView<ExactRationalScalarDomain>'
+2 |     static func == (lhs: borrowing Self, rhs: borrowing Self) -> Bool
+3 | }
