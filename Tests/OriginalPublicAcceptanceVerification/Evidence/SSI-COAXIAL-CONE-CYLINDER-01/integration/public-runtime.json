@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-full-20261014-v2/integration/Public"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 2.7824054590892047,
+  "peakRSSBytes": 12451840,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "6867050dc797d733647e4bde6e0187d364f74f3a9ca3aae57c93678b16a0f0c4"
+}
