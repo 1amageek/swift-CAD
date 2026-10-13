@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-integration-recovered/swift-CAD/.build/certified-pair-lift-delivery-20261014/Public"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 1.6901188330957666,
+  "peakRSSBytes": 13303808,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "f5b9ddd875b6a04184606706b4d74c00061efb787cb44f1deafd71e19d28534c"
+}
