@@ -168,3 +168,22 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         return try multiplied(by: Self(sign: other.sign, numerator: other.denominator, denominator: other.numerator), usage: &usage)
     }
 }
+
+
+extension ExactRationalCoefficient {
+    /// Exact floor/ceiling on a dyadic grid, using the existing integer backend.
+    static func dyadicNeighbours<B: RationalAlgebraAdmitting>(_ value: Self, fractionalBits: Int,
+        usage: inout B) throws -> (lower: Self, upper: Self) {
+        guard fractionalBits >= 0 else { throw ExactScalarFailure.invalidSource }
+        let scaled = try value.numerator.shifted(by: fractionalBits, usage: &usage)
+        let (quotient, remainder) = try scaled.quotientAndRemainder(dividingBy: value.denominator, usage: &usage)
+        let denominator = try ExactNaturalMagnitude.one.shifted(by: fractionalBits, usage: &usage)
+        let next = remainder.isZero ? quotient :
+            try quotient.adding(.one, usage: &usage)
+        let low = try reduced(sign: value.sign, numerator: value.sign < 0 ? next : quotient,
+            denominator: denominator, usage: &usage)
+        let high = try reduced(sign: value.sign, numerator: value.sign < 0 ? quotient : next,
+            denominator: denominator, usage: &usage)
+        return (low, high)
+    }
+}

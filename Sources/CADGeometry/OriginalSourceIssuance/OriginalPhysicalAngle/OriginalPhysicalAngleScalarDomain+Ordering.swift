@@ -20,7 +20,14 @@ extension OriginalPhysicalAngleScalarDomain {
             var refinement = try OriginalPhysicalAngleRefinement(owner, &a)
             while true {
                 try a.checkpoint()
-                guard let parameter = try refinement.next(&a) else { continue }
+                guard let exactParameter = try refinement.next(&a) else { continue }
+                let bits = refinement.order.multipliedReportingOverflow(by: 4)
+                guard !bits.overflow else { throw ExactScalarFailure.countOverflow }
+                let lower = try owner.rationals.dyadicNeighbours(exactParameter.lower,
+                    fractionalBits: bits.partialValue, using: &a).lower
+                let upper = try owner.rationals.dyadicNeighbours(exactParameter.upper,
+                    fractionalBits: bits.partialValue, using: &a).upper
+                let parameter = OriginalPhysicalAngleInterval(lower: lower, upper: upper)
                 guard let n = try enclosed(x.numerator, at: parameter, &a).sign(owner.rationals, &a),
                     let d = try enclosed(x.denominator, at: parameter, &a).sign(owner.rationals, &a) else { continue }
                 return n == d ? .positive : .negative
@@ -30,10 +37,20 @@ extension OriginalPhysicalAngleScalarDomain {
     func enclosed<A: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactPolynomial<ExactRationalScalarDomain>,
         at parameter: OriginalPhysicalAngleInterval, _ a: inout A) throws -> OriginalPhysicalAngleInterval {
         var total = OriginalPhysicalAngleInterval(try owner.rationals.integer(0, using: &a))
+        var previous: Int?
         for term in polynomial.terms {
             try a.consumeWork(1)
-            let power = try parameter.powered(term.powers[0], owner.rationals, &a)
-            total = try total.adding(power.multiplying(.init(term.coefficient), owner.rationals, &a), owner.rationals, &a)
+            let power = term.powers[0]
+            if let previous {
+                guard previous >= power else { throw ExactScalarFailure.invalidEvidence }
+                total = try total.multiplying(parameter.powered(previous - power, owner.rationals, &a),
+                    owner.rationals, &a)
+            }
+            total = try total.adding(.init(term.coefficient), owner.rationals, &a)
+            previous = power
+        }
+        if let previous, previous > 0 {
+            total = try total.multiplying(parameter.powered(previous, owner.rationals, &a), owner.rationals, &a)
         }
         return total
     }

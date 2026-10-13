@@ -1,0 +1,6 @@
+BASE 1298 12873
+D 8800 72773
+POLYNOMIAL 2879741 1544673
+BOUND 5748523 2997577
+DOMAIN 5748620 2999369
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: CADGeometry.ExactRealRootFailure.polynomial(CADGeometry.ExactPolynomialFailure.scalar(CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.work)))

@@ -68,3 +68,15 @@ public struct ExactRationalScalarDomain: ExactScalarArithmetic, ExactScalarOrder
         }.value
     }
 }
+
+
+extension ExactRationalScalarDomain {
+    public func dyadicNeighbours<A: ExactScalarAdmission & ~Copyable>(_ source: borrowing Value,
+        fractionalBits: Int, using admission: inout A) throws(ExactScalarFailure)
+        -> (lower: Value, upper: Value) {
+        let value = copy source
+        return try ExactScalarNumericAccess.withAdmission(&admission) { usage in
+            try Value.dyadicNeighbours(value, fractionalBits: fractionalBits, usage: &usage)
+        }.value
+    }
+}

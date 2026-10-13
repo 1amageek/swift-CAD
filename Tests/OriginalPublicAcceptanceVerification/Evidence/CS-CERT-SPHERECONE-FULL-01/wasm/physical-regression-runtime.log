@@ -1,0 +1,5 @@
+(node:2208) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS physical-radian exact identities, near-binary64 sign separation, range doubling, lifetime and typed failures
+PASS physical-angle exact cumulative work/storage, entry/final cancellation and independent coefficient depth
+MEASURE physical-angle work=13650 generatedBytes=23081

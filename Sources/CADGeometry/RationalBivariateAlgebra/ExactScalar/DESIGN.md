@@ -19,6 +19,18 @@ these operations. No additional root-search algorithm is introduced. Cell
 decomposition, geometric shapes, XYZ/UV relations and floating-point enclosures
 are consumers outside L0.
 
+### Exact dyadic neighbours for rational coefficients
+
+`ExactRationalScalarDomain.dyadicNeighbours` returns the adjacent multiples of
+2^-fractionalBits enclosing an exact rational. It uses the existing natural
+magnitude shift and quotient/remainder, with signed floor/ceiling and exact
+rational reduction. It creates no floating value or source equality assertion.
+Source coefficient owners use these exact rationals to bound interval-expression
+bit growth. Negative bit counts, arithmetic/count overflow, resources and cancel
+remain failures under the same admission. It neither solves roots nor clips
+geometry. Verification owns positive/negative/exact grid points, zero, huge
+numerators, endpoint containment, N/N-1 resources and terminal cancellation.
+
 ### Native-first resource boundary
 
 L0 owns the scalar meaning and the minimal query-resource contract. Swift owns

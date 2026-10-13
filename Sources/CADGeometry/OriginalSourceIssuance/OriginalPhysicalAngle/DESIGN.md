@@ -58,11 +58,21 @@ this field's constructor domain; a source with zero angle uses rational constant
 Ordering uses exact rational enclosures. Halve |a|/2 exactly until the reduced
 argument is below 1, bound sin/cos by alternating Taylor sums and their next
 terms, and undo halving by interval angle doubling. Division by the enclosed
-cosine occurs only after its interval excludes zero. Interval polynomial
-evaluation then isolates numerator and denominator signs. Refinement terminates
+cosine occurs only after its interval excludes zero. Exact dyadic neighbours enclose the returned tangent bounds with four additional
+bits per coefficient-refinement step. Horner polynomial evaluation then isolates numerator and denominator signs. Refinement terminates
 mathematically for every nonzero rational function, subject to the caller's
 work, storage, coefficient-depth and cancellation limits. No rounded pi, libm
 trigonometry, heuristic zero, or successful indeterminate sign is used.
+
+Scalar construction cancels the polynomial GCD and makes the denominator monic
+using the existing L1 exact operations. It first rejects an identically zero
+denominator, then preserves the exact rational function and its original angle
+owner. This does not remove any source/domain guard. The concrete acceptance
+counterexample is sphere-cone's (s+4c)^2-8 coefficient: uncancelled denominator
+powers exhaust the unchanged caller allowance before real-root intake. The source
+field owns normalization; lower root/cell solvers remain unchanged. Verification
+compares exact original identities, the stopped coefficient/root intake, resource
+boundaries and the affected physical-angle/coaxial public paths.
 
 ## Runtime Flows
 

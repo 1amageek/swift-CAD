@@ -82,8 +82,25 @@ public struct OriginalPhysicalAngleScalarDomain: ExactPhysicalAngleCoefficients 
         _ numerator: ExactPolynomial<ExactRationalScalarDomain>,
         _ denominator: ExactPolynomial<ExactRationalScalarDomain>, _ a: inout A) throws -> Value {
         guard try !owner.ring.isZero(denominator, using: &a) else { throw ExactScalarFailure.divisionByZero }
+        let ring = owner.ring, q = owner.rationals
+        var n = numerator, d = denominator
+        if try ring.isZero(n, using: &a) {
+            d = owner.one
+        } else if d.termCount != 1 || d.terms[0].powers[0] != 0 {
+            // Cancelling exact common factors prevents coefficient-ordering work
+            // from growing with the expression tree rather than its value.
+            let common = try ring.greatestCommonDivisor(n, d, using: &a)
+            n = try ring.dividedExactly(n, by: common, using: &a)
+            d = try ring.dividedExactly(d, by: common, using: &a)
+        }
+        guard let leading = d.terms.first else { throw ExactScalarFailure.divisionByZero }
+        if try q.compare(leading.coefficient, q.integer(1, using: &a), using: &a) != .equal {
+            let scale = try q.dividing(q.integer(1, using: &a), leading.coefficient, using: &a)
+            n = try ring.scaled(n, by: scale, using: &a)
+            d = try ring.scaled(d, by: scale, using: &a)
+        }
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Value.self))
-        return .init(owner: owner, numerator: numerator, denominator: denominator)
+        return .init(owner: owner, numerator: n, denominator: d)
     }
     public func importing<A: ExactScalarAdmission & ~Copyable>(_ source: borrowing Value,
         using admission: inout A) throws(ExactScalarFailure) -> Value {

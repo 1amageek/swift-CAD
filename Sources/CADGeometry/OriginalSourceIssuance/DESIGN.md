@@ -2927,3 +2927,26 @@ The reducer consumes the scalar owner's package-only rational square-root
 capability. It neither reads scalar storage nor owns another numeric allowance.
 The existing producer is unchanged and available in standalone L0 as well as
 full Geometry. Conditional imports retain the independent SourceIssuer contract.
+
+
+### Sphere-cone full-branch phase and selected radical
+
+The source owns the unit radial phase of the actual cone generator, with
+physical theta=B*T on authored T[0,1]. It is a distinct auxiliary source,
+not a replacement for the intersection curve's position. The existing physical
+analytic-coordinate and cosine-zero issuers supply its complete two zeros.
+For sphere0/R3 and cone(1,0,-4)/Z, source bounds on the original sin/cos establish
+L<0, D=L^2-8>0, both positive slants and absence of sphere poles over the entire
+phase support. Existing generic real-root issuance selects the positive sqrt(D)
+at each zero; the declared branch selects -L plus or minus that radical.
+No regenerated binary metric establishes parent equality.
+
+The source retains separate exact phase/Pi and physical-angle algebraic fields.
+The former owns T; each radical field owns XYZ and planeUV. They are never
+coerced through rounded coefficients. Cone labels and sphere longitude are exact
+intrinsic labels with arbitrary integer lifts. Sphere latitude is a sealed
+canonical inverse-sine coordinate retaining exact sine/cosine and interval,
+rather than a rounded scalar. All its witnesses denote the same source position.
+Consumers retain these owners and restrict the actual domains with the same
+admission. Full-branch cells and the affected physical/coaxial paths own focused
+verification; other certified variants remain independent obligations.

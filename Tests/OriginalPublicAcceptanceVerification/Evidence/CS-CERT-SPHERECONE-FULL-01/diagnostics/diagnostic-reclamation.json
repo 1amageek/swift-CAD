@@ -1,0 +1,18 @@
+{
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-full-20261014/native/Diagnostic": {
+    "bytes": 61095320,
+    "sha256": "40509e2d7d35759f98fb0b623b57a30b30853ed5dbbfa06f198c87977e79e671"
+  },
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-full-20261014/native/SourceMeasured": {
+    "bytes": 61010480,
+    "sha256": "a1b1bb6be08818a84588f6dc8e5c3c5d309d7ef190a574c20fc8fa983d191080"
+  },
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-full-20261014/native/DIMeasured": {
+    "bytes": 61010296,
+    "sha256": "192ecc6f7d72c0d48fa977b560591bf89c8cfcb8e639e35cb68520adf4884b21"
+  },
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-full-20261014/native/AngleBits": {
+    "bytes": 2606600,
+    "sha256": "98775c8b00cca94b17c4eb91a774111cd613ff7d0076b8330e103d561d5e663a"
+  }
+}

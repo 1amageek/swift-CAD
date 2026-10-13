@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/normalized/Radical"
+  ],
+  "exitCode": -5,
+  "elapsedSeconds": 1.1258813330205157,
+  "peakRSSBytes": 9256960,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "4af1c26f83111db4897ed8e1d39f820a61d05b9981720daa3beaca6030f755e0"
+}

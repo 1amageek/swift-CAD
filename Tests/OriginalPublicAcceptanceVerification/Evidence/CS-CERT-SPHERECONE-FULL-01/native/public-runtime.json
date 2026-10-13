@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-full-20261014/native/Public"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 28.3520507090725,
+  "peakRSSBytes": 14860288,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "6177c16108c14f5a7f78e09743f4b2d50ddee1fedb5ef7c81eb60334530630a9"
+}

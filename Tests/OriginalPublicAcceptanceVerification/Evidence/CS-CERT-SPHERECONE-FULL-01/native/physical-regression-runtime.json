@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-full-20261014/native/PhysicalRegression"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.85378470888827,
+  "peakRSSBytes": 32768,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "da2900b0bb7e3028eb33ee46c3a26035b755dd27d349825a20366558f1e4cd2a"
+}

@@ -10,6 +10,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
         return try GeometryExactScalarFailure.withPublication {
           if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(curve:curve,surface:surface,
               options:options,tolerance:tolerance,retainingRelations:true) { return periodic }
+          if let sphereCone = try OriginalCertifiedSphereConePublicProducer().resolve(curve:curve,surface:surface,
+            options:options,tolerance:tolerance) { return sphereCone }
           if let coaxial = try OriginalCertifiedCoaxialPublicProducer().resolve(curve:curve,surface:surface,
             options:options,tolerance:tolerance,retainingRelations:true) { return coaxial }
           if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,
@@ -43,6 +45,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
               maximumAlgebraicDepth: maximumAlgebraicDepth)
           if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(curve:curve,surface:surface,
               options:options,tolerance:tolerance,invocation:invocation,retainingRelations:true) { return periodic }
+          if let sphereCone = try OriginalCertifiedSphereConePublicProducer().resolve(curve:curve,surface:surface,
+            options:options,tolerance:tolerance,invocation:invocation) { return sphereCone }
           if let coaxial = try OriginalCertifiedCoaxialPublicProducer().resolve(curve:curve,surface:surface,
             options:options,tolerance:tolerance,invocation:invocation,retainingRelations:true) { return coaxial }
           if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,

@@ -1,0 +1,3 @@
+BASE 143 1657
+D 1207 6869
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: CADGeometry.ExactPolynomialFailure.scalar(CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.work))

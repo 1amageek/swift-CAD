@@ -852,3 +852,15 @@ localization and never prove equality or merge T/UV.
 The reader exposes every needed operation as a protocol requirement for Embedded.
 Verification covers ordinary, composed callback and retained reader paths on
 Native, ASAN, normal WASM and Embedded, without rebuilding independent L2-L6.
+
+## Certified sphere-cone full-branch publication
+
+The ordinary selector consumes the two supported original full branches and
+the declared planeY0/uX target. Exact mixed-coordinate receipts retain original T,
+selected radical, target UV and both parent UV. A sphere latitude is a canonical
+unit-circle inverse coordinate, not a manufactured binary64 UV. Numerical
+representatives are localized with the existing outward trigonometric evaluator
+and exact source-selected radical bounds; they establish no equality. Every
+publication/query retains source/field owners and the original caller admission.
+The public cell fixture owns complete roots, all UV, strict/open/disconnected
+scopes, empty results, independent depth/resource/cancel/lifetime and four targets.

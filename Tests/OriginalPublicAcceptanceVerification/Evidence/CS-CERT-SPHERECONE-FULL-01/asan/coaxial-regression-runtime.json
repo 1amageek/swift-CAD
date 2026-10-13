@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-full-20261014/asan/coaxial-regression"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 2.802336750086397,
+  "peakRSSBytes": 232652800,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "b6520a0fa30be9e6061b6240968616ba84c616b791b2951302ea0002e981a87b"
+}

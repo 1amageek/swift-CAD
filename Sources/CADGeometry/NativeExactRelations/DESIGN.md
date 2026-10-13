@@ -910,3 +910,16 @@ Verification belongs to `CertifiedCoaxialPublicAcceptance.swift`; it checks both
 selected roots, empty/singleton/open restrictions, enormous positive/negative
 cycles, all parent UV, foreign fields, exact resource boundaries and lifetime.
 This closes only the named coaxial cells, not the other certified variants.
+
+## Certified sphere-cone mixed exact coordinates
+
+The checked source snapshot retains original physical theta=B*T, the full
+cosine-zero theorem and both selected radicals. The consumer retains a Pi-field
+curve support/request/effective frame and a separate algebraic physical-angle
+plane frame for each root. These fields are not coerced to one rounded field.
+It restricts complete source tuples against target UV, retaining every root
+ordinal and source owner. Whole unbounded target axes require ownership admission,
+not an unnecessary sign query on an already certified real coordinate. Finite
+endpoints use exact algebraic comparisons; unresolved comparisons remain failures.
+All cone/sphere integer labels and the canonical symbolic latitude accompany
+the isolated result. This owner solves no original problem again.

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/native/RadicalStages"
+  ],
+  "exitCode": -5,
+  "elapsedSeconds": 1.130240958998911,
+  "peakRSSBytes": 9175040,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "b8f275e45652f186e3c7640f8fd1c65b451aebb5731132966419b61ab5f68e0f"
+}

@@ -1,0 +1,162 @@
+{
+  "scope": "Unaccepted task-owned transient products only; sources/logs/receipts and accepted prerequisites retained.",
+  "removed": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/native/CADGeometry.swiftsourceinfo": {
+      "bytes": 4440268,
+      "sha256": "ef5bf4e0284c76b9229fb42192923faaaf9a8ccbe5be09c177f0e76c6913b1e9"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/native/CADGeometry.swiftmodule": {
+      "bytes": 10093584,
+      "sha256": "7d39487acaa5247deb4e18a97253d1ed85b50106c1a44684aba1af9d391a8046"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/native/Public": {
+      "bytes": 60907912,
+      "sha256": "a1b6d4b77d2b53401e3029758081526e9ebb1fe4215f7cb186cba2e923a5e928"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/native/CADGeometry.swiftdoc": {
+      "bytes": 581464,
+      "sha256": "6d70dd1afd35ab82aabbfd65fdc0ce9dc2043c5002d8dc2a3a8b95112721f448"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/native/libCADGeometry.a": {
+      "bytes": 75908312,
+      "sha256": "b4ec0a5782d5885d7055742c6f3416f8fbd406688ae6359efae8ff2d8fd1f8f7"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/wasm/Public.wasm": {
+      "bytes": 128093322,
+      "sha256": "1198fd84d1a66bcc495dc3cf1e3502518a9ed57c620efd33b3933a229bb11988"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/wasm/CADGeometry.swiftsourceinfo": {
+      "bytes": 4440268,
+      "sha256": "f33d9a12a16cf8c12ef24a36d034e5ae385e2d1f9e6ecb74ccfa6ec1f650471a"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/wasm/CADGeometry.swiftmodule": {
+      "bytes": 10084016,
+      "sha256": "aa4de87ad062971ad147be2c5f1451b20de8e2b1e1ebc2b13475fe5704dede2b"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/wasm/CADGeometry.swiftdoc": {
+      "bytes": 581464,
+      "sha256": "f9dff821450983daf042931f2de887dfc08a96adb0b1a8c0615fc8fa717404e7"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/wasm/libCADGeometry.a": {
+      "bytes": 86379342,
+      "sha256": "6426236323a97b5f4be926cd3cfbe81ee909f596e8a883362faa4d42648fddcf"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/asan/CADGeometry.swiftsourceinfo": {
+      "bytes": 4440268,
+      "sha256": "ef5bf4e0284c76b9229fb42192923faaaf9a8ccbe5be09c177f0e76c6913b1e9"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/asan/CADGeometry.swiftmodule": {
+      "bytes": 10093584,
+      "sha256": "7d39487acaa5247deb4e18a97253d1ed85b50106c1a44684aba1af9d391a8046"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/asan/Public": {
+      "bytes": 104369720,
+      "sha256": "5c96440509782db4860d87922dda9a28c9435dd522860d03ab84c5e6a931ce1b"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/asan/CADGeometry.swiftdoc": {
+      "bytes": 581464,
+      "sha256": "6d70dd1afd35ab82aabbfd65fdc0ce9dc2043c5002d8dc2a3a8b95112721f448"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014/asan/libCADGeometry.a": {
+      "bytes": 121348048,
+      "sha256": "2d21268478ca396f2b1847c34223e4d9af6a6bc3f1e6b41a7f28be96e2163b8f"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-20261014/native/CertifiedCoaxialProof.swiftsourceinfo": {
+      "bytes": 25008,
+      "sha256": "e48fd91758f51ec930ef069ac55e47cd58ec0da316074b741397b2f51aecc601"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-20261014/native/CertifiedCoaxialProof.swiftmodule": {
+      "bytes": 67400,
+      "sha256": "6fe119c2355c725a111592d0b3baada44df894a7216ef67ec2a9dcd673b201b2"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-20261014/native/CostProbe": {
+      "bytes": 60719112,
+      "sha256": "3897b6b3a99bad261118b3fb8d2e84103f480f9ed8894ea716ec35160c00dd91"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-20261014/native/libCertifiedCoaxialProof.a": {
+      "bytes": 330224,
+      "sha256": "532becfe22a8424e4aa6e07490cec3e91992c89c0695255aa9d0a4db889ca1ad"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-20261014/native/CertifiedCoaxialProof.swiftdoc": {
+      "bytes": 9888,
+      "sha256": "f20491d0e843b31c17f65257181fae8f25566a0fc8cdbbc68466fce5c458e811"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-20261014/native/SourceProof": {
+      "bytes": 60719048,
+      "sha256": "873cbfa524a3040a5f23b8aecb0f69210db89fbfa22ce6f42b6f68e9b576aac0"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/native/Radical": {
+      "bytes": 60810296,
+      "sha256": "2ebce2fcc4e33630c6cdd91ccba0d2f990b2b1d9cf5fce09f1e367e1f4d2d196"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/native/RadicalStages": {
+      "bytes": 60810352,
+      "sha256": "179e03f0569e334f738c5c44dfe0d179cec24a25e2455877d55ac1aa1b581552"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/native/Observe": {
+      "bytes": 60791048,
+      "sha256": "32047234947d5e9ba4a8911ebf3ba8830abea75f59944433f6ab76fff9f6830f"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/source/SphereConeSourceProof.swiftmodule": {
+      "bytes": 106372,
+      "sha256": "6de5a0f4bedd78dd302a34be287c3a20c705feaa3e539cd97767c078cc07d96a"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/source/Proof": {
+      "bytes": 61089768,
+      "sha256": "a792d3a20ef5d2f67f81579006e26dd17f1eaddedde477ba8f9637876da459f3"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/source/SphereConeSourceProof.swiftdoc": {
+      "bytes": 4096,
+      "sha256": "93cb0818d08184cc344c6f472684bba159ff12fc212649ceab8a2419cb2394a0"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/source/libSphereConeSourceProof.a": {
+      "bytes": 462568,
+      "sha256": "3982d927aca96309c955df1d1f6d750687d654a91a53755eb0840c85217baba1"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/source/SphereConeSourceProof.swiftsourceinfo": {
+      "bytes": 40848,
+      "sha256": "9c93c61d3d214b37c61940a0edbfba1497f4ff3a3b20816264f4edd129212522"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/normalized/Radical": {
+      "bytes": 60999384,
+      "sha256": "ff3185d4c4efa9efe285b9641321724723ae548553607a1cc12df63ab79f2daf"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/normalized/NormalizedAngleProof.swiftdoc": {
+      "bytes": 2744,
+      "sha256": "4a201221912c38858221b93901c26ec11d44aae89e66bf825b3b0be236bff4ed"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/normalized/NormalizedAngleProof.swiftsourceinfo": {
+      "bytes": 29240,
+      "sha256": "3d64e55c13ed84c53c2c4dd63770864fa67f3b6728034797a668cdf1dec8d93f"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/normalized/NormalizedAngleProof.swiftmodule": {
+      "bytes": 79148,
+      "sha256": "f28bed264f77361a97a68e2b157b700d3ff4c536939cca0346eee27cc22f68e0"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/normalized/libNormalizedAngleProof.a": {
+      "bytes": 277832,
+      "sha256": "27efee324097e406c3ed4fb2af63ea48420ad52de253407511cf6d6189131a17"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/public/Proof": {
+      "bytes": 61227752,
+      "sha256": "706a62ea298d41cd24eac71deb612462a0f1ca17e433fbd8a475472d1ac9d422"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/public/libSphereConePublicProof.a": {
+      "bytes": 710168,
+      "sha256": "bcb3971cdaea2765f2067dff5c4f625d4c6048e5f2d1bb02209d5ee97c61f090"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/public/SphereConePublicProof.swiftmodule": {
+      "bytes": 141300,
+      "sha256": "1be4ee752bd49728dfe8effbe2ab1001ab02103ffbfc3b3553be394e93d8bcbb"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/public/SphereConePublicProof.swiftsourceinfo": {
+      "bytes": 61656,
+      "sha256": "10b3e9cf4c9c0cd701ea65c70ffc9592d5dfccabc4d4f5a4c218bf595d6f1790"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-spherecone-20261014/public/SphereConePublicProof.swiftdoc": {
+      "bytes": 11120,
+      "sha256": "c106b8c776e5c580eee1cfa8aadd6400a463d4c30cf8a539a73471803f7f5f45"
+    }
+  },
+  "totalBytes": 1111869408
+}
