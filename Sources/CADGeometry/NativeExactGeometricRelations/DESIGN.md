@@ -835,3 +835,20 @@ shared mutable state or platform-specific ownership is introduced. Tests belong
 to Tests/OriginalPublicAcceptanceVerification/PeriodicOffsetCSAcceptance.swift;
 CS-OFFSET-PERIODIC-ZERO-GEOM-01 closes this fixed input and requests only. Other
 periodic/nonzero/general offset capabilities remain incomplete.
+
+## Certified coaxial ordinary publication
+
+`OriginalCertifiedCoaxialPublicProducer` selects the source-owned unit-Z coaxial
+full-branch capability before legacy dispatch. Supported targets are the exact
+retained cylinder or `Plane3D(origin:0,normal:Y,uDirection:X)`. Once selected,
+invalid domains, incomplete admission and cancellation propagate as failures.
+The [retained DI relation](../NativeExactRelations/DESIGN.md#certified-coaxial-cone-cylinder-selections)
+owns complete T, target UV and both parent UV families. Rich/prepared publication
+retains it; the finite-array entry rejects positive-dimensional results.
+Plane points are certified numerical representatives of the exact source roots;
+height bounds come from the existing outward trigonometric evaluator on the
+stored physical half-angle using the same allowance. Bounds certify only
+localization and never prove equality or merge T/UV.
+The reader exposes every needed operation as a protocol requirement for Embedded.
+Verification covers ordinary, composed callback and retained reader paths on
+Native, ASAN, normal WASM and Embedded, without rebuilding independent L2-L6.

@@ -225,6 +225,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         maximumAlgebraicDepth: maximumAlgebraicDepth)
       if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:context) { return periodic.points }
+      if let coaxial = try OriginalCertifiedCoaxialPublicProducer().resolve(curve:curve,surface:surface,
+        options:options,tolerance:tolerance,invocation:context) { return coaxial.points }
       if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:context) { return excluded.points }
       if let implicit = try OriginalImplicitCurvePublicProducer().resolve(curve:curve,surface:surface,
@@ -279,6 +281,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     return try GeometryExactScalarFailure.withPublication {
       if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:invocation) { return periodic.points }
+      if let coaxial = try OriginalCertifiedCoaxialPublicProducer().resolve(curve:curve,surface:surface,
+        options:options,tolerance:tolerance,invocation:invocation) { return coaxial.points }
       if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:invocation) { return excluded.points }
       if let implicit = try OriginalImplicitCurvePublicProducer().resolve(curve:curve,surface:surface,

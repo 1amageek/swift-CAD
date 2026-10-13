@@ -3586,17 +3586,17 @@
     "Certified coaxial cone-cylinder positive cells:CS-CERTIFIED-CONE-CYLINDER-CONTINUOUS-01": {
       "binding": "Certified coaxial cone-cylinder positive cells",
       "firstColumn": "CS-CERTIFIED-CONE-CYLINDER-CONTINUOUS-01",
-      "SHA256": "db2e2293efcad60798ca3110a97273db780f341c3c0af114e2b2b5d5fbfc0c0c"
+      "SHA256": "185dbfa791222febc8a9f7bd0580f28bd0ec11be52d438ea2920eff60d44bedb"
     },
     "Certified coaxial cone-cylinder positive cells:CS-CERTIFIED-CONE-CYLINDER-NEGATIVE-01": {
       "binding": "Certified coaxial cone-cylinder positive cells",
       "firstColumn": "CS-CERTIFIED-CONE-CYLINDER-NEGATIVE-01",
-      "SHA256": "fc608df9d488af3e209b701710c60331c9eee593822ab6f8011f500a45a21570"
+      "SHA256": "ff4cd2eca47aeeed0b80987042651a2e042ca27d70396d9034a32489158aa967"
     },
     "Certified coaxial cone-cylinder positive cells:CS-CERTIFIED-CONE-CYLINDER-POSITIVE-01": {
       "binding": "Certified coaxial cone-cylinder positive cells",
       "firstColumn": "CS-CERTIFIED-CONE-CYLINDER-POSITIVE-01",
-      "SHA256": "e4158a063c8a8784413075d99426ce6426fa99955867944978ee5fb59b981c57"
+      "SHA256": "6e97ef5e8f5d94a850c0174bc9eff17c9c58fc326e8a968d2dec531309f18589"
     },
     "Sphere-cone exact node-loop positive input:CS-CERTIFIED-SPHERE-CONE-NODE-LOWER-01": {
       "binding": "Sphere-cone exact node-loop positive input",
@@ -4236,7 +4236,7 @@
     },
     "Certified coaxial cone-cylinder positive cells": {
       "heading": "Certified coaxial cone-cylinder positive cells",
-      "SHA256": "e3c7feb7a4c84d8d062709cbebcd45203e30d17d9f65d085710eccde22ca7a57"
+      "SHA256": "096027e1e6171b70481827bb32acebeca15537162bf14d819d9dd967bbb13c42"
     },
     "Boundary image composition cells": {
       "heading": "Boundary image composition cells",
@@ -4324,11 +4324,11 @@
     },
     "Complete full-branch certified oracles": {
       "heading": "Complete full-branch certified oracles",
-      "SHA256": "5dd377a0b9299d49fddbff6708e0dc0a5b90887c1a1fc20a37a9384c3ecfe57a"
+      "SHA256": "1d9a694551ed9b9e8092142ed732dbd2bf9a9411e0c3bda228d92f94bf3acc56"
     },
     "Certified analytic-pair pcurve role cells": {
       "heading": "Certified analytic-pair pcurve role cells",
-      "SHA256": "b2b0b9901e04d77f587a02448b9045c94b42b9f395162ebe7a7c823763021375"
+      "SHA256": "777847f64dae3e3d84ac757fb87d86f22285a05f7313aa2e6cd018ad1c1dfe04"
     },
     "Remaining certified-construction input candidates": {
       "heading": "Remaining certified-construction input candidates",
@@ -4472,7 +4472,7 @@
     "X": "Complete retained result through ordinary and prepared public entry, all XYZ/source tuples, rank-defined image/fiber strata and every integer cycle. No finite window substitutes for an infinite family."
   },
   "completion": "Complete independent selection iff on every terminal cell; source/role/guard negatives; exact N/N-1 resources; entry/mid/final/empty/query cancellation; detached/COW lifetime; fixed Native/ASAN/WASM/Embedded; one review and finding-only confirmation; coherent commit and latest-main delivery.",
-  "sourceSHA256": "e905b573aadbb0d271b36048647917bdf88bfa7ba8119ff58e89edc1e74e1aaa",
+  "sourceSHA256": "d2e726823290db5cf8a579214204f6845d5150fb7c050641e0c7412fa93b9524",
   "ownership": "Definitions only. PROGRESS.md alone owns execution and completion state. Static gaps are not reproduced runtime failures. Catalog presence accepts no implementation.",
   "cells": [
     {"id":"M8-CALLER-01","binding":"M8 finite cumulative interaction cells","variant":null,"consumer":null,"implementationOrder":1,"namedRow":"M8-CALLER-01","historicalBinding":"M8 finite cumulative interaction cells","rowRef":"M8 finite cumulative interaction cells:M8-CALLER-01","inputRef":{"binding":"M8 finite cumulative interaction cells","variant":null},"expectedRef":{"binding":"M8 finite cumulative interaction cells","consumer":null},"stopRef":{"binding":"M8 finite cumulative interaction cells","row":"M8 finite cumulative interaction cells:M8-CALLER-01","observation":"Use only linked runtime evidence; otherwise static missing-receipt cause, not reproduced failure."}},

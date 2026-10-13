@@ -39,6 +39,9 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Complete original certified-apex separation with exact requested/effective domains.
     public let originalCertifiedApexPlaneExclusion: (any OriginalCertifiedApexPlaneExclusionReading)?
 
+    /// Complete original certified coaxial roots, domains and all parent UV lifts.
+    public let originalCertifiedCoaxialRelation: (any OriginalCertifiedCoaxialRelationReading)?
+
     /// Complete original implicit-host separation with exact requested/effective domains.
     public let originalImplicitHostPlaneExclusion: (any OriginalImplicitHostPlaneExclusionReading)?
 
@@ -47,7 +50,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
 
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
-        (originalContainedLiftPlaneFamily != nil
+        (originalCertifiedCoaxialRelation?.original.isCylinder == true
+            || originalContainedLiftPlaneFamily != nil
             || originalImplicitCurveRelation?.hasPositiveDimensionalSolutions == true
             || originalIssuedGeometricRelation != nil && originalIssuedNumericalPoints == nil)
             ? .exactRelation : .numericalRepresentatives
@@ -55,7 +59,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
 
 
     public var hasPositiveDimensionalSolutions: Bool {
-        !overlaps.isEmpty || originalNativeRelations?.hasPositiveDimensionalSolutions == true
+        !overlaps.isEmpty || originalCertifiedCoaxialRelation?.hasPositiveDimensionalSolutions == true
+            || originalNativeRelations?.hasPositiveDimensionalSolutions == true
             || originalExactGeometricRelation?.hasPositiveDimensionalSolutions == true
             || originalIssuedGeometricRelation?.hasPositiveDimensionalSolutions == true
             || originalContainedLiftPlaneFamily?.hasPositiveDimensionalSolutions == true
@@ -77,6 +82,7 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalRevolutionAxisRelation: (any OriginalRevolutionAxisGeometricRelationReading)? = nil,
         originalAngularPlaneRelation: (any OriginalAngularPlaneRelationReading)? = nil,
         originalCertifiedApexPlaneExclusion: (any OriginalCertifiedApexPlaneExclusionReading)? = nil,
+        originalCertifiedCoaxialRelation: (any OriginalCertifiedCoaxialRelationReading)? = nil,
         originalImplicitCurveRelation: (any OriginalImplicitCurveRelationReading)? = nil,
         originalImplicitHostPlaneExclusion: (any OriginalImplicitHostPlaneExclusionReading)? = nil) {
         self.points = points
@@ -93,6 +99,7 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         self.originalRevolutionAxisRelation = originalRevolutionAxisRelation
         self.originalAngularPlaneRelation = originalAngularPlaneRelation
         self.originalCertifiedApexPlaneExclusion = originalCertifiedApexPlaneExclusion
+        self.originalCertifiedCoaxialRelation = originalCertifiedCoaxialRelation
         self.originalImplicitCurveRelation = originalImplicitCurveRelation
         self.originalImplicitHostPlaneExclusion = originalImplicitHostPlaneExclusion
     }

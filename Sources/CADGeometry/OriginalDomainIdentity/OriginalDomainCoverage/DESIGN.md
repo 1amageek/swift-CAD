@@ -1213,9 +1213,9 @@ reconstructed from numerical XYZ.
 
 | Cell | Ordinary public input / independent complete oracle | Static missing implementation and acceptance gate |
 |---|---|---|
-| CS-CERTIFIED-CONE-CYLINDER-NEGATIVE-01 | NegativeFullBranch, target `Plane3D(origin:0,normal:Y,uDirection:X)`, fullT[0,1]. Exactly T=1/4 and3/4, XYZ=(-1,0,z) and(1,0,z), targetUV=(-1,-z) and(1,-z), image0/fiber0 each, all parent lifts above | Source owner must issue exact physical half-angle/root and cylinder-label traversal plus allUV; ordinary dispatch/publisher must retain them. Actual constructor/runtime on recovered snapshot UNOBSERVED |
-| CS-CERTIFIED-CONE-CYLINDER-POSITIVE-01 | PositiveFullBranch with same target/request. Same two T values and XY, height z=-cot(alpha); targetUV=(-1,-z),(1,-z) | Separate selected root receipt; never reuse negative branch by a tolerance sign test. Actual runtime UNOBSERVED |
-| CS-CERTIFIED-CONE-CYLINDER-CONTINUOUS-01 | Both variants separately against their retained cylinder, fullT[0,1], whole cylinder U and axial request covering z. All (T,U=B*T+n*B,V=z), image1/fiber0 locally; seam T0/T1 and all admitted n retained | Continuous curve-on-surface family plus all original cone UV auxiliary witnesses; preserve original closed seam without merging authoredT |
+| CS-CERTIFIED-CONE-CYLINDER-NEGATIVE-01 | NegativeFullBranch, target `Plane3D(origin:0,normal:Y,uDirection:X)`, fullT[0,1]. Exactly T=1/4 and3/4, XYZ=(-1,0,z) and(1,0,z), targetUV=(-1,-z) and(1,-z), image0/fiber0 each, all parent lifts above | The source-owned exact physical half-angle/root and intrinsic-label snapshot feeds the retained DI/public owner. Verification belongs to [the coaxial cell evidence](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERTIFIED-COAXIAL-01/VERIFICATION.md); other variants remain independent obligations |
+| CS-CERTIFIED-CONE-CYLINDER-POSITIVE-01 | PositiveFullBranch with same target/request. Same two T values and XY, height z=-cot(alpha); targetUV=(-1,-z),(1,-z) | Separate selected-root authority and all parent UV are required; never reuse the negative branch by a tolerance sign test. [The coaxial fixture](../../../../Tests/OriginalPublicAcceptanceVerification/CertifiedCoaxialPublicAcceptance.swift) owns the independent root oracle |
+| CS-CERTIFIED-CONE-CYLINDER-CONTINUOUS-01 | Both variants separately against their retained cylinder, fullT[0,1], whole cylinder U and axial request covering z. All (T,U=B*T+n*B,V=z), image1/fiber0 locally; seam T0/T1 and all admitted n retained | The retained interval/integer relation preserves the original cone UV witnesses and closed seam without merging authoredT. [Coaxial verification](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERTIFIED-COAXIAL-01/VERIFICATION.md) owns whole support and request restrictions |
 
 Each point cell also restricts T to[0,1/8] for a complete empty control and to
 {1/4} for singleton coverage. These close no bounded/apex/rulingParallel variant.
@@ -1922,10 +1922,13 @@ maps only positiveFullBranch; it does not complete the other five sphereCone kin
 These definitions close the formerly unspecified nonzero full-branch T/root/UV
 fields for the concrete inputs below. The [independent rational oracle check](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CERT-FULL-BRANCH-ORACLES-20261012/oracle.py) proves the angle brackets, positive discriminant/quadratic guards, positive reference-cone height and physical quarter-subcurve root selection with exact fractions and Machin arctangent bounds. They do not establish source implementation
 or query acceptance. B denotes the exact binary value produced by `2*Double.pi`;
-h=2*pi/B is the intrinsic primitive angular scale. Direct constructors retain
-their authored physical phase theta=B*T. In particular B<2*pi: T1 is not exactly
-the same source point as T0 and no closure or seam identity follows from the
-component name `FullBranch`. Parent SSI retains its own whole intrinsic support.
+h=2*pi/B is the intrinsic primitive angular scale. Sphere-cone and cone-cone direct constructors retain their authored physical
+phase theta=B*T. In those families B<2*pi: T1 is not exactly the same source
+point as T0. Cone-cylinder instead delegates its final position to the original
+cylinder intrinsic label U=B*T; its physical phase is2*pi*T as fixed in
+[the coaxial source contract](#certified-coaxial-cone-cylinder-positive-cells).
+A component name alone never establishes closure. Parent SSI retains its own
+whole intrinsic support.
 Source authority remains the original pair, declared root and authored T, as
 decided in [SourceIssuance](../../OriginalSourceIssuance/DESIGN.md).
 
@@ -1959,17 +1962,17 @@ cone0/axisZ/alpha:stored atan(1/2), cylinder0/axisZ/radius1,
 `CertifiedAnalyticAnalyticIntersectionCurve(coneCylinderCurve:firstSurface:secondSurface:)`.
 Construct `CertifiedAnalyticPairSurfaceParameterCurve` with role.first and
 role.second, respectively, fractions0/1, and lift on the selected actual parent.
-Put theta=B*T, c=cos(alpha), s=sin(alpha). Both lifted source laws must be
-P=(-sin(theta),cos(theta),c/s). Cylinder UV is(theta/h+nB,c/s), cone UV is
-(theta/h+mB,1/s), independently lifted. Against planeY0/origin0/uDirectionX,
-exactly T=pi/(2B),3pi/(2B), XYZ=(-1,0,c/s),(1,0,c/s), targetUV=(-1,-c/s),
-(1,-c/s), image0/fiber0. Reversed fractions3/4 to1/4 use original T=3/4-r/2;
-only the original pi/(2B) root lies in that subcurve and its r preimage is retained.
-The other root is strictly greater than3/4 because B<2*pi; rounded quarter-turn
-labels must not turn it into an included endpoint.
+Use the actual cylinder intrinsic label U=B*T and physical phase theta=2*pi*T.
+For the positiveFullBranch recipe, c=cos(alpha), s=sin(alpha), and the selected
+quadratic root has height-c/s. Both lifted source laws are
+P=(-sin(theta),cos(theta),-c/s). Cylinder UV is(B*T+nB,-c/s); cone UV is
+(B*T+B/2+mB,-1/s), independently lifted. Against planeY0/origin0/uDirectionX,
+exactly T=1/4,3/4, XYZ=(-1,0,-c/s),(1,0,-c/s), targetUV=(-1,c/s),(1,c/s),
+image0/fiber0. Reversed fractions3/4 to1/4 use original T=3/4-r/2; both closed
+endpoints are contacts and all their original T/r incidences remain.
 Neither role is authorized by the other role's owner. The corresponding negative
-full branch uses height-c/s, cone slant-1/s and cone phase theta+pi; cylinder
-phase remains theta. Keep those as separately indexed NEG controls, with the same
+full branch has height+c/s, cone slant+1/s and cone label B*T; cylinder label
+remains B*T. Keep those as separately indexed NEG controls, with the same
 two physical T roots and independent target UV. The actual wrapper validates its
 surface role but currently derives UV by numerical projection; exact source-pair
 correspondence and ordinary lift publication remain missing, runtime unobserved.

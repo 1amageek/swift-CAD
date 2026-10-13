@@ -879,3 +879,34 @@ uses this representation when only a symbolic residual and membership are
 required. Existing decomposed Native relation APIs are unchanged. Verification
 owner: `ImagePeriodicSelfAcceptance.swift`, including all 81 actual pair laws,
 unbounded cycle controls, resource boundaries and detached result lifetime.
+
+## Certified coaxial cone-cylinder selections
+
+The three coaxial cone-cylinder cells consume the source-owned selected root
+and intrinsic cylinder traversal from [SourceIssuance](../OriginalSourceIssuance/DESIGN.md#certified-coaxial-cone-cylinder-root-and-traversal).
+`OriginalCertifiedCoaxialCurveSurfaceRelation` retains that binding, the original
+T support/request/effective selection, the target binding and both UV selections.
+For the declared X-directed planeY0, the source theorem supplies the complete
+quarter and three-quarter roots. The DI consumer only restricts those tuples.
+For the retained cylinder, it retains T and an arbitrary integer cycle with
+U=B*(T+n), V=height. Independent integer indices retain every cone and cylinder
+parent UV; they are never inferred from XYZ.
+
+```text
+Selected original root/traversal -> exact DI request intersection
+    -> plane finite tuples OR cylinder integer-indexed interval relation
+    -> immutable public reader -> ordinary/prepared CS result
+```
+
+Cylinder emptiness is decided by exact integer existence in
+[U.lower/B-T.upper,U.upper/B-T.lower], with incident endpoint inclusion.
+Positive dimension requires positive-length T and U intervals and strict overlap;
+singletons are retained as zero-dimensional solutions. The relation predicate
+retains holes and open/disconnected requests without enclosing-box substitution.
+All publication and subsequent queries use the caller admission, source depth,
+transport depth, chart/family limits and terminal cancellation checkpoint.
+Owners and field values are immutable and retained after input release.
+Verification belongs to `CertifiedCoaxialPublicAcceptance.swift`; it checks both
+selected roots, empty/singleton/open restrictions, enormous positive/negative
+cycles, all parent UV, foreign fields, exact resource boundaries and lifetime.
+This closes only the named coaxial cells, not the other certified variants.

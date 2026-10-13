@@ -2427,6 +2427,25 @@ windows, other source families and other trigonometric equations remain open.
 
 ## Certified Pair Authority for Remaining Acceptance
 
+### Certified coaxial cone-cylinder root and traversal
+
+The source owner issues the negative/positive full branch of the original
+coaxial unit cylinder and cone at origin with unit-Z axes. It retains the actual
+certified curve and both original surfaces. The cone angle uses the existing
+physical-angle coefficient field: s=sin(alpha)>0, c=cos(alpha)>0, and the exact
+selected height is+c/s for negativeFullBranch and-c/s for positiveFullBranch.
+Cone slant is correspondingly+1/s or-1/s. These values solve the original
+quadratic; regenerated cos metrics and residual bounds do not issue equality.
+
+The final source evaluation delegates to cylinder U=lower+(upper-lower)*T.
+For the full0/B traversal, physical phase is2*pi*T. Complete support is[0,1].
+PlaneY0 selects exactly T=1/4 and3/4; both endpoints remain distinct source T.
+Cylinder U includes B*T+kB; cone U includes B*T+kB or B*T+B/2+kB according to
+the selected slant. All integer lifts and requested-domain restrictions belong
+to downstream DI, not numerical projection. Continuous cylinder coincidence
+retains the same full T law. Source depth1, inherited scalar depth, guards,
+work/storage and cancellation use the original caller admission.
+
 The user delegated the authority decision after the recovered acceptance mapping
 identified a concrete conflict between regenerated binary position coefficients
 and exact parent-surface UV. The authoritative certified intersection is the

@@ -1,0 +1,118 @@
+{
+  "native": {
+    "CADGeometry": {
+      "exitCode": 0,
+      "elapsedSeconds": 81.25377616705373,
+      "peakRSSBytes": 5522784256,
+      "wallLimitSeconds": 1200,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "43100ab575f3de92f1b726b5b3a9932629944793d7135028444d697b7d3b351f"
+    },
+    "public-compile": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.839032124960795,
+      "peakRSSBytes": 234291200,
+      "wallLimitSeconds": 180,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "public-runtime": {
+      "exitCode": 0,
+      "elapsedSeconds": 5.595411124988459,
+      "peakRSSBytes": 12697600,
+      "wallLimitSeconds": 180,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "c7ebe1acb508dfe925a940fa078d7f96f91c7f4d915f70569e07264dadc50325"
+    }
+  },
+  "asan": {
+    "CADGeometry": {
+      "exitCode": 0,
+      "elapsedSeconds": 101.73163104092237,
+      "peakRSSBytes": 6074318848,
+      "wallLimitSeconds": 1200,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "43100ab575f3de92f1b726b5b3a9932629944793d7135028444d697b7d3b351f"
+    },
+    "public-compile": {
+      "exitCode": 0,
+      "elapsedSeconds": 1.126188916969113,
+      "peakRSSBytes": 176947200,
+      "wallLimitSeconds": 180,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "public-runtime": {
+      "exitCode": 0,
+      "elapsedSeconds": 14.983621500083245,
+      "peakRSSBytes": 552321024,
+      "wallLimitSeconds": 180,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "c7ebe1acb508dfe925a940fa078d7f96f91c7f4d915f70569e07264dadc50325"
+    }
+  },
+  "wasm": {
+    "CADGeometry": {
+      "exitCode": 0,
+      "elapsedSeconds": 86.8158161669271,
+      "peakRSSBytes": 5614141440,
+      "wallLimitSeconds": 1200,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "43100ab575f3de92f1b726b5b3a9932629944793d7135028444d697b7d3b351f"
+    },
+    "public-compile": {
+      "exitCode": 0,
+      "elapsedSeconds": 1.6755201669875532,
+      "peakRSSBytes": 689635328,
+      "wallLimitSeconds": 180,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "public-runtime": {
+      "exitCode": 0,
+      "elapsedSeconds": 15.551279666949995,
+      "peakRSSBytes": 395968512,
+      "wallLimitSeconds": 180,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "0947568b06092cfcca6250cf864afb28f6243318ff237bc83deb1992665a85e5"
+    }
+  },
+  "embedded": {
+    "CADGeometry-thread1": {
+      "exitCode": 0,
+      "elapsedSeconds": 226.80601008294616,
+      "peakRSSBytes": 10699620352,
+      "wallLimitSeconds": 1200,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "a40f1bca25775ced43254508bd5348f272500a778ec3d583ad4be900f7d05a48"
+    },
+    "public-composed-compile": {
+      "exitCode": 0,
+      "elapsedSeconds": 148.28033554193098,
+      "peakRSSBytes": 10164944896,
+      "wallLimitSeconds": 420,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "0ff83408780091bf1677a4486256a7f3e9ac52294b366ece04719dc22fdc1b33"
+    },
+    "public-composed-runtime": {
+      "exitCode": 0,
+      "elapsedSeconds": 3.8911720829783008,
+      "peakRSSBytes": 241451008,
+      "wallLimitSeconds": 180,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "399dc3700e8b0a1c395dbf8e37d32d3981ca3d7980bdb85a8c7d323a79d4fa5a"
+    }
+  }
+}
