@@ -1,0 +1,74 @@
+{
+  "status": "PASS",
+  "implementationCommit": "a2925f55f5de136aa35b11c1269a86ebbb6a3318",
+  "baseMain": "020809dc",
+  "sourceCount": 2256,
+  "productCount": 8672,
+  "inheritedProducts": 10668,
+  "externalCount": 13127,
+  "protectedCount": 12,
+  "durableFiles": {
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/summary.json": "22f3a71db05f35d714e1c5792a80ff93148a43f47b52cead25e0cd80efb62dd8",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/source-premises.json": "536acb251a66624c1c14c97f9378d1a7d87ccb619b3a2766f62706825a780811",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/VERIFICATION.md": "3460e8b708fd246a93337fb341fc3d6107641a7f94afee617ab30831c89ea8dc",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/products.json": "34a0422057b5203987f9a784f0dee9bcce7c9c865866f3d6172597741812a8a9",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/REVIEW.md": "280cb9718836c1777e05eb274317529cf90bc1a90b8bd874e6ceee309096f4a4",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/native/acceptance.json": "8088938e51d997de335ddc93f70ca337cb1b470e87a6ee0812d2c8ffbd0fb086",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/native/acceptance.log": "f08c093cfff0f583521b3e547413bb4c03bd53974413470fd7b33b710bab9213",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/native/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/native/topology.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/native/premises.json": "ffcb555f8a99b31dc66585257325627a71577d59e142acba120e231510587bc0",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/native/topology.json": "db8e378625f8703ccfd615d50bb7769e5882ed1574ac64ad1ba4051ba416f286",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/native/compile.json": "d3328c09bbfb29fe9d014a04b000631cb58956cc2653dcd6c111e199e2cfcd1c",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/wasm/acceptance.json": "c5839212a55a191449c01b061ca6b5a213974ec460967876d4d6f8b0d03cf08c",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/wasm/acceptance.log": "59342e95e71ebad71fe1f4fd4189b39fbdac57d37be4028220dbcbbb6f4f1637",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/wasm/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/wasm/topology.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/wasm/premises.json": "c94933ea8235fe3a4d4136596a09da168b5b52fd660f41c2b7dcfcc2c954372d",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/wasm/topology.json": "594614829a9ec305e3a80e17da4dbe54d312ab90b149f1a261d8ea9b67de104e",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/wasm/compile.json": "ed39413cb2048ed7b6314b79204f92ee6239f2bef85e8a92a3c3e0af1239a97e",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/asan/acceptance.json": "77d8fc715d29cb833972181bf91d8974550a9f12c5ca181bf9800774681ff8a2",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/asan/acceptance.log": "f08c093cfff0f583521b3e547413bb4c03bd53974413470fd7b33b710bab9213",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/asan/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/asan/topology.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/asan/premises.json": "119e31207c3e76ebb4425aece002148beddbfcdf64783d6f9ea008da3102d1d4",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/asan/topology.json": "28f724e5418f67bc974980b3b38c04da0531c5cb2c4a186c622204d49e681450",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/asan/compile.json": "12da71922d6b4bc4d5544eb8dcd2ad51f0d3bee59d7d774486553474dff6aa63",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/embedded/acceptance.json": "f8517453ff652e693f28e6926de5169fec4bec86c9ce92b6c4ae04246b2183b5",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/embedded/acceptance.log": "89e2b190a56fa78b50f66ea73e818d4f08f15556cf40ade355fe47a7c91345e3",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/embedded/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/embedded/topology.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/embedded/premises.json": "bb60288dc74d5b032b6bb1f0d5a19998a79f70c19835e891c7d98d268cb3c5b3",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/embedded/topology.json": "d63c448049941400a4a811ed286472a29c0f3f28251ecc6cb7e100760dc88fcb",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/EdgeAdmission/accepted/embedded/compile.json": "3c408bda905c6772dcee8c3bb0f86d9e63e4ca3b3c7f95bd03d2b0b85ddbdb1b"
+  },
+  "runtimes": {
+    "native": {
+      "command": [
+        "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-20261013/edge-native/Proof"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.28624675003811717,
+      "peakRSSBytes": 5144576,
+      "wallLimitSeconds": 120,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "f08c093cfff0f583521b3e547413bb4c03bd53974413470fd7b33b710bab9213"
+    },
+    "embedded": {
+      "command": [
+        "/usr/local/bin/node",
+        "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs",
+        "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-20261013/edge-embedded/Proof.wasm",
+        "actual"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.283968957955949,
+      "peakRSSBytes": 1015808,
+      "wallLimitSeconds": 120,
+      "rssLimitBytes": 10737418240,
+      "stopReason": null,
+      "logSHA256": "0949c43e6b6bc9418630bdf2de9a89928e7e0c9b4860a3f2bfa9e3d92ea82fdc"
+    }
+  }
+}
