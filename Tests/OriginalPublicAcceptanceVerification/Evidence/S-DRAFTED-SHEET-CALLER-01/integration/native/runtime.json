@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-integration-recovered/swift-CAD/.build/drafted-sheet-integration-20261014/native/Caller"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 1.8017458750400692,
+  "peakRSSBytes": 32768,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "4820994b75e381d23e2464e62b0245d52dd30304ea129962a90b071079febdf0"
+}
