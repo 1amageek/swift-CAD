@@ -10,6 +10,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
         return try GeometryExactScalarFailure.withPublication {
           if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(curve:curve,surface:surface,
               options:options,tolerance:tolerance,retainingRelations:true) { return periodic }
+          if let pairLift = try OriginalCertifiedPairLiftPublicProducer().resolve(curve:curve,surface:surface,
+            options:options,tolerance:tolerance) { return pairLift }
           if let coneCone = try OriginalCertifiedConeConePublicProducer().resolve(curve:curve,surface:surface,
             options:options,tolerance:tolerance) { return coneCone }
           if let sphereCone = try OriginalCertifiedSphereConePublicProducer().resolve(curve:curve,surface:surface,
@@ -47,6 +49,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
               maximumAlgebraicDepth: maximumAlgebraicDepth)
           if let periodic = try OriginalPeriodicOffsetCurvePublicProducer().resolve(curve:curve,surface:surface,
               options:options,tolerance:tolerance,invocation:invocation,retainingRelations:true) { return periodic }
+          if let pairLift = try OriginalCertifiedPairLiftPublicProducer().resolve(curve:curve,surface:surface,
+            options:options,tolerance:tolerance,invocation:invocation) { return pairLift }
           if let coneCone = try OriginalCertifiedConeConePublicProducer().resolve(curve:curve,surface:surface,
             options:options,tolerance:tolerance,invocation:invocation) { return coneCone }
           if let sphereCone = try OriginalCertifiedSphereConePublicProducer().resolve(curve:curve,surface:surface,

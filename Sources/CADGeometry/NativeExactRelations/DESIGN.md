@@ -941,3 +941,22 @@ For both sphere-cone and cone-cone selected-ordinal owners, admit each actual
 output payload before append. Do not reserve unadmitted slots for empty/partial
 selection; complete empty retains no speculative ordinal buffer. Full and empty
 N/N-1 work/storage fixtures verify this shared output-ownership invariant.
+
+### Certified role lift and existing affine transport
+
+Consume one retained coaxial relation through the checked source-owned affine
+child-window chart and local-r frame. Existing DI affine/inverse/selection
+operations retain exact support/request/effective and all preimages. Child
+contacts are filtered only by that window and local request, then ordered by
+local parameter, including reversed closed endpoints. The raw child relation
+and parent/local correspondence remain owned by the result. No original problem
+is re-solved by retained membership/UV queries. Both parent UV are forwarded
+from the same child receipt; a selected lift UV is a view of that output, not a
+new projected/merged tuple. All wrapper/child owners, transport and request
+proof depths are readmitted before every query. Full/empty storage and final
+cancel are part of publication; no speculative output reservation is allowed.
+
+The lift retains transportDepth2: direct affine correspondence depth1 and its
+checked inverse/pullback depth2. Readmission rejects depth1 even when only the
+forward map is queried. Fixture expectations admit the actual depth2; caller
+source/value/coefficient/transport ceilings are unchanged.

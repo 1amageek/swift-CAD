@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-20261014/observation/Observe"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.8580469579901546,
+  "peakRSSBytes": 32768,
+  "wallLimitSeconds": 60,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "5f5481c9fedd3c0fd1693de789e5dde212ab50c86033f024aacd11162fa03c99"
+}

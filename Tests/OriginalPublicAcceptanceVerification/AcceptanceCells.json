@@ -4328,7 +4328,7 @@
     },
     "Certified analytic-pair pcurve role cells": {
       "heading": "Certified analytic-pair pcurve role cells",
-      "SHA256": "777847f64dae3e3d84ac757fb87d86f22285a05f7313aa2e6cd018ad1c1dfe04"
+      "SHA256": "44f5e918d30c52f36e1bcc1bc8e2fb3a5ab82c415df740765ac807aaa06ecf32"
     },
     "Remaining certified-construction input candidates": {
       "heading": "Remaining certified-construction input candidates",
@@ -4472,7 +4472,7 @@
     "X": "Complete retained result through ordinary and prepared public entry, all XYZ/source tuples, rank-defined image/fiber strata and every integer cycle. No finite window substitutes for an infinite family."
   },
   "completion": "Complete independent selection iff on every terminal cell; source/role/guard negatives; exact N/N-1 resources; entry/mid/final/empty/query cancellation; detached/COW lifetime; fixed Native/ASAN/WASM/Embedded; one review and finding-only confirmation; coherent commit and latest-main delivery.",
-  "sourceSHA256": "12df3140d21ee2d5646d8815e4a3a48095092174f6d7634902aeb95c925a2b69",
+  "sourceSHA256": "0e5d5975db84fc5d3545c9316bc404df436e8d4d8a1f35737eb04d792f4d6e6a",
   "ownership": "Definitions only. PROGRESS.md alone owns execution and completion state. Static gaps are not reproduced runtime failures. Catalog presence accepts no implementation.",
   "cells": [
     {"id":"M8-CALLER-01","binding":"M8 finite cumulative interaction cells","variant":null,"consumer":null,"implementationOrder":1,"namedRow":"M8-CALLER-01","historicalBinding":"M8 finite cumulative interaction cells","rowRef":"M8 finite cumulative interaction cells:M8-CALLER-01","inputRef":{"binding":"M8 finite cumulative interaction cells","variant":null},"expectedRef":{"binding":"M8 finite cumulative interaction cells","consumer":null},"stopRef":{"binding":"M8 finite cumulative interaction cells","row":"M8 finite cumulative interaction cells:M8-CALLER-01","observation":"Use only linked runtime evidence; otherwise static missing-receipt cause, not reproduced failure."}},

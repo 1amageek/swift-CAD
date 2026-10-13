@@ -876,3 +876,13 @@ phase theorem. Finite guards, output accuracy, resources and cancellation can
 fail explicitly; no old solver retry follows a selected source failure.
 Other target frames/branches remain marked incomplete and are not generalized
 from the two fixed direct-CS cells.
+
+### Certified analytic-pair lift public CS
+
+All ordinary/callback bare/rich entries select the checked coaxial role-lift
+producer before the unconverted lift solver. Source/DI retains both original
+parent UV and selected-role UV, exact local/child parameters and reverse endpoint
+incidents. Numeric point/T localization serves only output accuracy, with the
+same caller admission through source, child relation and result publication.
+A selected source failure is explicit and never retries a different solver.
+Other certified role/source families remain independently marked incomplete.

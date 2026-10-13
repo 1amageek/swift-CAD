@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/asan/coaxial-regression"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 3.1076519160997123,
+  "peakRSSBytes": 249151488,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "46ad0ae152aedf476a559cf1dbbdf3dfe6b8333cb88524c41d8249f764274d15"
+}

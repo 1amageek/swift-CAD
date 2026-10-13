@@ -39,6 +39,9 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Complete original certified-apex separation with exact requested/effective domains.
     public let originalCertifiedApexPlaneExclusion: (any OriginalCertifiedApexPlaneExclusionReading)?
 
+    /// Complete certified role-lift local/child parameters and parent UV families.
+    public let originalCertifiedPairLiftRelation: (any OriginalCertifiedPairLiftRelationReading)?
+
     /// Complete original two-angle cardinal cone-cone contacts and parent UV.
     public let originalCertifiedConeConeRelation: (any OriginalCertifiedConeConeRelationReading)?
 
@@ -91,6 +94,7 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalCertifiedCoaxialRelation: (any OriginalCertifiedCoaxialRelationReading)? = nil,
         originalCertifiedSphereConeRelation: (any OriginalCertifiedSphereConeRelationReading)? = nil,
         originalCertifiedConeConeRelation: (any OriginalCertifiedConeConeRelationReading)? = nil,
+        originalCertifiedPairLiftRelation: (any OriginalCertifiedPairLiftRelationReading)? = nil,
         originalImplicitCurveRelation: (any OriginalImplicitCurveRelationReading)? = nil,
         originalImplicitHostPlaneExclusion: (any OriginalImplicitHostPlaneExclusionReading)? = nil) {
         self.points = points
@@ -110,6 +114,7 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         self.originalCertifiedCoaxialRelation = originalCertifiedCoaxialRelation
         self.originalCertifiedSphereConeRelation = originalCertifiedSphereConeRelation
         self.originalCertifiedConeConeRelation = originalCertifiedConeConeRelation
+        self.originalCertifiedPairLiftRelation = originalCertifiedPairLiftRelation
         self.originalImplicitCurveRelation = originalImplicitCurveRelation
         self.originalImplicitHostPlaneExclusion = originalImplicitHostPlaneExclusion
     }

@@ -1,0 +1,20 @@
+{
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/native/CADGeometry.swiftmodule": "792f288f32edfe6fa317848f7466c97754b0e282e29e987634c6e44236e90917",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/native/libCADGeometry.a": "5ce64d4d7f84a220d13b5057fb169d3110d5c16765325455f385a50d8c5f338a",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/native/Public": "f0cf4a03004f9e0a99cfe1ee0981407dc7aaf686d42f48233ac5148468b195d8",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/native/coaxial-regression": "773795963fc63a1d4101d44a302b54512ec94df7c5c2d14a6cbb10a4ee008215",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/inputs/Tests/OriginalPublicAcceptanceVerification/CertifiedCoaxialPublicAcceptance.swift": "782268d01a94de3e786b06915a047018a33e28f84a33a96b836763af57c2f615",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/native/conecone-regression": "32af38d9c15ce7fb9863410294b54e87ef50d4e9f6f6980b042f71e8f1652f17",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/inputs/Tests/OriginalPublicAcceptanceVerification/CertifiedConeConeFullAcceptance.swift": "2711e64796c1b0d457a8b4bd751330cf7fc730290aecb0c2f384d0c90d437625",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/asan/CADGeometry.swiftmodule": "792f288f32edfe6fa317848f7466c97754b0e282e29e987634c6e44236e90917",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/asan/libCADGeometry.a": "7a045231a2414e745ed4c9aad8d42a18a33ef4b5eae9ddb309ab8030bb8e251a",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/asan/Public": "bdb45a0e57301d5d2f208758d650cf202e0039b84b13c39d81887fcc6157bd8e",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/asan/coaxial-regression": "3a04a99a4ada33a4c609345c2c7602063b85650db9baae01fc2d4deea4f8c6d4",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/asan/conecone-regression": "afbd753cfe8ce2fa5f3263f51f33fca8179d7570abe27a9697d7f5d00f1ac764",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/wasm/CADGeometry.swiftmodule": "9dfe4043a1691fd8857fa7c1e561983c304630dd4f238caacb989e41518ef41f",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/wasm/libCADGeometry.a": "d579bd7c7453d96b07527102b3684c6ed1d47c0df885f41259a72843ba075a88",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/wasm/Public.wasm": "7fdffd3f4d6c60d1b4dcb43a559e33d506eb355f3063f6b571c090c73a293bce",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/wasm/coaxial-regression.wasm": "028f9a7d419f6d80e7f8d4d61b19b76032a099a69893e42f7fd2cd48e69945d7",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/wasm/conecone-regression.wasm": "6a909b5e94174e3ea531a7fb80de70b476d80cfcd82f99a2dd1ff323a53b9ecc",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/embedded/Public-composed.wasm": "67dd151baecb843a26e3373d7578fde547ee39b54c72763c54ea9b877d886ad9"
+}

@@ -1,0 +1,7 @@
+{
+  "Tests/OriginalPublicAcceptanceVerification/CertifiedPairLiftAcceptance.swift": "5fcadae56c84a9ea1736e7352509d0e06534f051bba8ebe9dcfaded40f248373",
+  "Tests/OriginalPublicAcceptanceVerification/CertifiedPairLiftBuild.py": "1520de0809e2c733a1b74d3896ae6e0e4583fcd680007cc013571d59f74deab9",
+  "Tests/OriginalPublicAcceptanceVerification/CertifiedCoaxialPublicAcceptance.swift": "782268d01a94de3e786b06915a047018a33e28f84a33a96b836763af57c2f615",
+  "Tests/OriginalPublicAcceptanceVerification/CertifiedConeConeFullAcceptance.swift": "2711e64796c1b0d457a8b4bd751330cf7fc730290aecb0c2f384d0c90d437625",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/embedded/CertifiedPairLiftAcceptance.swift": "2100c621225d5e606339c59929b702eeef6d07ecf45693ccf26dd344d0ea6a4b"
+}

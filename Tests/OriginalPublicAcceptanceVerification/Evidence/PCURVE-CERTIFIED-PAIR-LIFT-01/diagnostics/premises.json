@@ -1,0 +1,10 @@
+{
+  "sourceReceipt": "dd9874ab28fbe0148d793e0531fc87230f46c7036b0fb0183f2f23b11635172e",
+  "products": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-conecone-full-20261014-v4/native/CADGeometry.swiftmodule": "a3f1bd6c896a7c8f0717b8bb9547d0b73e7fd0dafac4908fe43f80e2a50d72ea",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-conecone-full-20261014-v4/native/libCADGeometry.a": "43553a1902286861a3b2bad2a93113eddef16721d747c9cfb70bed78b8799747",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-conecone-full-20261014-v4/native/Public": "b180356f284795cfb1b41c7d4ed0bd722cd89b948c1ee88ae4c5c0eb5ec74056"
+  },
+  "fixtureSHA256": "1f922f41f9f4bb20d8184c6a8a6e78142377808409b2d2fddfeb1f260ca8b771",
+  "executableSHA256": "8f7109cf0f2ac633f06077b07abbaed951cfe4b83c7b0eab0d3930ccf58482ad"
+}

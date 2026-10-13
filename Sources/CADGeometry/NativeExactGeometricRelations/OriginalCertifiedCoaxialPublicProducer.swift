@@ -57,7 +57,7 @@ struct OriginalCertifiedCoaxialPublicProducer {
             }
             var points: [CurveSurfaceIntersection] = []
             if !relation.planeParameters.isEmpty {
-                let bounds = try heightBounds(original, tolerance: tolerance, using: &a)
+                let bounds = try source.original.heightBounds(tolerance: tolerance, using: &a)
                 guard bounds.isFinite else { throw ExactScalarFailure.unresolved }
                 let width = (bounds.upper - bounds.lower).nextUp
                 guard width.isFinite, width * 2 <= tolerance.distance else {
@@ -95,20 +95,4 @@ struct OriginalCertifiedCoaxialPublicProducer {
             upper: .finite(field.binary64(exactly: range.upper, using: &a)), depth: depth, using: &a)
     }
 
-    private func heightBounds(_ original: CertifiedConeCylinderIntersectionCurve,
-        tolerance: ModelingTolerance, using a: inout Admission) throws -> OutwardScalarInterval {
-        guard case .analytic(.cone(_, _, let angle)) = original.coneSurface else {
-            throw OriginalSourceIssuanceFailure.invalidSource
-        }
-        // The synchronous evaluator borrows the same query allowance. No new
-        // budget, regenerated metric or libm approximation supplies authority.
-        var usage = a.usage
-        defer { a.usage = usage }
-        let trig = try CertifiedRotationTrigonometry.evaluate(.exact(angle), tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) })
-        guard trig.sine.lower > 0, let height = trig.cosine.divided(by: trig.sine) else {
-            throw ExactScalarFailure.unresolved
-        }
-        return original.componentKind == .negativeFullBranch ? height : -height
-    }
 }

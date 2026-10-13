@@ -2976,3 +2976,24 @@ arithmetic and DI transport own exact T support/request/selection. Same-admissio
 depth/work/storage/cancel and retained-source lifetime apply to every query.
 Verification includes the observed erroneous extra endpoint and full positive
 contact publication, resources/failures/cancel/lifetime on the fixed targets.
+
+### Certified coaxial pcurve-role lift supply
+
+A supported certified analytic-pair lift retains its actual pcurve, selected
+parent surface/role, directed binary64 fractions and the existing original
+coaxial cone-cylinder binding. Both actual pair surfaces must equal the declared
+original pair; the selected lift surface must equal its role's surface. Authored
+local r has support[0,1], child t=start+(end-start)*r with nonzero extent and
+exact fractions within[0,1]. This source-owned correspondence proves the whole
+lift position equals the original child curve, including both reverse endpoints.
+Numerical UV projection, canonical representative snapping and residuals are
+approximate evaluation paths and never establish this source theorem.
+
+The curve/pcurve/lift hierarchy has sourceDepth3, preserving the retained child
+owner at depth1. Track every proof value/coefficient admission during child
+issuance so subsequent readmission cannot lose proof depth. The selected role
+is part of the retained source, while cone/cylinder UV families keep independent
+integer indices. Other certified pairs and fraction windows remain required
+capabilities; this supply does not infer their source laws. Shared numeric height
+localization belongs to the existing coaxial source owner and uses the same
+admission. No original shape formula or separate solver is duplicated.

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-pair-lift-full-20261014-v2/asan/conecone-regression"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 21.841333833057433,
+  "peakRSSBytes": 561496064,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "ede9ceb5d2a2b896e65cfec8ccac09264ed9de3a278cb432c696d8eec6862ce7"
+}

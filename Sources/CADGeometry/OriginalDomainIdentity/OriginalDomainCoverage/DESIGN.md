@@ -1973,11 +1973,15 @@ endpoints are contacts and all their original T/r incidences remain.
 Neither role is authorized by the other role's owner. The corresponding negative
 full branch has height+c/s, cone slant+1/s and cone label B*T; cylinder label
 remains B*T. Keep those as separately indexed NEG controls, with the same
-two physical T roots and independent target UV. The actual wrapper validates its
-surface role but currently derives UV by numerical projection; exact source-pair
-correspondence and ordinary lift publication remain missing, runtime unobserved.
-These cells discharge the concrete pcurve-input/T definition, not the boundary
-loop consumer or all cone-cylinder branches.
+two physical T roots and independent target UV. The original ordinary reverse lift was observed returning only one endpoint on
+both signs/roles. Source-owned pair/role/affine correspondence now consumes the
+existing coaxial receipt through affine DI/inverse/restriction and all four public
+CS entries. Both reverse endpoints, independent parent UV and selected lift UV
+pass the [fixed2087-source four-target acceptance](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/PCURVE-CERTIFIED-PAIR-LIFT-01/VERIFICATION.md), including source3/transport2/proof depth, exact full/empty
+budgets/cancel/lifetime and three-lane direct-coaxial/cone-cone regressions. Source
+and result remain retained; latest-main delivery is a separate recorded gate.
+These two role-lift cells do not complete boundary loops, other certified pairs,
+wrapped fraction windows or all cone-cylinder branches.
 
 ##### Remaining certified-construction input candidates
 
