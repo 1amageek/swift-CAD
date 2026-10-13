@@ -1,0 +1,7 @@
+(node:98596) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+METRIC identity preparation work/storage 141159 4448080 
+METRIC preparation work/storage 270100 7894836 
+METRIC identity preparation work/storage 141157 4447748 
+METRIC preparation work/storage 270098 7894504 
+PASS exact open/closed request, missing raw coverage and singular spatial rejection

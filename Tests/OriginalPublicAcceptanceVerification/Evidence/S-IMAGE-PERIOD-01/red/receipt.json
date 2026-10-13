@@ -1,0 +1,8 @@
+{
+  "status": "RED",
+  "input": "S-IMAGE-PERIOD-01 full [-3,6]^2",
+  "passed": "Actual source/DI, two original period3 families and transported parent shifts.",
+  "stop": "DefaultOriginalIssuedDomainBinder.bind: incompleteCoverage",
+  "violated": "The finite fundamental charts do not cover the requested original integer families.",
+  "requiredChange": "Retain the existing Native symbolic relation family, parent correspondence and checked identity filters in a public symbolic self-contact owner."
+}

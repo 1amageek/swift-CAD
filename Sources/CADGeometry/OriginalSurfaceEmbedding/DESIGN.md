@@ -227,3 +227,67 @@ lifetime on fixed Native/ASAN/ordinary-WASM/Embedded changed-path assemblies.
 Receipt-matched existing source/DI/M5/L5/L4 proofs are reused. Changes to the forward
 law, M5 view or refinement contracts require only affected upstream checks. Existing
 Native and interval paths remain live; their completion is not inferred here.
+
+
+## Affine image symbolic Native self-contact port
+
+S-IMAGE-PERIOD-01 reaches actual source/DI and transported periods, but the finite
+issued-domain binder rejects its full[-3,6]^2 request with incompleteCoverage.
+The decomposed Native family also exhausts the fixed 1GiB storage budget on
+its 81 raw chart pairs. The added Native compiler port retains all checked L5
+equality predicates without requesting topology. The consumer retains that
+complete symbolic predicate family, the sealed affine child-to-parent cover and
+checked scoped identities.
+It does not enumerate cycles, narrow requests or solve the original equality
+again. This is a symbolic residual set, not an embedding or global absence proof.
+
+```text
+Actual image source + checked affine DI + Native symbolic predicate family
+    -> source/field/roles/coverage + injective spatial-action admission
+    -> authored parent diagonal + admitted scoped identity relation views
+    -> immutable symbolic residual: raw(parent inverse) AND parent requests
+                                    AND NOT(union of proved identities)
+    -> selected template/cycle and parent-tuple membership using retained L5
+```
+
+The public protocol OriginalAffinePeriodicSelfContactQuerying owns preparation;
+its default implementation returns OriginalAffinePeriodicSelfContacts. Source is
+an OriginalParameterImageSourceReading with Native surface child. Preparation
+requires the exact original spatial affine determinant to be nonzero, so original
+parent position equality is equivalent to child equality. Singular spatial
+images require parent equality graphs and refuse explicitly. Negative/nonunit
+parameter gains and axis permutations come only from the sealed affine DI cover.
+Raw Native first/second bindings must be the same child owner, field and authored
+roles; their selected domains must cover the entire child preimage of the parent
+request. A larger raw request is permitted and the parent predicate restricts it.
+
+The result owns the raw symbolic family, parent cover, inverse correspondence,
+exact scoped identity views and full template range. For every raw template and
+all integer cycles, its denotation is the complete raw equality restricted to
+both parent requests minus the authored diagonal and only the supplied proved
+relations. Template ordinals retain their raw meaning; no layer copies raw cell
+arrays. Membership checks the original parent tuple/field, maps through the
+checked inverse, then queries the retained raw member and exact identity views.
+Cycle admissibility remains with the source family. No empty-result or embedding
+Boolean is inferred from an unvisited family or absent sample.
+
+All owners are immutable Sendable on Native/WASM/Embedded. Scratch and admission
+are invocation-local exclusive inout. Preparation, later queries and final
+publication use the same caller work/storage/value/coefficient/source/transport
+caps and checkpoints; there is no private allowance, retry or fallback. Storage
+for the new views, inverse/result and scratch is charged. Foreign owner/field,
+insufficient coverage, singular spatial action, exhausted budgets and cancel
+propagate NativeExactRelationFailure preserving the original cause.
+
+Verification is owned by Tests/OriginalPublicAcceptanceVerification/
+ImagePeriodicSelfAcceptance.swift and its receipt-bound driver. The complete
+symbolic-set oracle verifies all retained fundamental templates and the exact
+parent transport/identity predicates, including nonperiodic same-XYZ tuples,
+negative/mixed cycles, request endpoints, empty selections, foreign ownership,
+N/N-1 resources, depth/cancellation and detached lifetime in four fixed targets.
+[Native Exact Relations](../NativeExactRelations/DESIGN.md) owns the complete raw
+family; [Parameter Identity](../OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md)
+owns proof issuance/decision; [Domain Coverage](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md)
+owns the sealed full request/preimage. Changes to those guarantees require
+rechecking this consumer. Ordinary SSI/XYZ dispatch and singular image families
+remain separate uncompleted responsibilities.

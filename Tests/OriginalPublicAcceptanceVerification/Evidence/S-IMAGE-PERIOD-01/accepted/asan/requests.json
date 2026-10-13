@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/image-periodic-self-20261013/asan/Proof"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 1.102288750000298,
+  "peakRSSBytes": 196542464,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "89a55f6bb9f3d193926d79b1f8e7db12f1ac083cca7fdc5ee6671a9863e1ab33"
+}

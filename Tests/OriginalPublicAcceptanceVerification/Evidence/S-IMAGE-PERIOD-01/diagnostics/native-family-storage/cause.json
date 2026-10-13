@@ -1,0 +1,6 @@
+{
+  "status": "REJECTED",
+  "stop": "Native symbolic family preparation exhausted the unchanged 1GiB cumulative storage budget.",
+  "acceptedSourceScope": "Full parent[-3,6]^2 and all integer child families.",
+  "nextObservation": "Measure identity preparation without repeating the failing family solve, then change only the dominant repeated stage."
+}

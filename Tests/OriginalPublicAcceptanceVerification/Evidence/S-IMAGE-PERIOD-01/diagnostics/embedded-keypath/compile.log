@@ -1,0 +1,9 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/ImagePeriodicSelfAcceptance.swift:172:166: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+170 |         for mode in 0..<5 {
+171 |             let small=try limits(source:mode==0 ? 0:1,depth:mode==1 ? 0:16,charts:mode==2 ? 8:64,families:mode==3 ? 1:2,count:mode==4 ? 48:64)
+172 |             do { _=try DefaultOriginalAffinePeriodicSelfContactQuery<Source>().contacts(in:result.raw,over:result.parent,excluding:result.identities.dropFirst().map(\.receipt),limits:small,using:&a);throw Failure.unexpectedSuccess }
+    |                                                                                                                                                                      `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+173 |             catch NativeExactRelationFailure.source(.sourceDepthLimit) { try require(mode==0) }
+174 |             catch NativeExactRelationFailure.domain(let failure) {
+
+[#EmbeddedRestrictions]: <https://docs.swift.org/compiler/documentation/diagnostics/embedded-restrictions>

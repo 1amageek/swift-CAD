@@ -1,0 +1,40 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/NativeExactRelations/DefaultNativeExactRelationFamilyResolver+Symbolic.swift:16:53: warning: conformance of 'DefaultNativeExactRelationFamilyResolver' to protocol 'NativeExactSymbolicRelationFamilyResolving' was already stated in the type's module 'CADGeometry'
+ 14 | #endif
+ 15 | 
+ 16 | extension DefaultNativeExactRelationFamilyResolver: NativeExactSymbolicRelationFamilyResolving {
+    |                                                     `- warning: conformance of 'DefaultNativeExactRelationFamilyResolver' to protocol 'NativeExactSymbolicRelationFamilyResolving' was already stated in the type's module 'CADGeometry'
+ 17 |     public func exactParameterRelationFamily<First: OriginalBSplineSourceReading,Second: OriginalBSplineSourceReading,
+ 18 |         A: ExactScalarAdmission & ~Copyable>(first: OriginalBSplineDomainCover<First,Field>,
+    :
+ 27 |     }
+ 28 | 
+ 29 |     public func exactParameterRelationFamily<First: OriginalBSplineSourceReading,Second: OriginalBSplineSourceReading,
+    |                 `- note: instance method 'exactParameterRelationFamily(first:second:kind:firstIssuer:secondIssuer:domainLimits:maximumMaps:maximumPairs:cellLimits:topologyLimits:using:)' will not be used to satisfy the conformance to 'NativeExactSymbolicRelationFamilyResolving'
+ 30 |         I: OriginalDomainBoundRationalChartIssuing,J: OriginalDomainBoundRationalChartIssuing,
+ 31 |         A: ExactScalarAdmission & ~Copyable>(first: OriginalBSplineDomainCover<First,Field>,
+
+CADGeometry.DefaultNativeExactRelationFamilyResolver:1:11: note: 'DefaultNativeExactRelationFamilyResolver' declares conformance to protocol 'NativeExactSymbolicRelationFamilyResolving' here
+1 | extension DefaultNativeExactRelationFamilyResolver : CADGeometry.NativeExactSymbolicRelationFamilyResolving {
+  |           `- note: 'DefaultNativeExactRelationFamilyResolver' declares conformance to protocol 'NativeExactSymbolicRelationFamilyResolving' here
+2 |     public func exactParameterRelationFamily<First, Second, A>(first: CADGeometry.OriginalBSplineDomainCover<First, CADGeometry.DefaultNativeExactRelationFamilyResolver.Field>, second: CADGeometry.OriginalBSplineDomainCover<Second, CADGeometry.DefaultNativeExactRelationFamilyResolver.Field>, kind: CADGeometry.ExactParametricRelationKind, domainLimits: CADGeometry.OriginalDomainIdentityLimits, maximumMaps: Int, maximumPairs: Int, cellLimits: CADGeometry.ExactRealCellLimits, topologyLimits: CADGeometry.ExactRealTopologyLimits, using admission: inout A) throws(CADGeometry.NativeExactRelationFailure) -> CADGeometry.NativeExactSymbolicRelationFamily<First, Second> where First : CADGeometry.OriginalBSplineSourceReading, Second : CADGeometry.OriginalBSplineSourceReading, A : CADGeometry.ExactScalarAdmission, A : ~Copyable
+3 |     public func exactParameterRelationFamily<First, Second, I, J, A>(first: CADGeometry.OriginalBSplineDomainCover<First, CADGeometry.DefaultNativeExactRelationFamilyResolver.Field>, second: CADGeometry.OriginalBSplineDomainCover<Second, CADGeometry.DefaultNativeExactRelationFamilyResolver.Field>, kind: CADGeometry.ExactParametricRelationKind, firstIssuer: I, secondIssuer: J, domainLimits: CADGeometry.OriginalDomainIdentityLimits, maximumMaps: Int, maximumPairs: Int, cellLimits: CADGeometry.ExactRealCellLimits, topologyLimits: CADGeometry.ExactRealTopologyLimits, using admission: inout A) throws(CADGeometry.NativeExactRelationFailure) -> CADGeometry.NativeExactSymbolicRelationFamily<First, Second> where First == I.Source, Second == J.Source, I : CADGeometry.OriginalDomainBoundRationalChartIssuing, J : CADGeometry.OriginalDomainBoundRationalChartIssuing, A : CADGeometry.ExactScalarAdmission, I.Field == CADGeometry.ExactAlgebraicScalarDomain<CADGeometry.ExactRationalScalarDomain>, J.Field == CADGeometry.ExactAlgebraicScalarDomain<CADGeometry.ExactRationalScalarDomain>, A : ~Copyable
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/NativeExactRelations/DefaultNativeExactRelationFamilyResolver+Symbolic.swift:16:53: warning: conformance of 'DefaultNativeExactRelationFamilyResolver' to protocol 'NativeExactSymbolicRelationFamilyResolving' was already stated in the type's module 'CADGeometry'
+ 14 | #endif
+ 15 | 
+ 16 | extension DefaultNativeExactRelationFamilyResolver: NativeExactSymbolicRelationFamilyResolving {
+    |                                                     `- warning: conformance of 'DefaultNativeExactRelationFamilyResolver' to protocol 'NativeExactSymbolicRelationFamilyResolving' was already stated in the type's module 'CADGeometry'
+ 17 |     public func exactParameterRelationFamily<First: OriginalBSplineSourceReading,Second: OriginalBSplineSourceReading,
+ 18 |         A: ExactScalarAdmission & ~Copyable>(first: OriginalBSplineDomainCover<First,Field>,
+    :
+ 27 |     }
+ 28 | 
+ 29 |     public func exactParameterRelationFamily<First: OriginalBSplineSourceReading,Second: OriginalBSplineSourceReading,
+    |                 `- note: instance method 'exactParameterRelationFamily(first:second:kind:firstIssuer:secondIssuer:domainLimits:maximumMaps:maximumPairs:cellLimits:topologyLimits:using:)' will not be used to satisfy the conformance to 'NativeExactSymbolicRelationFamilyResolving'
+ 30 |         I: OriginalDomainBoundRationalChartIssuing,J: OriginalDomainBoundRationalChartIssuing,
+ 31 |         A: ExactScalarAdmission & ~Copyable>(first: OriginalBSplineDomainCover<First,Field>,
+
+CADGeometry.DefaultNativeExactRelationFamilyResolver:1:11: note: 'DefaultNativeExactRelationFamilyResolver' declares conformance to protocol 'NativeExactSymbolicRelationFamilyResolving' here
+1 | extension DefaultNativeExactRelationFamilyResolver : CADGeometry.NativeExactSymbolicRelationFamilyResolving {
+  |           `- note: 'DefaultNativeExactRelationFamilyResolver' declares conformance to protocol 'NativeExactSymbolicRelationFamilyResolving' here
+2 |     public func exactParameterRelationFamily<First, Second, A>(first: CADGeometry.OriginalBSplineDomainCover<First, CADGeometry.DefaultNativeExactRelationFamilyResolver.Field>, second: CADGeometry.OriginalBSplineDomainCover<Second, CADGeometry.DefaultNativeExactRelationFamilyResolver.Field>, kind: CADGeometry.ExactParametricRelationKind, domainLimits: CADGeometry.OriginalDomainIdentityLimits, maximumMaps: Int, maximumPairs: Int, cellLimits: CADGeometry.ExactRealCellLimits, topologyLimits: CADGeometry.ExactRealTopologyLimits, using admission: inout A) throws(CADGeometry.NativeExactRelationFailure) -> CADGeometry.NativeExactSymbolicRelationFamily<First, Second> where First : CADGeometry.OriginalBSplineSourceReading, Second : CADGeometry.OriginalBSplineSourceReading, A : CADGeometry.ExactScalarAdmission, A : ~Copyable
+3 |     public func exactParameterRelationFamily<First, Second, I, J, A>(first: CADGeometry.OriginalBSplineDomainCover<First, CADGeometry.DefaultNativeExactRelationFamilyResolver.Field>, second: CADGeometry.OriginalBSplineDomainCover<Second, CADGeometry.DefaultNativeExactRelationFamilyResolver.Field>, kind: CADGeometry.ExactParametricRelationKind, firstIssuer: I, secondIssuer: J, domainLimits: CADGeometry.OriginalDomainIdentityLimits, maximumMaps: Int, maximumPairs: Int, cellLimits: CADGeometry.ExactRealCellLimits, topologyLimits: CADGeometry.ExactRealTopologyLimits, using admission: inout A) throws(CADGeometry.NativeExactRelationFailure) -> CADGeometry.NativeExactSymbolicRelationFamily<First, Second> where First == I.Source, Second == J.Source, I : CADGeometry.OriginalDomainBoundRationalChartIssuing, J : CADGeometry.OriginalDomainBoundRationalChartIssuing, A : CADGeometry.ExactScalarAdmission, I.Field == CADGeometry.ExactAlgebraicScalarDomain<CADGeometry.ExactRationalScalarDomain>, J.Field == CADGeometry.ExactAlgebraicScalarDomain<CADGeometry.ExactRationalScalarDomain>, A : ~Copyable

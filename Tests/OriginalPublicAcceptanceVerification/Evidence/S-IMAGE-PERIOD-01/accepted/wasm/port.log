@@ -1,0 +1,42 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/NativeExactRelations/DefaultNativeExactRelationFamilyResolver+Symbolic.swift:16:53: warning: conformance of 'DefaultNativeExactRelationFamilyResolver' to protocol 'NativeExactSymbolicRelationFamilyResolving' was already stated in the type's module 'CADGeometry'
+  5 | import L0
+  6 | import L1
+  7 | import L2
+    |       `- note: 'DefaultNativeExactRelationFamilyResolver' declares conformance to protocol 'NativeExactSymbolicRelationFamilyResolving' here
+  8 | import L3
+  9 | import L4
+    :
+ 14 | #endif
+ 15 | 
+ 16 | extension DefaultNativeExactRelationFamilyResolver: NativeExactSymbolicRelationFamilyResolving {
+    |                                                     `- warning: conformance of 'DefaultNativeExactRelationFamilyResolver' to protocol 'NativeExactSymbolicRelationFamilyResolving' was already stated in the type's module 'CADGeometry'
+ 17 |     public func exactParameterRelationFamily<First: OriginalBSplineSourceReading,Second: OriginalBSplineSourceReading,
+ 18 |         A: ExactScalarAdmission & ~Copyable>(first: OriginalBSplineDomainCover<First,Field>,
+    :
+ 27 |     }
+ 28 | 
+ 29 |     public func exactParameterRelationFamily<First: OriginalBSplineSourceReading,Second: OriginalBSplineSourceReading,
+    |                 `- note: instance method 'exactParameterRelationFamily(first:second:kind:firstIssuer:secondIssuer:domainLimits:maximumMaps:maximumPairs:cellLimits:topologyLimits:using:)' will not be used to satisfy the conformance to 'NativeExactSymbolicRelationFamilyResolving'
+ 30 |         I: OriginalDomainBoundRationalChartIssuing,J: OriginalDomainBoundRationalChartIssuing,
+ 31 |         A: ExactScalarAdmission & ~Copyable>(first: OriginalBSplineDomainCover<First,Field>,
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADGeometry/NativeExactRelations/DefaultNativeExactRelationFamilyResolver+Symbolic.swift:16:53: warning: conformance of 'DefaultNativeExactRelationFamilyResolver' to protocol 'NativeExactSymbolicRelationFamilyResolving' was already stated in the type's module 'CADGeometry'
+  5 | import L0
+  6 | import L1
+  7 | import L2
+    |       `- note: 'DefaultNativeExactRelationFamilyResolver' declares conformance to protocol 'NativeExactSymbolicRelationFamilyResolving' here
+  8 | import L3
+  9 | import L4
+    :
+ 14 | #endif
+ 15 | 
+ 16 | extension DefaultNativeExactRelationFamilyResolver: NativeExactSymbolicRelationFamilyResolving {
+    |                                                     `- warning: conformance of 'DefaultNativeExactRelationFamilyResolver' to protocol 'NativeExactSymbolicRelationFamilyResolving' was already stated in the type's module 'CADGeometry'
+ 17 |     public func exactParameterRelationFamily<First: OriginalBSplineSourceReading,Second: OriginalBSplineSourceReading,
+ 18 |         A: ExactScalarAdmission & ~Copyable>(first: OriginalBSplineDomainCover<First,Field>,
+    :
+ 27 |     }
+ 28 | 
+ 29 |     public func exactParameterRelationFamily<First: OriginalBSplineSourceReading,Second: OriginalBSplineSourceReading,
+    |                 `- note: instance method 'exactParameterRelationFamily(first:second:kind:firstIssuer:secondIssuer:domainLimits:maximumMaps:maximumPairs:cellLimits:topologyLimits:using:)' will not be used to satisfy the conformance to 'NativeExactSymbolicRelationFamilyResolving'
+ 30 |         I: OriginalDomainBoundRationalChartIssuing,J: OriginalDomainBoundRationalChartIssuing,
+ 31 |         A: ExactScalarAdmission & ~Copyable>(first: OriginalBSplineDomainCover<First,Field>,

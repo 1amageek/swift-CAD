@@ -1,3 +1,6 @@
+#if ORIGINAL_AFFINE_PERIODIC_SELF_VERIFICATION
+@testable import CADGeometry
+#endif
 #if NATIVE_FAMILY_ISOLATED_VERIFICATION
 import L0
 import L1
@@ -106,5 +109,65 @@ extension DefaultNativeExactRelationFamilyResolver: NativeExactSymbolicRelationF
             guard prepared.count == index+1 else { throw OriginalDomainIdentityFailure.incompleteCoverage }
         }
         return prepared
+    }
+}
+
+extension DefaultNativeExactRelationFamilyResolver: NativeExactSymbolicSurfacePredicateCompiling {
+    public func compileSurfacePredicates<A: ExactScalarAdmission & ~Copyable>(
+        first: NativeExactSymbolicSurfacePredicateFamily.Cover,second: NativeExactSymbolicSurfacePredicateFamily.Cover,
+        domainLimits: OriginalDomainIdentityLimits,maximumMaps: Int,maximumPairs: Int,using a: inout A
+    ) throws(NativeExactRelationFailure) -> NativeExactSymbolicSurfacePredicateFamily {
+        do {
+            try a.checkpoint()
+            guard maximumMaps>=0,maximumPairs>=0,first.space.frame.arity==2,second.space.frame.arity==2 else {
+                throw NativeExactRelationFailure.invalidDomain
+            }
+            guard first.templateCount<=domainLimits.maximumCharts,second.templateCount<=domainLimits.maximumCharts else {
+                throw OriginalDomainIdentityFailure.chartLimit
+            }
+            guard first.integerFamilyRank<=domainLimits.maximumFamilies,second.integerFamilyRank<=domainLimits.maximumFamilies else {
+                throw OriginalDomainIdentityFailure.familyLimit
+            }
+            _=try first.source.chart(0,limits:domainLimits.source,using:&a)
+            _=try second.source.chart(0,limits:domainLimits.source,using:&a)
+            _=try first.effective.equals(first.effective,limits:domainLimits,using:&a)
+            _=try second.effective.equals(second.effective,limits:domainLimits,using:&a)
+            _=try first.space.frame.scalarField.importing(second.space.frame.scalarField.integer(0,using:&a),using:&a)
+            typealias Template=NativeExactSymbolicSurfacePredicateFamily.Template
+            var templates:[Template]=[]
+            var valueDepth=0,coefficientDepth=0
+            func includeDepth(_ cover: NativeExactSymbolicSurfacePredicateFamily.Cover) throws {
+                for axis in cover.request.axes { try a.consumeWork(1);valueDepth=max(valueDepth,axis.depth.value);coefficientDepth=max(coefficientDepth,axis.depth.coefficient) }
+                for axis in cover.support.axes { try a.consumeWork(1);valueDepth=max(valueDepth,axis.depth.value);coefficientDepth=max(coefficientDepth,axis.depth.coefficient) }
+            }
+            try includeDepth(first);try includeDepth(second)
+            if !first.effective.isEmpty && !second.effective.isEmpty {
+                let left=try prepareFundamental(first,issuer:DefaultOriginalDomainBoundBSplineChartIssuer<BSplineSurface3D,Field>(),
+                    limits:domainLimits,maximumMaps:maximumMaps,using:&a)
+                let right=try prepareFundamental(second,issuer:DefaultOriginalDomainBoundBSplineChartIssuer<BSplineSurface3D,Field>(),
+                    limits:domainLimits,maximumMaps:maximumMaps,using:&a)
+                let count=left.count.multipliedReportingOverflow(by:right.count)
+                guard !count.overflow else { throw ExactScalarFailure.countOverflow }
+                guard count.partialValue<=maximumPairs else { throw OriginalDomainIdentityFailure.chartLimit }
+                try a.retainStorage(bytes:exactScalarPayloadBytes(count:count.partialValue,of:Template.self))
+                templates.reserveCapacity(count.partialValue)
+                let compiler=Domain(cells:Cells.self,topology:.init(cells:Cells.self))
+                for (i,lhs) in left.enumerated() { for (j,rhs) in right.enumerated() {
+                    try a.consumeWork(1)
+                    let source=try compiler.compile(kind:.surfaceSurface,first:lhs.map,second:rhs.map,using:&a)
+                    valueDepth=max(valueDepth,source.predicate.depth.value)
+                    coefficientDepth=max(coefficientDepth,source.predicate.depth.coefficient)
+                    for law in source.rawEquations {
+                        try a.consumeWork(1);valueDepth=max(valueDepth,law.depth.value);coefficientDepth=max(coefficientDepth,law.depth.coefficient)
+                    }
+                    templates.append(.init(firstTemplate:i,secondTemplate:j,first:lhs.chart,second:rhs.chart,source:source))
+                } }
+            }
+            let depth=try ExactScalarDepth(value:valueDepth,coefficient:coefficientDepth)
+            try a.admitDepth(value:depth.value,coefficient:depth.coefficient)
+            try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:NativeExactSymbolicSurfacePredicateFamily.self))
+            let result=NativeExactSymbolicSurfacePredicateFamily(first:first,second:second,templates:templates,depth:depth)
+            try a.checkpoint();return result
+        } catch { throw .preserving(error) }
     }
 }

@@ -862,3 +862,20 @@ before L5, with their full reduced/original receipts retained in family coverage
 Surviving graph ordinals map explicitly to original template ordinals. This
 avoids decomposing already-proved empty charts; it never treats a failed guard
 evaluation or unresolved reduction as exclusion.
+## Symbolic surface predicates
+
+`NativeExactSymbolicSurfacePredicateCompiling` exposes the existing checked L5
+compiler's complete surface-pair formula without requesting cell decomposition
+or connected components. Its immutable family retains both authored covers,
+every fundamental chart pair and the complete unbounded integer index domains.
+`NativeExactSymbolicSurfacePredicateFamily.member` retains exact lift inverses;
+membership evaluates the original three cross-multiplied equalities and both
+nonzero homogeneous weights after exact selected-domain admission. Compilation
+and evaluation use the same caller admission. A predicate family proves a set
+description, not emptiness, connectedness, dimensions or embedding validity.
+
+The consumer in [OriginalSurfaceEmbedding](../OriginalSurfaceEmbedding/DESIGN.md)
+uses this representation when only a symbolic residual and membership are
+required. Existing decomposed Native relation APIs are unchanged. Verification
+owner: `ImagePeriodicSelfAcceptance.swift`, including all 81 actual pair laws,
+unbounded cycle controls, resource boundaries and detached result lifetime.

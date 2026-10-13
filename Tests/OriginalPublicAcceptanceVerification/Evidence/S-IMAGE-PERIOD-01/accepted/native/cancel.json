@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/image-periodic-self-20261013/native/Proof"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.2783666669856757,
+  "peakRSSBytes": 4849664,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "edd6b6db1122a6be1a005243ebbf1ff83574a2b7ed09c155c8dc47cbc6386470"
+}
