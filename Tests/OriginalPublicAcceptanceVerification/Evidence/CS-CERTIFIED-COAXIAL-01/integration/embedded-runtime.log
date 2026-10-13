@@ -1,0 +1,7 @@
+(node:9766) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+original coaxial public work: 3532079
+original coaxial public bytes: 1721156
+PASS exact caller work/storage boundary and entry/processing/final-work cancellation
+PASS terminal publication cancellation including complete empty result
+PASS both certified coaxial public roots, whole continuous family, all UV and lifetime

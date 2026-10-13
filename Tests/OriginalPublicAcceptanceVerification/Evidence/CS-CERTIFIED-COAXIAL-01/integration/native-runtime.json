@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/certified-coaxial-public-20261014-v2/integration/Public"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 5.2982783750630915,
+  "peakRSSBytes": 12599296,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "c7ebe1acb508dfe925a940fa078d7f96f91c7f4d915f70569e07264dadc50325"
+}
