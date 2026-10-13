@@ -2032,6 +2032,87 @@ authorizes another solver, rounded equality or a prerequisite for other cells.
 
 ##### Finite expansion of the remaining acceptance cells
 
+###### Primitive curve public matrix
+
+Use ordinary rich CS and its admitted/prepared counterpart, standard options and
+tolerance, with complete original support and the finite selection [-1,1].
+The independent curves are: original line(origin0,direction2X), C=(2t,0,0);
+analytic circle(center0,normalZ,radius1), C=(-sin(k*t),cos(k*t),0), and
+the separate original Circle3D(center0,normalZ,radius1), C=(cos(k*t),sin(k*t),0);
+analytic ellipse(center0,normalZ,majorAxisX,majorRadius2,minorRadius1),
+C=(2cos(k*t),sin(k*t),0); Hyperbola3D(center0,normalZ,transverseAxisX,
+transverseRadius1,conjugateRadius1), C=(cosh(t),sinh(t),0); and
+Parabola3D(vertex0,normalZ,axisX,focalLength1/2), C=(t*t/2,t,0).
+Here B is the exact stored full-turn label and k=2*pi/B. Line/hyperbola/parabola
+support is all real t; circle/ellipse retain every intrinsic integer lift.
+
+Targets are plane(origin2X,normalX), plane(origin0,normalZ), cylinder(origin0,
+axisZ,radius2), sphere(center0,radius2), torus(center0,axisZ,R3,r1), and
+cone(apex0,axisX,stored physical halfAngle atan(1/2)). Keep each actual original
+target frame, phase law and support from its primitive source authority. The
+independent complete oracle is C(t)=F(u,v) on those authored domains, including
+every target UV and collapsed fiber. Equivalently, the noncone image selections
+are respectively C.x=2; all t; C.x^2+C.y^2=4; the same radial equation with
+all sphere UV; and radialSquared in{4,16}. The cone oracle uses its ORIGINAL
+physical ruling F(u,v), not tan(atan(1/2))=1/2 or a rounded quadratic metric.
+For example ellipse/planeX2 retains all t=n*B and hyperbola/planeX2 retains
+t=+-acosh(2); parabola/planeX2 retains t=+-2. These sanity roots do not replace
+the full source/UV equation oracle. PlaneZ0 is the continuous control, and
+planeZ1 is the complete-empty control for every row. Finite selection, open
+endpoint, singleton, reversed traversal and target order/role controls preserve
+the same original laws. The static gap is original all-T/allUV rich publication
+in DefaultCurveSurfaceIntersector/CurveSurfaceOverlap, including scalar-field
+and unbounded-family receipt supply; old numerical events are not acceptance.
+
+The existing M0 matrix is an obligation index. Its line/plane/Native and conic
+lower proof fixtures remain reusable; they do not substitute for these public
+primitive cells or the procedural/certified public cells below.
+
+###### Primitive surface public matrix
+
+Use all unordered pairs, including same-kind pairs, of the following six actual
+inputs through ordinary/admitted/prepared rich SSI in BOTH source orders:
+Plane3D(origin0,normalZ); Native degree1/1 surface with knots[0,0,1,1] on both
+axes and V-major controls[(0,0,0),(1,0,0)]/[(0,1,0),(1,1,0)]; analytic cylinder
+(origin0,axisZ,radius1); analytic cone(apex0,axisZ,halfAngle:stored atan(1/2));
+analytic sphere(center0,radius2); and analytic torus(center0,axisZ,R3,r1).
+Use whole original supports and the exact selected intersection with[-1,1]^2.
+For the independent laws put r(u)=(-sin(k*u),cos(k*u),0), alpha the stored
+physical cone angle, and eZ=(0,0,1). The six laws are respectively
+(-v,u,0), (u,v,0), r(u)+v*eZ,
+v*sin(alpha)*r(u)+v*cos(alpha)*eZ,
+2*cos(k*v)*r(u)+2*sin(k*v)*eZ, and
+(3+cos(k*v))*r(u)+sin(k*v)*eZ. Sphere latitude is the original closed
+[-B/4,B/4]; cone V is the original real slant axis, not a silently selected
+nappe. Native support is the closed unit square; all other periodic axes retain
+every integer lift. The complete independent tuple oracle is precisely
+F_i(u,v)=F_j(p,q) on those authored/requested domains. All coordinates, singular
+fibers, incident sides, image rank strata and connected components belong to
+that set; no image-only implicit equation is sufficient. Translate the second
+source by+10Z for the separately selected bounded [-1,1]^2 exclusion control;
+retain original source-owner distinction for equal-valued same-kind pairs.
+The current static gap is ordinary mixed-source receipt/publication selection
+in DefaultSurfaceSurfaceIntersector, not the already completed real engine.
+
+##### Finite expansion rules
+
+The resolved instance index is
+[AcceptanceCells.json](../../../../Tests/OriginalPublicAcceptanceVerification/AcceptanceCells.json),
+generated and checked by
+[AcceptanceCellCatalog.py](../../../../Tests/OriginalPublicAcceptanceVerification/AcceptanceCellCatalog.py).
+It expands constructor branches, applicable consumer roles, two nesting depths,
+all directed pcurve policies/missing-data controls and rolling selectors. Its
+bindings reference the exact definitions in this document; it does not own new
+source laws or execution state. The five certified families plus the endpoint
+enum use the exact source-pair authority below, overriding historical rounded-law
+definition gaps. Curve-only inputs never acquire an invented surface: guide
+SSI/material/self inputs use their explicitly constructed ruled/Coons hosts.
+Draft stationary/A-zero inputs are failures, while D-zero is a positive position
+law; forbidden certified endpoint kinds are constructor controls, and their
+parent SSI obligations remain positive. All51 contract IDs and all12 cumulative
+interactions remain indexed. A static missing receipt is a planning stop, not a
+reproduced runtime failure. PROGRESS.md alone owns acceptance and delivery.
+
 This is the final binding rule for the inventory above, not a second progress
 record. A cell is a constructor branch and a consumer contract, rather than an
 arbitrary Cartesian product of all shape names. Its status stays unaccepted until
@@ -2053,7 +2134,7 @@ inverse. A relation oracle retains ALL roots of the displayed equations.
 
 | Suffix | Public input and independent whole-set oracle | Current stop and necessary change | Completion evidence |
 |---|---|---|---|
-| CS | Actual ordinary rich CS of the row's C and the named target plane. Use the explicitly listed isolated roots and contained control. For a surface-only row, use its retained diagonal lift C(t)=F(t,t), t in[0,1], and plane through the row's original origin with normalZ. Expected tuples are exactly t inJ, p inD, F(p)=C(t), and the target plane's exact basis coordinates. This includes every host preimage, not just p=(t,t). | Consume that row's source/DI/lift receipt in ordinary dispatch; the first source capability refusal is STATIC unless a runtime observation is linked above. | Complete equality/selection comparison, all UV, XYZ and image/fiber dimensions; ordinary bare must refuse a continuous result explicitly. |
+| CS | Actual ordinary rich CS of the row's C and the named target plane. Use the explicitly listed isolated roots and contained control. For a surface-only row, use its retained diagonal lift C(t)=F(t,t), t in[0,1], and plane through the row's original origin with normalZ. Expected intersection tuples are exactly t inJ with C(t) on the named target plane, and ALL corresponding target-plane UVs in its selected support. For a retained lift, its host UV is the original pcurve relation P(t), including every declared branch/chart germ of P; it is not every host UV with the same XYZ. For the diagonal lift P(t)=(t,t), retain exactly that authored correspondence. The separate curve-versus-host B query keeps every target-host preimage. | Consume that row's source/DI/lift receipt in ordinary dispatch; the first source capability refusal is STATIC unless a runtime observation is linked above. | Complete equality/selection comparison, all UV, XYZ and image/fiber dimensions; ordinary bare must refuse a continuous result explicitly. |
 | SSI | Actual ordinary rich SSI of F and the row's named plane, both source orders, whole support and closed quarter-box restrictions. Expected tuples are exactly the independently displayed F(p)=O+eU*qU+eV*qV with p inD and q in the selected original plane support. Plane coordinates are computed from its sealed original basis, not projected samples. For extruded G_C=(C.x,C.y,v), target planeZ1/2 gives p=(u,1/2), q=(C.y,-C.x). For D_C replace v by H(v), whose unique half-height preimage is v=1/2. | Reuse existing source charts/guards and plane graph compiler; retain the mixed-source owner through L5/L6 and publish it in ordinary SSI. No finite plane cover is invented. | Full chart/branch selection oracle on every retained cell; all incidents, dimensions, order, request and exclusion controls. |
 | B | Build the actual face on F with outer unit UV rectangle and inner[1/4,3/4]^2, once-forward pcurve traversal and explicit coedges as in B-COONS-HOLE. Query the row's SSI relation, and additionally the retained curve F(t,1/2). Expected parameter/material result is the untrimmed oracle AND the authored winding predicate at EACH original UV. For the latter curve: closed t in[0,1/4] union[3/4,1], strict t in(0,1/4) union(3/4,1), boundary t in{0,1/4,3/4,1}; all other F preimages must independently pass the same predicate. | Bind actual face/source authority, retained pcurves and general/auxiliary relation layouts. A missing pcurve is the specific producer dependency, not an instruction to reconstruct it in the consumer. | Validated-model Kernel entry, all raw/refined ordinals, both incidence sides, three policies, empty result and retained membership query. |
 | S | Actual prepared original-self/embedding query of F over D x D. Expected residual is every ordered pair(p,r) with the independent displayed position law F(p)=F(r), minus ONLY the scoped M5 relations and authored diagonal. For injective G_A/G_Q/D_A/D_Q on[0,1]^2 this is empty; H, periodic, fold and isolated-contact rows use their already displayed nonempty residual formula. | Compile the actual parameter/auxiliary layout and consume checked identity views. General-family refusal is STATIC; do not call a missing proof "no contact". | Whole ordered product comparison, exact scope rejection, nonstructural contact preservation and actual embedding caller. |
@@ -2804,3 +2885,30 @@ a query-only success cannot satisfy their acceptance. Additional nonstructural
 same-XYZ tuples must remain selected unless an applicable scoped identity proves
 their exclusion. Missing identity authority, budgets and cancellation cannot
 become an empty result. Existing Native and interval routes remain available.
+
+
+##### Mapping audit: lift ownership and observed caller stops
+
+The finite expansion is authoritative over the historical unmapped index, but
+its instantiated fields must respect the original constructor's parameter owner.
+For F(u,v)=(2u,v,0) on the first half and (2-2u,v,0) on the second,
+P(t)=(t,1/2), t1/4 has authored hostUV(1/4,1/2). The equal-XYZ host point
+(3/4,1/2) is not another pcurve witness. It is retained when F is itself the
+comparison surface, not fabricated as the lift's authored UV in CS against a
+plane. The CS suffix now makes this distinction explicit.
+
+S-COONS-OFFSET-CALLER-01 now has a source-read public stop in
+DefaultOffsetResultValidator.validateSelfContact: its exact Coons support fails
+the nonperiodic Native receipt guard and receives unsupportedCapability. This
+is a static, deterministic dispatch limitation, not a new runtime observation.
+Consume the existing same-owner issued-graph self/material receipt in this actual
+caller; do not restore interval callback success or claim that refusal completes
+Coons embedding. S-TRIMMED-FOLD-01's exact Native material/caller evidence is at
+[Focused verification](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/Focused/VERIFICATION.md).
+
+The existing finite registries preserve all source, certified, pcurve and consumer
+branches. An explicit instance ledger is still required to reconcile their concrete
+constructors, request/oracle fields and first unavailable receipt without treating
+historical UNMAPPED or generic suffix references as a current executable cell.
+Mapping completion is an acceptance-definition gate; it changes no whole-family
+implementation count. PROGRESS.md remains the only execution record.
