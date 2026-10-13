@@ -1,0 +1,10 @@
+{
+  "commit": "974a6125ba2428b1c51c40619503cbdfb94ed11f",
+  "previousMain": "09af356d89e3c392ffb7c275526b8e3e33d9dec2",
+  "sourceCount": 2075,
+  "productCount": 18,
+  "protectedCount": 12,
+  "fixtureSHA256": "3223b465d887f8b3e7cc89c4b5e4eeb5f72d96c89c861e7e7f46165899bc18b0",
+  "nativeExecutableSHA256": "b9177218b53a1d812f1707aad6f9050e98fb74e5b0edf6301bbc9c9663bc48d1",
+  "otherTargets": "Reused matched source/compiler/product/accepted runtime receipts: unchanged premises; no repeated execution or lower regeneration."
+}
