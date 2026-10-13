@@ -1,0 +1,7 @@
+RESOURCE baseline 16484667 482588842
+RESOURCE exact 16484667 482588842
+RESOURCE refusal counts 16484666 482588842
+RESOURCE refusal counts 16483067 482588498
+RESOURCE source/charts 0 16
+RESOURCE source/charts 16 3
+PASS exact N/N-1 work/storage and independent source/chart failures

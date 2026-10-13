@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-offset-caller-green-20261014/asan/caller/Proof"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 156.46292049996555,
+  "peakRSSBytes": 701759488,
+  "wallLimitSeconds": 931.396631999989,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "049df5a4afd6823534b6675f25446a8e173770c589edce5e6ae5d46cbd737afe"
+}

@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-offset-caller-green-20261014/wasm/caller/Proof.wasm",
+    "cancel"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 34.376341499970295,
+  "peakRSSBytes": 484737024,
+  "wallLimitSeconds": 1114.9889418750536,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "05cd871f549de2fe7dd8acc5632fc302e9a5b1dcff897d0905712ac730a344a9"
+}

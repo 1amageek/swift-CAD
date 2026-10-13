@@ -191,5 +191,8 @@ catalog = dict(schemaVersion=1, baseline='66d02269', authority=str(DESIGN.relati
     sourceSHA256=hashlib.sha256(TEXT.encode()).hexdigest(),
     ownership='Definitions only. PROGRESS.md alone owns execution and completion state. Static gaps are not reproduced runtime failures. Catalog presence accepts no implementation.')
 output = ROOT / 'Tests/OriginalPublicAcceptanceVerification/AcceptanceCells.json'
-output.write_text(json.dumps(catalog, indent=2, ensure_ascii=False) + '\n')
+head = json.dumps({key: value for key, value in catalog.items() if key != 'cells'}, indent=2, ensure_ascii=False)
+serialized = head[:-2] + ',\n  \"cells\": [\n' + ',\n'.join('    ' + json.dumps(cell, separators=(',', ':'), ensure_ascii=False) for cell in catalog['cells']) + '\n  ]\n}\n'
+assert json.loads(serialized) == json.loads(json.dumps(catalog))
+output.write_text(serialized)
 print(f'PASS {len(cells)} explicit stable instances; 51 contracts, 17 pcurve cases, {len(rolling)} rolling selectors, five certified families and 12 interactions')

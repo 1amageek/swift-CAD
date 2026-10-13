@@ -1,0 +1,28 @@
+{
+  "inputs": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/OriginalOffsetFeasibility/DefaultOffsetResultValidator.swift": "bac8023919f5bc8898209db31aabda2da17a561169dff46e780db3308f34eaa4",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/OriginalOffsetFeasibility/OffsetFeasibilityInvocation.swift": "43edf1279e0a7228195301212674a1c90d1ac34f2956bcea31d0e3fd997581fa",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/OriginalOffsetFeasibility/OffsetFeasibilityLimits.swift": "c3cbb2c1ee1d3a1f87e4f8637ab285fb3b8f9d266acbfee80f91a803d7761137",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/OriginalOffsetFeasibility/OffsetExactScalarAdmission.swift": "050e0c88fe558a12111472ad5ea4e30b37e66935bb8502edf4f98aa0306d5b5a",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/OriginalOffsetFeasibility/OriginalOffsetNativeSelfContact.swift": "2e79778482b220d06a4b073bd5e5d9d692858bf3efc3be3fe2abeb28200d5ab5",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/OriginalOffsetFeasibility/OriginalOffsetCoonsSelfContact.swift": "3f3ed392127eff64b08c1f8ca1b5de83507c47e87f38a588057155b88e2e4311",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/OriginalBoundaryClipping/OriginalExactFaceBoundaryIssuer.swift": "ba2694a195bc31d61c57a1d03c00324f2cf2101423aa98d64bc512873fdb238a",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/OriginalBoundaryClipping/OriginalExactFaceBoundaryLoops.swift": "e9a5c4a8798701d402ddc2fe77d32df3733aa3ddf1a7646b9772693c469ebd79"
+  },
+  "products": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-offset-caller-green-20261014/native/CADKernel.swiftmodule": "326ee2a10a2af000a26b2ad78be28ae2ef752f3ffa97b9e0e067102e24272117",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-offset-caller-green-20261014/native/libCADKernel.a": "8f5d5f541a468e6edab8457bc3a6409ead85e09b01333a7765ef0ffcc12de763"
+  },
+  "dependencies": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug/CADCore.o": "a5335eed22483be3d1b2f27e2ad59d3b319113a82f205340934421923a1c3e2e",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug/HashTreeCollections.o": "45a529ba8df73f2149b23c000161dd20d3a9398ff1f30d92315ef89602757b31",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/native/build/out/Products/Debug/InternalCollectionsUtilities.o": "0cf4bfb5a87090e4f54aad35384b3c1cba8e9a9a6f54eb2afb01df8dea9c5145",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-canonical-20261013/native/CADGeometry.swiftmodule": "060d9569a163d8c882838469402d05bb4055485b0d14d1a9483e3459610ab171",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-canonical-20261013/native/libCADGeometry.a": "7ca697ca2b2a8326d3054019ef3cad84d6c1552dbaa3ef1455f2de698a38bbf0",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-canonical-20261013/native/CADTopology.swiftmodule": "9a8f4d07da72cbbd6f54fccdcde8a7e027d6c9419aa2f112d11ada57c01a1d06",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-20261013/edge-native/libCADTopology.a": "c74df1ee0b2e99e89dc6c7d5d59ae9f7c9fb35ce4abfaa4c7ac6a6e4d65967b9",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-offset-caller-green-20261014/native/CADModeling.swiftmodule": "a41acf8bb71e28ea39b5ce7b5dc33a4b1f0141dba7dcdea2fff4d46e11c234ae",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-offset-caller-green-20261014/native/libCADModeling.a": "611e9d3c9c58712272558cf2897e1ee39664d74c1cce42d2d713ee8e7b18b8da"
+  },
+  "recordSHA256": "f6dd2f60d9d25d5b57c0083acb6fa71f6f623b649646bfa7018768f9cb603191"
+}

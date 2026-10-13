@@ -33,7 +33,7 @@ model admission first obtains the actual exact BRep receipt; when cumulative
 limits are selected it uses the bounded constructor under the same invocation.
 A modeling-only receipt cannot authorize generated-result contact admission.
 
-The connected scope is one trimmed nonperiodic Native face. Its original source
+The connected Native scope is one trimmed nonperiodic Native face. Its original source
 and support are prepared once, all raw chart pairs are retained, and both original
 face-issued material conditions refine the existing self residual once. The
 closed policy includes outer/hole boundaries. Any included residual cell rejects
@@ -41,11 +41,23 @@ the result; a complete empty result is admitted only after final cancellation.
 Source equality is independent of modeling tolerance. No UV/root/branch merging,
 second decomposition, rectangle approximation or solver retry is performed.
 
+The additive Coons caller consumes the existing source-owned rational atlas,
+full authored DI cover, complete issued-graph self product and scoped authored
+diagonal subtraction. The source is read from the actual validated face. Complete
+global residual exclusion proves exclusion on every material subset, so this
+case needs no material re-decomposition or interval callback. The retained raw
+and refined owners survive the query; all preparation and final publication use
+the same borrowed caller admission. A nonempty global residual cannot establish
+material contact without both exact material predicates: that remaining branch
+returns unsupportedCapability and is not counted as general Coons completion.
+The actual S-COONS-OFFSET-CALLER-01 unit-square face and Native folded rejection
+control own success/failure/resource/cancel/lifetime/portable caller verification.
+
 ### Exact consumer migration and retired legacy dispatch
 The default owner removes its former interval callback and opaque Boolean/Loft
 contact replay: they do not establish the complete material exclusion required
 by this contract. Successful admission intentionally narrows to connected exact
-receipts. Periodic/non-Native/untrimmed products and distinct-face pairs without
+receipts. Periodic/general-source/untrimmed products and distinct-face pairs without
 complete material/shared-boundary receipts return unsupportedCapability. Those
 are mandatory remaining M6 cells; refusal does not complete them. Multi-face
 bodies are refused before self preparation until every unordered pair is covered.

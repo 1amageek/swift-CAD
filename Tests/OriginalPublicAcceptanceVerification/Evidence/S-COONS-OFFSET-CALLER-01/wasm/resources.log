@@ -1,0 +1,9 @@
+(node:93550) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+RESOURCE baseline 16466672 242825310
+RESOURCE exact 16466672 242825310
+RESOURCE refusal counts 16466671 242825310
+RESOURCE refusal counts 16465072 242825138
+RESOURCE source/charts 0 16
+RESOURCE source/charts 16 3
+PASS exact N/N-1 work/storage and independent source/chart failures

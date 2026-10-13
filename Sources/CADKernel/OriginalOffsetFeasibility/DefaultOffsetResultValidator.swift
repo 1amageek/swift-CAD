@@ -143,6 +143,11 @@ public struct DefaultOffsetResultValidator: OffsetResultValidating {
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
             throw TopologyError.missingReference("Offset self-contact lost original face support.")
         }
+        if case .procedural(.originalCoons(let coons)) = surface, !face.loops.isEmpty {
+            try OriginalOffsetCoonsSelfContact.validate(surface:coons,tolerance:tolerance,
+                limits:limits,invocation:invocation)
+            return
+        }
         // FIXME(INCOMPLETE_IMPLEMENTATION): The production generated-result
         // callers still require complete periodic, general-source and untrimmed
         // self products. Those receipts must be consumed before these can succeed.

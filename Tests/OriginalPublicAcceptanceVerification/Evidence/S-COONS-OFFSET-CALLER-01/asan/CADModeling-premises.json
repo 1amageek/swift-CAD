@@ -1,0 +1,19 @@
+{
+  "inputs": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/SharedSheetOffset/OffsetResultValidating.swift": "b9d1bc114aeba8c8139145859d50171c37d9e45dcb865a412fd6c92ec3b84f43"
+  },
+  "products": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-offset-caller-green-20261014/asan/CADModeling.swiftmodule": "a41acf8bb71e28ea39b5ce7b5dc33a4b1f0141dba7dcdea2fff4d46e11c234ae",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-offset-caller-green-20261014/asan/libCADModeling.a": "ae278029f69ae10f58580688c64cfe12235e52182cf123f8a05b22b4e5b558ea"
+  },
+  "dependencies": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/asan/build/out/Products/Debug/CADCore.o": "5c5d48b655b8589816abbf99fcea3df986ffdc228623fd77fc5dc995a02e12bb",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/asan/build/out/Products/Debug/HashTreeCollections.o": "6e03fc4433b23f4e5a14bc58966c100655d12e3a6a9ebda802792870535ac83e",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/asan/build/out/Products/Debug/InternalCollectionsUtilities.o": "01d3354f007e85780ec025630d2f0957cb2fb1467a46cdd09350ab2cc1f6044a",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-canonical-20261013/asan/CADGeometry.swiftmodule": "7658681d6dee7cfca6d2854fc18cdc7a6a8066f51d5861cf131b02d3fc65a456",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-canonical-20261013/asan/libCADGeometry.a": "894eeb2f2f644b8548df8fc97a1ed640443cf52cc2a4e2bf9e22bbb71be51154",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-canonical-20261013/asan/CADTopology.swiftmodule": "9a8f4d07da72cbbd6f54fccdcde8a7e027d6c9419aa2f112d11ada57c01a1d06",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-20261013/edge-asan/libCADTopology.a": "dc86281a5bda507ae83004cf13f8a8416071f7e0c8073c2b4690bb9be3e57a1a"
+  },
+  "recordSHA256": "ad0603c9a3a026378d589a642e16c7a2cd09d61330a4772fb2f671b488c9069d"
+}
