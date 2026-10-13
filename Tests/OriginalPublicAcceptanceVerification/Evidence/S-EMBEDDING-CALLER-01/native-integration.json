@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/embedding-immutable-products/native/d4d80cbcccdf404d13f9feedc977941704bf56060ffed7d4bc251f0e0b5e3e4e"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 34.0873126660008,
+  "peakRSSBytes": 53592064,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "4386cb27a52bb071edb614f930b53ce5f0e747aa3a029a2551c48b4b379debd9"
+}
