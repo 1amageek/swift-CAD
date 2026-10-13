@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/nonlinear-collapse-20261013/rolling-regression/Proof"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 2.481696082977578,
+  "peakRSSBytes": 25690112,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "a0ad3ee70e936180aefa54b00d3d1b7186253c620888b5f670b8fa7f5e77a4e3"
+}
