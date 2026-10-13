@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-focused-20261014-v2/embedded/Proof.wasm",
+    "material"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 80.85515570803545,
+  "peakRSSBytes": 296222720,
+  "wallLimitSeconds": 899.9715459999861,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "ba2bdb5f9e2549a6e650d611c156c9e868b4a4a1a883c5d518c11a98b0119203"
+}

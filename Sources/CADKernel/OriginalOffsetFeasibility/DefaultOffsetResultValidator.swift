@@ -1,9 +1,10 @@
 import CADCore
+import HashTreeCollections
 import CADGeometry
 import CADModeling
 import CADTopology
 
-/// Shares the complete original finite contact producer with cap/contact admission.
+/// Admits result material only from complete source-bound contact receipts.
 public struct DefaultOffsetResultValidator: OffsetResultValidating {
     private let limits: OffsetFeasibilityLimits
 
@@ -65,34 +66,18 @@ public struct DefaultOffsetResultValidator: OffsetResultValidating {
         let tolerance = validatedModel.tolerance
         let faces = try ownedFaces(bodyID: bodyID, model: model, tolerance: tolerance,
             invocation: invocation)
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Surface Offset, Thicken and other
+        // generated-result callers need exact material and declared-boundary
+        // receipts for every distinct face pair before multiple-face admission.
+        guard faces.count == 1 else {
+            throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+                message: "Offset result admission requires exact distinct-face material contact receipts.")
+        }
         for faceID in faces {
             try invocation.consume(depth: 0)
             try validateSelfContact(faceID: faceID, validatedModel: validatedModel, invocation: invocation)
         }
-        if invocation.usesSelectedAdmission {
-            for index in faces.indices {
-                try invocation.consume(depth: 0)
-                for otherIndex in faces.indices where otherIndex > index {
-                    try invocation.consume(depth: 0)
-                    try validateFiniteContact(first: faces[index], second: faces[otherIndex],
-                        validatedModel: validatedModel, invocation: invocation)
-                }
-            }
-            return
-        }
-        let contact = DefaultLoftFiniteCapContactValidator()
-        for index in faces.indices {
-            try invocation.consume(depth: 0)
-            for otherIndex in faces.indices where otherIndex > index {
-                try invocation.consume(depth: 0)
-                try contact.validate(capFaceIDs: [faces[index]], sideFaceIDs: [faces[otherIndex]],
-                    model: model, tolerance: tolerance)
-            }
-        }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): The production Surface Offset and
-        // Thicken paths admit distinct-face contacts and locally injective
-        // same-face charts. Critical offset-sector reconstruction and shared
-        // UV-interface exclusion remain mandatory original producer gaps.
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
 
     private func ownedFaces(bodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance,
@@ -151,65 +136,6 @@ public struct DefaultOffsetResultValidator: OffsetResultValidating {
         return faces
     }
 
-    private func validateFiniteContact(first firstID: FaceID, second secondID: FaceID,
-        validatedModel: ValidatedBRepModel, invocation: OffsetFeasibilityInvocation) throws {
-        let model = validatedModel.model
-        let tolerance = validatedModel.tolerance
-        guard let firstFace = model.faces[firstID], let secondFace = model.faces[secondID] else {
-            throw TopologyError.missingReference("Generated result contact lost its original finite faces.")
-        }
-        try invocation.reserve(1, of: BooleanFacePairCandidate.self)
-        let pairs = [BooleanFacePairCandidate(targetFaceID: firstID, toolFaceID: secondID)]
-        let work: @Sendable (Int) throws -> Void = { try invocation.consume(depth: $0) }
-        let prepared = try BooleanPipeline(evaluator: ExactBRepBooleanEvaluator())
-            .prepareIntersectionGraph(facePairs: pairs, validatedModel: validatedModel,
-                maximumSpanCount: invocation.maximumSpanCount,
-                maximumSubdivisionDepth: limits.surfaceIntersectionOptions.maximumSubdivisionDepth,
-                remainingSourceDepth: limits.remainingSourceDepth,
-                consumeWork: work, consumeStorage: invocation.storageAdmission,
-                maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
-        let trims = OriginalFaceTrimBoxContainment(remainingSourceDepth: limits.remainingSourceDepth,
-            maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
-        func classify(_ box: SurfaceParameterBox, faceID: FaceID, untrimmed: Bool)
-            throws -> OriginalFaceTrimBoxClassification {
-            if untrimmed { return .inside }
-            return try trims.classify(box, in: faceID, validatedModel: prepared.validatedModel,
-                maximumSubdivisionDepth: limits.surfaceIntersectionOptions.maximumSubdivisionDepth,
-                remainingSourceDepth: limits.remainingSourceDepth,
-                maximumAlgebraicDepth: limits.maximumAlgebraicDepth,
-                consumeWork: work, consumeStorage: invocation.storageAdmission)
-        }
-        for intersection in prepared.intersectionGraph.faceIntersections {
-            try invocation.consume(depth: 0)
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Offset/Thicken/generated-sheet
-            // result admission consumes complete original implicit cells here.
-            // Original point/coincident sectors and nonimplicit finite clipping
-            // still need same-caller witnesses before those domains can succeed.
-            guard case let .curve(curve) = intersection.geometry,
-                  case let .implicit(graph) = curve.truth, !graph.cells.isEmpty else {
-                throw unresolved(tolerance, "Finite result contact needs original critical/coincident clipping authority.")
-            }
-            for cell in graph.cells {
-                try invocation.consume(depth: 0)
-                let original = cell.parameterBox
-                let firstBox = SurfaceParameterBox(u: original.firstU, v: original.firstV)
-                let secondBox = SurfaceParameterBox(u: original.secondU, v: original.secondV)
-                let first = try classify(firstBox, faceID: firstID, untrimmed: firstFace.loops.isEmpty)
-                let second = try classify(secondBox, faceID: secondID, untrimmed: secondFace.loops.isEmpty)
-                if first == .outside || second == .outside { continue }
-                if first == .inside, second == .inside {
-                    throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
-                        message: "Original generated result faces intersect in both material interiors.")
-                }
-                // FIXME(INCOMPLETE_IMPLEMENTATION): A shared topological edge
-                // does not exclude another crossing on its supports. Complete
-                // bounded whole-subspan coincidence and graph refinement are
-                // required for this boundary-straddling cell, without legacy replay.
-                throw unresolved(tolerance, "Finite result contact straddles an original trim or shared boundary.")
-            }
-        }
-    }
-
     private func validateSelfContact(faceID: FaceID, validatedModel: ValidatedBRepModel,
         invocation: OffsetFeasibilityInvocation) throws {
         let model = validatedModel.model
@@ -217,59 +143,23 @@ public struct DefaultOffsetResultValidator: OffsetResultValidating {
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
             throw TopologyError.missingReference("Offset self-contact lost original face support.")
         }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): The production generated-result
+        // callers still require complete periodic, general-source and untrimmed
+        // self products. Those receipts must be consumed before these can succeed.
+        guard case .bSpline(let native) = surface, !native.isUPeriodic,
+              !native.isVPeriodic, !face.loops.isEmpty else {
+            throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+                message: "Offset result admission requires a complete source-bound self-contact receipt.")
+        }
         let options = limits.surfaceIntersectionOptions
         let work: @Sendable (Int) throws -> Void = { try invocation.consume(depth: $0) }
-        let bytes = invocation.storageAdmission
         let domain = try DefaultFaceParameterBoundsResolver(
             maximumSubdivisionDepth: options.maximumSubdivisionDepth, consumeWork: work,
-            consumeStorage: bytes, remainingSourceDepth: limits.remainingSourceDepth,
+            consumeStorage: invocation.storageAdmission, remainingSourceDepth: limits.remainingSourceDepth,
             maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
             .bounds(for: faceID, in: model, tolerance: tolerance)
-        let embedding = try DefaultOriginalSurfaceEmbeddingPreparer().prepare(surface: surface,
-            over: domain, options: options, tolerance: tolerance,
-            maximumSpanCount: invocation.maximumSpanCount,
-            maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-            remainingSourceDepth: limits.remainingSourceDepth,
-            maximumAlgebraicDepth: limits.maximumAlgebraicDepth,
-            consumeWork: work, consumeStorage: bytes)
-        let trims = OriginalFaceTrimBoxContainment(remainingSourceDepth: limits.remainingSourceDepth,
-            maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
-        func trim(_ box: SurfaceParameterBox) throws -> OriginalFaceTrimBoxClassification {
-            if face.loops.isEmpty { return .inside }
-            return try trims.classify(box, in: faceID, validatedModel: validatedModel,
-                maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-                remainingSourceDepth: limits.remainingSourceDepth, maximumAlgebraicDepth: limits.maximumAlgebraicDepth,
-                consumeWork: work, consumeStorage: bytes)
-        }
-        try embedding.visitCrossContacts(excluding: { box, _ in try trim(box) == .outside },
-            admit: { contact, _, _, depth in
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): The public offset/thicken
-                    // atlas consumes original implicit graph boxes below. Shared
-                    // UV interfaces and critical/point/coincident sector proofs
-                    // must be implemented before general self-contact closure.
-                    guard case let .curve(curve) = contact, case let .implicit(graph) = curve.truth else {
-                        throw unresolved(tolerance, "Offset self-contact needs original critical/interface exclusion.")
-                    }
-                    guard !graph.cells.isEmpty else {
-                        throw unresolved(tolerance, "Offset self-contact returned no original graph coverage.")
-                    }
-                    for cell in graph.cells {
-                        try invocation.consume(depth: depth)
-                        let original = cell.parameterBox
-                        let firstBox = SurfaceParameterBox(u: original.firstU, v: original.firstV)
-                        let secondBox = SurfaceParameterBox(u: original.secondU, v: original.secondV)
-                        let a = try trim(firstBox)
-                        let b = try trim(secondBox)
-                        if a == .outside || b == .outside { continue }
-                        let separated = firstBox.u.upper < secondBox.u.lower || secondBox.u.upper < firstBox.u.lower
-                            || firstBox.v.upper < secondBox.v.lower || secondBox.v.upper < firstBox.v.lower
-                        if a == .inside, b == .inside, separated {
-                            throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
-                                message: "Original offset result self-intersects at distinct material parameters.")
-                        }
-                        throw unresolved(tolerance, "Offset self-contact straddles an original trim or shared UV interface.")
-                    }
-            })
+        try OriginalOffsetNativeSelfContact.validate(surface: native, domain: domain, faceID: faceID,
+            original: validatedModel, limits: limits, invocation: invocation)
     }
 
     private func unresolved(_ tolerance: ModelingTolerance, _ message: String) -> KernelError {

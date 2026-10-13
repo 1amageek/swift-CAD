@@ -36,7 +36,7 @@ final class OffsetFeasibilityInvocation: Sendable {
     }
 
     func consume(depth: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard depth >= 0, depth <= limits.surfaceIntersectionOptions.maximumSubdivisionDepth else {
             throw failure("Offset feasibility exceeded its selected spatial depth.")
         }
@@ -52,7 +52,7 @@ final class OffsetFeasibilityInvocation: Sendable {
     }
 
     func retain(_ bytes: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard bytes >= 0 else { throw failure("Offset feasibility byte count must be nonnegative.") }
         try borrowedAdmission?.chargeStorage(bytes: bytes)
         try state.withLock { counters in

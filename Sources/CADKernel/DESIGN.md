@@ -1516,3 +1516,11 @@ that receipt and retain the binding through immutable copies. Publicly created
 or decoded snapshots retain no trusted producer binding; read-only consumers
 require bounded original semantic validation or an explicit failure before
 granting equivalent source authority.
+
+
+### Exact offset result admission migration
+The [Original Offset Feasibility](OriginalOffsetFeasibility/DESIGN.md#exact-consumer-migration-and-retired-legacy-dispatch)
+owner retires its unproved interval/opaque contact replay. Its default injected
+validator now requires exact consumed receipts; missing family or distinct-face
+coverage is an explicit failure before generated-result publication. The child
+owns the currently connected scope, remaining coverage and verification.

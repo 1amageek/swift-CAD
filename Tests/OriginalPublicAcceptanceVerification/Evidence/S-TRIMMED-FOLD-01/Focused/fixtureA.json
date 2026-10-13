@@ -1,0 +1,70 @@
+{
+  "native": {
+    "fixture": {
+      "source": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/Focused/cas/6a302d4b46f882eb87f919da3a2b5d7ea706582defc0295ebabdd1c2fc48a54b.swift",
+      "sha256": "6a302d4b46f882eb87f919da3a2b5d7ea706582defc0295ebabdd1c2fc48a54b",
+      "scope": "Material/controls/empty fixture A; bounded raw-entry success expectation is rejected diagnostic."
+    },
+    "artifact": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-focused-20261014-v2/native/Proof.fixtureA",
+    "artifactSHA256": "915cf7f8bbb141aad50f32c05815ee5aaaa12823a724f0a7d6d2cfac0a852bfd",
+    "accepted": [
+      "refusals",
+      "material"
+    ],
+    "rejected": [
+      "caller"
+    ],
+    "reason": "Caller fixture A wrongly required bounded raw BRep preflight success; actual complete material/current production source tests remain valid."
+  },
+  "asan": {
+    "fixture": {
+      "source": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/Focused/cas/6a302d4b46f882eb87f919da3a2b5d7ea706582defc0295ebabdd1c2fc48a54b.swift",
+      "sha256": "6a302d4b46f882eb87f919da3a2b5d7ea706582defc0295ebabdd1c2fc48a54b",
+      "scope": "Material/controls/empty fixture A; bounded raw-entry success expectation is rejected diagnostic."
+    },
+    "artifact": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-focused-20261014-v2/asan/Proof.fixtureA",
+    "artifactSHA256": "b49bad24123d75a64641f0a7daa04e54311a4b0b99476e11a6a8f249489c941c",
+    "accepted": [
+      "refusals",
+      "material"
+    ],
+    "rejected": [
+      "caller"
+    ],
+    "reason": "Caller fixture A wrongly required bounded raw BRep preflight success; actual complete material/current production source tests remain valid."
+  },
+  "wasm": {
+    "fixture": {
+      "source": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/Focused/cas/6a302d4b46f882eb87f919da3a2b5d7ea706582defc0295ebabdd1c2fc48a54b.swift",
+      "sha256": "6a302d4b46f882eb87f919da3a2b5d7ea706582defc0295ebabdd1c2fc48a54b",
+      "scope": "Material/controls/empty fixture A; bounded raw-entry success expectation is rejected diagnostic."
+    },
+    "artifact": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-focused-20261014-v2/wasm/Proof.wasm.fixtureA",
+    "artifactSHA256": "5f9ab7c9993e6124b05d1ac54ba37545a85148f149917e656d5bfc80d36aec92",
+    "accepted": [
+      "refusals",
+      "material"
+    ],
+    "rejected": [
+      "caller"
+    ],
+    "reason": "Caller fixture A wrongly required bounded raw BRep preflight success; actual complete material/current production source tests remain valid."
+  },
+  "embedded": {
+    "fixture": {
+      "source": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/Focused/cas/6a302d4b46f882eb87f919da3a2b5d7ea706582defc0295ebabdd1c2fc48a54b.swift",
+      "sha256": "6a302d4b46f882eb87f919da3a2b5d7ea706582defc0295ebabdd1c2fc48a54b",
+      "scope": "Material/controls/empty fixture A; bounded raw-entry success expectation is rejected diagnostic."
+    },
+    "artifact": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-focused-20261014-v2/embedded/Proof.wasm.fixtureA",
+    "artifactSHA256": "b8cb315b3716bb9fd8a4f1743bbacd2478b06ef9e3ed5f863b6369e973bea871",
+    "accepted": [
+      "refusals",
+      "material"
+    ],
+    "rejected": [
+      "caller"
+    ],
+    "reason": "Caller fixture A wrongly required bounded raw BRep preflight success; actual complete material/current production source tests remain valid."
+  }
+}

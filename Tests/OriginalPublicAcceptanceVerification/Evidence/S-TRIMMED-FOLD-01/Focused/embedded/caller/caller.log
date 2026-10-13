@@ -1,0 +1,4 @@
+(node:29906) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS actual protocol raw entry; incomplete bounded BRep correspondence remains an explicit preflight refusal
+PASS actual public offset validator rejects material fold, admits complete-empty subset/injective control, preserves caller limits/final-empty cancel

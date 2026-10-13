@@ -1,0 +1,12 @@
+(node:22114) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS independent complete material oracle
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+PASS independent complete material oracle
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+PASS independent complete material oracle
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+PASS detached receipt lifetime and independent admitted readers
+PASS full trimmed fold material cell

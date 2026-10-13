@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-focused-20261014-v2/asan/callerC/Proof",
+    "caller"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 56.74171708303038,
+  "peakRSSBytes": 617660416,
+  "wallLimitSeconds": 1196.413068124908,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "bcd9ef995e3ab0a1477011199ac53db06261973575189fefe6571818a3996f02"
+}

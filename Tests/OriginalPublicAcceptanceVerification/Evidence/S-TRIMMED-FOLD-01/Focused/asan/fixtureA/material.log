@@ -1,0 +1,13 @@
+METRIC whole preparation 17607622 849432642
+PASS independent complete material oracle closed cells 4972 contacts 82 incidents 100
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+PASS independent complete material oracle strictInterior cells 4972 contacts 32 incidents 0
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+METRIC retained material query strictInterior 15029315 699906454
+PASS independent complete material oracle boundary cells 4972 contacts 34 incidents 76
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+METRIC retained material query boundary 15019955 699876350
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+PASS detached receipt lifetime and independent admitted readers
+PASS full trimmed fold material cell

@@ -1,0 +1,18 @@
+(node:23036) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+wasm://wasm/Proof.wasm-14175e62:1
+
+
+RuntimeError: unreachable
+    at Proof.wasm.swift_errorInMain (wasm://wasm/Proof.wasm-14175e62:wasm-function[707]:0xbf4f8)
+    at Proof.wasm.async_MainTQ0_ (wasm://wasm/Proof.wasm-14175e62:wasm-function[706]:0xbf4ee)
+    at Proof.wasm.$e21TrimmedFoldAcceptance0aB13MaterialProbeV5$mainyyYaKFZTY2_ (wasm://wasm/Proof.wasm-14175e62:wasm-function[704]:0xbf455)
+    at Proof.wasm.swift_task_switch (wasm://wasm/Proof.wasm-14175e62:wasm-function[81720]:0x40d44af)
+    at Proof.wasm.$e21TrimmedFoldAcceptance0aB13MaterialProbeV5$mainyyYaKFZTQ0_ (wasm://wasm/Proof.wasm-14175e62:wasm-function[702]:0xbf3d1)
+    at Proof.wasm.$e21TrimmedFoldAcceptance0aB13MaterialProbeV4mainyyYaKFZTY10_ (wasm://wasm/Proof.wasm-14175e62:wasm-function[679]:0xbcb30)
+    at Proof.wasm.swift_task_switch (wasm://wasm/Proof.wasm-14175e62:wasm-function[81720]:0x40d44af)
+    at Proof.wasm.$e21TrimmedFoldAcceptance0aB13MaterialProbeV4mainyyYaKFZTQ3_ (wasm://wasm/Proof.wasm-14175e62:wasm-function[671]:0xbba82)
+    at Proof.wasm.$e21TrimmedFoldAcceptance0aB13MaterialProbeV12publicCalleryy11CADTopology18ValidatedBRepModelV_7CADCore8TaggedIDVyAH7FaceTagOGAJyAH04BodyP0OGt_tYaKFZTY0_ (wasm://wasm/Proof.wasm-14175e62:wasm-function[556]:0xa993f)
+    at Proof.wasm.swift::runJobInEstablishedExecutorContext(swift::Job*, swift::SerialExecutorRef, swift::TaskExecutorRef) (wasm://wasm/Proof.wasm-14175e62:wasm-function[81708]:0x40d3a6e)
+
+Node.js v24.19.0

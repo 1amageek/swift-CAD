@@ -291,3 +291,29 @@ owns proof issuance/decision; [Domain Coverage](../OriginalDomainIdentity/Origin
 owns the sealed full request/preimage. Changes to those guarantees require
 rechecking this consumer. Ordinary SSI/XYZ dispatch and singular image families
 remain separate uncompleted responsibilities.
+
+
+## Retained Native self-contact material refinement
+
+`OriginalExactNativeMaterialSelfContactQuerying` consumes a complete Native self
+receipt and two face-issued boundary domains, ordered first/second. Source owners,
+requests, pair ordinals and retained L5 contexts must match even for empty inputs.
+The existing boundary compiler transports both original UV pairs and retains
+all raw-scope proofs. The existing self predicate is consumed unchanged, including
+its scoped identity exclusions. Their conjunction is refined once against the
+retained raw selection; no original equality problem is resolved again.
+
+The immutable result retains the self receipt, both boundary owners, selection
+policy and one refinement per raw pair, including empty refinements. Both sides
+retain independent all-incident boundary references aligned with that refinement.
+Closed, strictInterior and boundary policies apply to each tuple separately.
+Same-XYZ nonstructural tuples survive unless either exact material predicate
+excludes them. A complete empty material residual can admit this face self-product;
+a nonempty residual rejects embedding. It says nothing about distinct faces.
+
+The same caller work/storage/value/coefficient/source/transport allowance admits
+compilation, refinement, retained output and later membership. Foreign owner,
+role, raw context or incomplete correspondence, resources and cancellation fail
+explicitly. Scratch is invocation-local; all retained owners are immutable Sendable
+with the same Native/WASM/Embedded contract. S-TRIMMED-FOLD-01 owns the whole-cell
+fold/asymmetric-hole oracle, policy/empty/failure/resource/cancel/lifetime evidence.

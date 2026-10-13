@@ -1,0 +1,19 @@
+(node:20607) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: KernelError(phase: topology, code: topologyFailure, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Face C4B1CD93-1FA2-42C1-BD2D-EBC5D37BB7FD coedge 1375AC98-C446-4E55-8921-6AEB27A2F5A9 failed exact curve-surface correspondence: resourceLimitExceeded("Original correspondence has unresolved complete residual coverage."))
+wasm://wasm/Proof.wasm-1f7f3036:1
+
+
+RuntimeError: unreachable
+    at Proof.wasm.$ss17_assertionFailure__4file4line5flagss5NeverOs12StaticStringV_SSAHSus6UInt32VtF (wasm://wasm/Proof.wasm-1f7f3036:wasm-function[73989]:0x36d67b1)
+    at Proof.wasm.swift_errorInMain (wasm://wasm/Proof.wasm-1f7f3036:wasm-function[77927]:0x37e7e87)
+    at Proof.wasm.async_MainTQ0_ (wasm://wasm/Proof.wasm-1f7f3036:wasm-function[284]:0x95164)
+    at Proof.wasm.$s21TrimmedFoldAcceptance0aB13MaterialProbeV5$mainyyYaKFZTY2_ (wasm://wasm/Proof.wasm-1f7f3036:wasm-function[281]:0x950c7)
+    at Proof.wasm.swift_task_switch (wasm://wasm/Proof.wasm-1f7f3036:wasm-function[100988]:0x3b4e373)
+    at Proof.wasm.$s21TrimmedFoldAcceptance0aB13MaterialProbeV5$mainyyYaKFZTQ0_ (wasm://wasm/Proof.wasm-1f7f3036:wasm-function[279]:0x95043)
+    at Proof.wasm.$s21TrimmedFoldAcceptance0aB13MaterialProbeV4mainyyYaKFZTY10_ (wasm://wasm/Proof.wasm-1f7f3036:wasm-function[260]:0x93be3)
+    at Proof.wasm.swift_task_switch (wasm://wasm/Proof.wasm-1f7f3036:wasm-function[100988]:0x3b4e373)
+    at Proof.wasm.$s21TrimmedFoldAcceptance0aB13MaterialProbeV4mainyyYaKFZTQ3_ (wasm://wasm/Proof.wasm-1f7f3036:wasm-function[251]:0x92414)
+    at Proof.wasm.$s21TrimmedFoldAcceptance0aB13MaterialProbeV12publicCalleryy11CADTopology18ValidatedBRepModelV_7CADCore8TaggedIDVyAH7FaceTagOGAJyAH04BodyP0OGt_tYaKFZTY0_ (wasm://wasm/Proof.wasm-1f7f3036:wasm-function[188]:0x8c6ee)
+
+Node.js v24.19.0

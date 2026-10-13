@@ -15,13 +15,16 @@ import WASILibc
         [.constantV(v:v0,uStart:u0,uEnd:u1), .constantU(u:u1,vStart:v0,vEnd:v1),
          .constantV(v:v1,uStart:u1,uEnd:u0), .constantU(u:u0,vStart:v1,vEnd:v0)]
     }
-    static func face() throws -> (ValidatedBRepModel, FaceID, BodyID) {
+    static func face(outerU1: Double = 1, includeHole: Bool = true, injective: Bool = false, planar: Bool = false, duplicateFace: Bool = false) throws -> (ValidatedBRepModel, FaceID, BodyID) {
         var model = BRepModel()
         let native = BSplineSurface3D(uDegree:1,vDegree:1,uKnots:[0,0,0.5,1,1],vKnots:[0,0,1,1],
-            controlPoints:[0.0,1.0].map { v in [0.0,1.0,0.0].map { x in Point3D(x:x,y:v,z:0) } })
-        let support = Surface3D.bSpline(native), surfaceID = SurfaceID()
+            controlPoints:[0.0,1.0].map { v in (injective ? [0.0,1.0,2.0] : [0.0,1.0,0.0]).map { x in Point3D(x:x,y:v,z:0) } })
+        let support: Surface3D = planar ? .plane(.init(origin:.origin,normal:.unitZ)) : .bSpline(native)
+        let surfaceID = SurfaceID()
         var loops: [LoopID] = []
-        for (role,curves) in [(LoopRole.outer,rectangle(0,1,0,1)), (.inner,rectangle(0.125,0.375,0.25,0.75))] {
+        var boundaries = [(LoopRole.outer,rectangle(0,outerU1,0,1))]
+        if includeHole { boundaries.append((.inner,rectangle(0.125,0.375,0.25,0.75))) }
+        for (role,curves) in boundaries {
             let vertices = try curves.map { p -> Vertex in
                 let uv = try p.startParameter(tolerance:.standard)
                 return Vertex(point:try support.point(u:uv.u,v:uv.v,tolerance:.standard))
@@ -30,7 +33,12 @@ import WASILibc
             for i in curves.indices {
                 let next = (i+1)%curves.count, id = CurveID()
                 let canonical = try curves[i].reversed(tolerance:.standard)
-                model.geometry.curves[id] = .surfaceLift(.init(surface:support,parameterCurve:canonical))
+                if planar {
+                    model.geometry.curves[id] = .line(.init(origin:vertices[next].point,
+                        direction:vertices[i].point-vertices[next].point))
+                } else {
+                    model.geometry.curves[id] = .surfaceLift(.init(surface:support,parameterCurve:canonical))
+                }
                 let edge = Edge(curveID:id,startVertexID:vertices[next].id,endVertexID:vertices[i].id,
                     trim:.init(startParameter:0,endParameter:1))
                 model.edges[edge.id] = edge
@@ -40,7 +48,24 @@ import WASILibc
             let loop = Loop(role:role,coedges:coedges)
             model.loops[loop.id] = loop; loops.append(loop.id)
         }
-        let face = Face(surfaceID:surfaceID,loops:loops), shell = Shell(faceIDs:[face.id])
+        let face = Face(surfaceID:surfaceID,loops:loops)
+        var faces = [face.id]
+        if duplicateFace {
+            var oppositeLoops: [LoopID] = []
+            for id in loops {
+                guard let original = model.loops[id] else { throw Failure() }
+                let coedges = try original.coedges.reversed().map { coedge in
+                    Coedge(edgeID:coedge.edgeID,
+                        orientation:coedge.orientation == .forward ? .reversed:.forward,
+                        surfaceParameterCurve:try coedge.surfaceParameterCurve?.reversed(tolerance:.standard))
+                }
+                let loop = Loop(role:original.role,coedges:coedges)
+                model.loops[loop.id] = loop; oppositeLoops.append(loop.id)
+            }
+            let opposite = Face(surfaceID:surfaceID,loops:oppositeLoops,orientation:.reversed)
+            model.faces[opposite.id] = opposite; faces.append(opposite.id)
+        }
+        let shell = Shell(faceIDs:faces)
         let body = Body(sheetShellIDs:[shell.id])
         model.geometry.surfaces[surfaceID] = support; model.faces[face.id] = face
         model.shells[shell.id] = shell; model.bodies[body.id] = body

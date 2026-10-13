@@ -309,3 +309,16 @@ The fixed line passes through the exact authored arc midpoint, giving
 P=(T-1/4)*(28-16T) in either traversal direction. The complete public oracle,
 direction/artificial-chord controls and four-target changed paths verify this
 specialization; it does not claim rational factorization for other inputs.
+
+
+## Retained predicate conjunction
+
+The compiler imports a sealed retained predicate by its original sign program,
+exact coefficient field and interval guards. Variable roles remain unchanged.
+Each source domain's open/closed/empty condition participates explicitly; a raw
+bounding box cannot substitute for those conditions. This operation compiles
+new conjunction only and performs no decomposition. Native material self-contact
+uses it to combine the already proved self residual with both face predicates.
+The existing raw relation, both boundary compilers and their scope proofs remain
+retained in the resulting correspondence. Recheck ordinary clipping compatibility
+when this shared compiler contract changes.

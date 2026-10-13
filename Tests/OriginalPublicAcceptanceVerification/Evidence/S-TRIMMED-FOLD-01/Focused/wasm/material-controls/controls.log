@@ -1,0 +1,5 @@
+(node:25705) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+METRIC whole preparation 17590088 428958322
+PASS exactN/workN-1/storageN-1, entry/mid/final-publication cancel, invalid roles and retained-query cancel
+METRIC material controls 14835928 353499766

@@ -1,0 +1,15 @@
+(node:17805) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+METRIC whole preparation 17590088 428958322
+PASS independent complete material oracle closed cells 4972 contacts 82 incidents 100
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+PASS independent complete material oracle strictInterior cells 4972 contacts 32 incidents 0
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+METRIC retained material query strictInterior 15017242 353892550
+PASS independent complete material oracle boundary cells 4972 contacts 34 incidents 76
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+METRIC retained material query boundary 15007882 353872798
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+PASS both tuple orders, asymmetric hole, open/closed trim endpoints, corners and diagonal membership
+PASS detached receipt lifetime and independent admitted readers
+PASS full trimmed fold material cell

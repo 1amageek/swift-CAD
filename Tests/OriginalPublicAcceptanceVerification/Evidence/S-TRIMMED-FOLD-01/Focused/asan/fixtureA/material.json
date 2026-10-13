@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-focused-20261014-v2/asan/Proof",
+    "material"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 373.9549044999294,
+  "peakRSSBytes": 776519680,
+  "wallLimitSeconds": 1187.901876125019,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "b2413b9bc779b708de3cd5a9dafd66be1c9a8013842101520ddbdec943913f3d"
+}
