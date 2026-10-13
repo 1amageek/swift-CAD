@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-native/Compatibility"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.8438735000090674,
+  "peakRSSBytes": 32768,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "85a39bf99d3c5ec4ea21e2f33c4befd66ee02e7606144b71ec7ef7de901c7b2d"
+}

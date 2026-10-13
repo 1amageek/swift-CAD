@@ -2932,7 +2932,8 @@ or complete exclusion; no finite cycle window or rounded circle proves equality.
 
 [The scoped evidence](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/SSI-COAXIAL-CONE-CYLINDER-01/VERIFICATION.md)
 owns four-target rich/prepared execution and bare empty/failure contracts.
-Nonempty bare geometric arrays still stop at nonDiscreteIntersection in the
-public producer; source-backed curve/point publication is the remaining
-COAXSSI01.ARRAY obligation. This limited rich family does not complete all
+Bare and rich arrays now retain source-backed originalCoaxial geometric cover
+pieces with exact phase/image/fiber scope and symbolic XYZ/all-UV queries.
+Unconverted numeric-only Boolean clipping/reduction consumers reject that
+representation explicitly; their source/material composition remains required. This limited rich family does not complete all
 primitive SSI, other axes/noncoaxial inputs, full M4-M8 or whole-seven requirements.

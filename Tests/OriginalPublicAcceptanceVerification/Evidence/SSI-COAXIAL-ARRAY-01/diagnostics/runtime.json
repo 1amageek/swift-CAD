@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v3/capacity/Capacity"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.8429977499181405,
+  "peakRSSBytes": 10731520,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "474ce5ceebcdd411c61914cf937ef6dd38c40c5d2d971305eba0bdddfa8e2e42"
+}

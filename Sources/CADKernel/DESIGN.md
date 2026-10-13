@@ -1524,3 +1524,20 @@ owner retires its unproved interval/opaque contact replay. Its default injected
 validator now requires exact consumed receipts; missing family or distinct-face
 coverage is an explicit failure before generated-result publication. The child
 owns the currently connected scope, remaining coverage and verification.
+
+### Source-bound symbolic SSI compatibility
+
+The geometric SSI array can retain an original coaxial component, including
+exact image/UV scope, instead of a rounded parametric circle. Boolean graph
+validation and the existing finite UV splitter explicitly refuse this output
+until source-relation/material refinement is connected; no absence or complete
+Boolean success follows from this gate. Preparation diagnostics count proved
+image0/image1 without inventing numeric residual evidence. The representation
+contract belongs to [Geometry](../CADGeometry/NativeExactGeometricRelations/DESIGN.md).
+The changed dispatch branches require focused graph runtime and primary-file
+typechecking; full Boolean/clipping capability remains a separate acceptance cell.
+For Embedded, the actual imported graph body/runtime is the representation gate;
+existing Foundation-dependent downstream files are not made portable by this
+publication. Whole Kernel portability and standalone generic-client packaging
+remain unclaimed. The graph imports its already-declared HashTreeCollections
+dependency directly on every target.

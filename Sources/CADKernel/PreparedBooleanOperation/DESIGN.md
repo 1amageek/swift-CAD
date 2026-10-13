@@ -85,3 +85,13 @@ Boolean lineage publication consumes already-issued sewing provenance before any
 `lineageAdmission` is an additive, optional live conversion admission for this history phase alone. The same owner pays original identity/provenance visits and requested typed buffers. Dictionary/canonicalization scratch and physical allocator retention remain separately incomplete; this argument does not acquire a Boolean preparation, classification, sewing, or physical allocator guarantee. When selected, an unresolved generated correspondence requires an actual bounded original-span/face producer and cannot delegate to the historical unmetered geometric compatibility branch. Historical callers keep their existing matching behavior and failure semantics.
 
 Bounded surface-pair calls forward optional byte admission and the independently retained algebra-depth cap through the actual non-generic protocol witness. Optional linear/circle/rectangle extraction recognizes only families with an existing exact extraction law; unsupported specialization cannot erase the retained original contact source. Checked retained-byte overflow without tolerance context reports nil tolerance metadata and an explicit resource failure.
+
+### Original symbolic SSI representation compatibility
+
+Preparation diagnostics count source-bound coaxial array components by their
+proved image dimension. They do not invent numeric residuals or treat them as
+empty. The existing Boolean graph validation and finite UV splitter explicitly
+reject this representation until original relation/material refinement is
+connected; this gate preserves authority and does not complete clipping or
+Boolean acceptance. Geometric publication is owned by the
+[Geometry producer](../../CADGeometry/NativeExactGeometricRelations/DESIGN.md).

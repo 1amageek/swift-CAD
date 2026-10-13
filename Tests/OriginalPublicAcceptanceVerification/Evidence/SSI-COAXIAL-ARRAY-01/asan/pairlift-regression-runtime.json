@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/asan/pairlift-regression"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 4.161893833079375,
+  "peakRSSBytes": 394248192,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "becc2df68bb57564cbe9cc8c2ce853619e61a471cdad073ae2b83e83553fd878"
+}

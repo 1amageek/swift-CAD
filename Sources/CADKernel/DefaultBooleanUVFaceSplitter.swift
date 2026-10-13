@@ -334,6 +334,12 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     var geometries: [BooleanFaceSplitComponentGeometry] = []
     for intersection in intersections {
       switch intersection.geometry {
+      // FIXME(INCOMPLETE_IMPLEMENTATION): The finite face splitter still needs
+      // exact source-relation/material refinement for symbolic SSI; numeric
+      // pcurve clipping must not discard the retained all-UV owner.
+      case .originalCoaxial:
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+          message: "Finite face splitting requires original symbolic material refinement.")
       case .coincident:
         break
       case .point(let point):

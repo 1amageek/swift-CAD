@@ -28,6 +28,8 @@ public struct BooleanPreparationDiagnostics: Sendable, Hashable {
             switch intersection.geometry {
             case let .curve(value): curves += 1; residual = max(residual, value.maximumResidual)
             case let .point(value): points += 1; residual = max(residual, value.residual)
+            case .originalCoaxial(let value):
+                if value.imageDimension == 0 { points += 1 } else { curves += 1 }
             case let .coincident(value): coincident += 1; residual = max(residual, value.residual)
             }
         }

@@ -1,0 +1,8 @@
+{
+  "Sources/CADKernel/BooleanIntersectionGraph.swift": "c64cb5f7c760c775f8c7a40343972e792dd90a373eaff84ee5c775e0c17922d3",
+  "Sources/CADKernel/BooleanFaceSurfaceIntersection.swift": "3c1d7120ecc63d2b84dedbd7686deedbaa54fa1a13a39ed11557eaf51c4aac04",
+  "Sources/CADKernel/BooleanFacePairCandidate.swift": "a0f49ca6a6f465fea0d1fc97267add15e5320d0e61b489cee356cd1bfa90a77c",
+  "Sources/CADKernel/BooleanBoundaryContact.swift": "12088acf2842d11bd79cbf249cfeb0829318dad4cd5e1f73d07ab179c2b6745a",
+  "Sources/CADKernel/BooleanBoundaryContactGeometry.swift": "003e5c584ce8e84a454dd65ca7d0529e97afc614fbbde2568cc9fa33b01d005a",
+  "Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayKernelAcceptance.swift": "8e32f723f1c053f3ca8bb5aaeea1d4ad41fd45c10368ce86f3d518c98066a19c"
+}

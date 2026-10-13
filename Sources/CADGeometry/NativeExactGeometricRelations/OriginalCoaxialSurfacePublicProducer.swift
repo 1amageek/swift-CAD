@@ -18,10 +18,9 @@ struct OriginalCoaxialSurfacePublicProducer {
         options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance, includeRelations: Bool = false,
         admission: SurfaceSurfaceQueryAdmission = .legacy,
         retained: OriginalSourceBinding<OriginalCoaxialSurfacePairSnapshot>? = nil) throws -> SurfaceSurfaceIntersectionResult? {
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Exact unit-Z coaxial primitive families
-        // are published through the rich ordinary/prepared routes. Finite arrays
-        // cannot carry their retained all-UV scalar/family context and reject a
-        // nonempty selection. Other axes/noncoaxial source families remain required.
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Unit-Z coaxial original families
+        // are published by ordinary/prepared SSI. Other axes/noncoaxial input
+        // families still require complete source/DI coverage before success.
         let input = OriginalCoaxialSurfacePairInput(first: first, second: second)
         guard let pair = OriginalCoaxialSurfacePairSnapshotProvider.coneAndCylinder(input),
             case .analytic(.cone(_, _, let angle)) = pair.cone else { return nil }
@@ -44,12 +43,33 @@ struct OriginalCoaxialSurfacePublicProducer {
             let relation = try OriginalCoaxialSurfaceSurfaceRelation.resolve(source: binding,
                 firstIntervals: firstIntervals, secondIntervals: secondIntervals,
                 maximumComponents: options.maximumSeedCount, limits: limits, using: &a)
-            if !includeRelations && !relation.isEmpty {
-                throw KernelError(phase: .geometry, code: .nonDiscreteIntersection, tolerance: tolerance,
-                    message: "Original coaxial tuples require their complete symbolic XYZ/UV family.")
+            var count = 0
+            for branch in relation.branches {
+                try a.consumeWork(1)
+                let next = count.addingReportingOverflow(branch.phase.intervalCount)
+                guard !next.overflow, next.partialValue <= options.maximumSeedCount else {
+                    throw NativeExactRelationFailure.resultLimit
+                }
+                count = next.partialValue
+            }
+            try a.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: SurfaceSurfaceIntersection.self))
+            var components: [SurfaceSurfaceIntersection] = []
+            // Admit the complete output before reserving; append growth would
+            // otherwise allocate four elements for a three-component selection.
+            components.reserveCapacity(count)
+            for branch in relation.branches.indices {
+                for interval in relation.branches[branch].phase.intervals.indices {
+                    try a.consumeWork(1)
+                    guard components.count < options.maximumSeedCount else {
+                        throw NativeExactRelationFailure.resultLimit
+                    }
+                    let component = try OriginalCoaxialSurfaceComponent(relation: relation, branch: branch,
+                        interval: interval, using: &a)
+                    components.append(.originalCoaxial(component))
+                }
             }
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: SurfaceSurfaceIntersectionResult.self))
-            let result = SurfaceSurfaceIntersectionResult(intersections: [], originalCoaxialSurfaceRelation: relation)
+            let result = SurfaceSurfaceIntersectionResult(intersections: components, originalCoaxialSurfaceRelation: relation)
             try a.checkpoint(); return result
         } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance) }
     }

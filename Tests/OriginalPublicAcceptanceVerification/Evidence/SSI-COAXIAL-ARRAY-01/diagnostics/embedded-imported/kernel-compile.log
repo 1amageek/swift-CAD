@@ -1,0 +1,55 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-native/BooleanIntersectionGraph.swift:40:19: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 38 |             try consumeWork?(0)
+ 39 |             guard candidates.contains(intersection.facePair),
+ 40 |                   model.faces[intersection.facePair.targetFaceID] != nil,
+    |                   `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 41 |                   model.faces[intersection.facePair.toolFaceID] != nil else {
+ 42 |                 throw KernelError(
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-native/BooleanIntersectionGraph.swift:41:19: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 39 |             guard candidates.contains(intersection.facePair),
+ 40 |                   model.faces[intersection.facePair.targetFaceID] != nil,
+ 41 |                   model.faces[intersection.facePair.toolFaceID] != nil else {
+    |                   `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 42 |                 throw KernelError(
+ 43 |                     phase: .geometry,
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-native/BooleanIntersectionGraph.swift:78:19: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 76 |         for contact in boundaryContacts {
+ 77 |             try consumeWork?(0)
+ 78 |             guard model.edges[contact.edgeID] != nil,
+    |                   `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 79 |                   model.faces[contact.curveFaceID] != nil,
+ 80 |                   model.faces[contact.surfaceFaceID] != nil else {
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-native/BooleanIntersectionGraph.swift:79:19: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 77 |             try consumeWork?(0)
+ 78 |             guard model.edges[contact.edgeID] != nil,
+ 79 |                   model.faces[contact.curveFaceID] != nil,
+    |                   `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 80 |                   model.faces[contact.surfaceFaceID] != nil else {
+ 81 |                 throw KernelError(
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-native/BooleanIntersectionGraph.swift:80:19: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 78 |             guard model.edges[contact.edgeID] != nil,
+ 79 |                   model.faces[contact.curveFaceID] != nil,
+ 80 |                   model.faces[contact.surfaceFaceID] != nil else {
+    |                   `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+ 81 |                 throw KernelError(
+ 82 |                     phase: .geometry,
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-native/BooleanIntersectionGraph.swift:147:26: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+145 |         consumeWork: (@Sendable (Int) throws -> Void)?
+146 |     ) throws -> Bool {
+147 |         guard let face = model.faces[faceID] else { return false }
+    |                          `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+148 |         for loopID in face.loops {
+149 |             try consumeWork?(0)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-native/BooleanIntersectionGraph.swift:150:30: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+148 |         for loopID in face.loops {
+149 |             try consumeWork?(0)
+150 |             guard let loop = model.loops[loopID] else {
+    |                              `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+151 |                 throw KernelError(
+152 |                     phase: .topology,

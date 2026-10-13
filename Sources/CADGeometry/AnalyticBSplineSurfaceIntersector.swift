@@ -290,6 +290,9 @@ struct AnalyticBSplineSurfaceIntersector {
                 residual: max(firstProjection.residual, secondProjection.residual),
                 tolerance: tolerance
             ))
+        case .originalCoaxial:
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "Original symbolic source tuples cannot be remapped through a numeric B-spline approximation.")
         case let .coincident(value):
             return .coincident(value)
         }

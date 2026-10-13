@@ -1,0 +1,5 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADKernel/BRepCellComplexBuilder.swift:1:8: error: no such module 'Foundation'
+  1 | import Foundation
+    |        `- error: no such module 'Foundation'
+  2 | import CADCore
+  3 | import CADGeometry

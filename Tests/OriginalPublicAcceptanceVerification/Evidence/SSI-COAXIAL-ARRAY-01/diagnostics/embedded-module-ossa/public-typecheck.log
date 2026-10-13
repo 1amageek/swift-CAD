@@ -1,0 +1,89 @@
+Abort: function fatal at ModuleFileSharedCore.cpp:817
+*** DESERIALIZATION FAILURE ***
+*** If any module named here was modified in the SDK, please delete the ***
+*** new swiftmodule files from the SDK and keep only swiftinterfaces.   ***
+module 'CADGeometry', builder version '6.4(6.4)/Apple Swift version 6.4 (swift-6.4-RELEASE)', built from source against SDK , non-resilient, loaded from '/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/embedded-module-ossa/CADGeometry.swiftmodule'
+Invalid abbrev number
+
+Please submit a bug report (https://swift.org/contributing/#reporting-bugs) and include the crash backtrace.
+Stack dump:
+0.	Program arguments: /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend -frontend -typecheck /Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift -target wasm32-unknown-wasip1 -disable-objc-interop -sdk /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk -I /Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/embedded-module-ossa -I /Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/drafted-sheet-20261014/embedded -I /Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-canonical-20261013/embedded -I /Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-20261013/edge-embedded -I /Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/nonlinear-collapse-20261013/actual-embedded -I /Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/periodic-offset-cs-20261013/embedded -I /Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-ssi-recovery-20261012/embedded/build/out/Products/Debug-webassembly-wasm32 -I /Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-20261013/edge-embedded -module-cache-path /Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/nonlinear-collapse-20261013/actual-embedded/cache -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -swift-version 6 -Onone -D SWIFT_PACKAGE -disable-cmo -enable-experimental-feature Embedded -empty-abi-descriptor -resource-dir /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift -use-static-resource-dir -no-auto-bridging-header-chaining -module-name CoaxialCompleteImport -package-name nativeexactrelationverification -in-process-plugin-server-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/local/lib/swift/host/plugins -parse-as-library -num-threads 1
+1.	Apple Swift version 6.4 (swift-6.4-RELEASE)
+2.	Compiling with the current language version
+3.	While evaluating request TypeCheckPrimaryFileRequest(source_file "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift")
+4.	While evaluating request TypeCheckFunctionBodyRequest(CoaxialCompleteImport.(file).CoaxialSSIArrayAcceptance.ledger(work:bytes:coefficient:)@/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:19:17)
+5.	While type-checking statement at [/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:19:109 - line:21:5] RangeText="{
+        .init(limits:try .init(work:work,storageBytes:bytes,valueDepth:32,coefficientDepth:coefficient))
+    "
+6.	While type-checking statement at [/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:20:9 - line:20:104] RangeText=".init(limits:try .init(work:work,storageBytes:bytes,valueDepth:32,coefficientDepth:coefficient)"
+7.	While type-checking-target starting at /Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:20:10
+8.	While evaluating request QualifiedLookupRequest(0x76f72b9a08 AbstractFunctionDecl name=ledger(work:bytes:coefficient:) : (CoaxialSSIArrayAcceptance.Type) -> (Int, Int, Int) throws -> ExactScalarLedger, {CADGeometry.(file).ExactScalarLedger@/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarLedger.swift:2:15}, 'init', { NL_ProtocolMembers, NL_IgnoreMissingImports })
+9.	While evaluating request DirectLookupRequest(directly looking up 'init' on CADGeometry.(file).ExactScalarLedger@/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarLedger.swift:2:15 with options {  })
+10.	While loading members for 'ExactScalarLedger' (in module 'CADGeometry')
+11.	Abort: function fatal at ModuleFileSharedCore.cpp:817
+| 	*** DESERIALIZATION FAILURE ***
+| 	*** If any module named here was modified in the SDK, please delete the ***
+| 	*** new swiftmodule files from the SDK and keep only swiftinterfaces.   ***
+| 	module 'CADGeometry', builder version '6.4(6.4)/Apple Swift version 6.4 (swift-6.4-RELEASE)', built from source against SDK , non-resilient, loaded from '/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/embedded-module-ossa/CADGeometry.swiftmodule'
+| 	Invalid abbrev number
+ #0 0x0000000106154558 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x10542c558)
+ #1 0x0000000106152880 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x10542a880)
+ #2 0x0000000106154f94 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x10542cf94)
+ #3 0x00000001962bc144 (/usr/lib/system/libsystem_platform.dylib+0x180898144)
+ #4 0x00000001962b197c (/usr/lib/system/libsystem_pthread.dylib+0x18088d97c)
+ #5 0x00000001961b4458 (/usr/lib/system/libsystem_c.dylib+0x180790458)
+ #6 0x000000010278b190 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101a63190)
+ #7 0x000000010278b244 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101a63244)
+ #8 0x000000010174a53c (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x100a2253c)
+ #9 0x00000001016ebd10 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1009c3d10)
+#10 0x00000001016eb9e8 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1009c39e8)
+#11 0x0000000101741f4c (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x100a19f4c)
+#12 0x00000001025e6a64 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018bea64)
+#13 0x00000001025e5aa8 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018bdaa8)
+#14 0x0000000102600828 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018d8828)
+#15 0x00000001025f4c38 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018ccc38)
+#16 0x00000001025f4a28 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018cca28)
+#17 0x00000001025e5884 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018bd884)
+#18 0x00000001025e574c (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018bd74c)
+#19 0x00000001025e9678 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018c1678)
+#20 0x0000000102600aa8 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018d8aa8)
+#21 0x00000001025f9c3c (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018d1c3c)
+#22 0x00000001025f9944 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018d1944)
+#23 0x00000001025e922c (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018c122c)
+#24 0x00000001025e8f28 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018c0f28)
+#25 0x00000001025e8908 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018c0908)
+#26 0x00000001020b0e40 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101388e40)
+#27 0x0000000101f0a564 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1011e2564)
+#28 0x0000000101e5d778 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101135778)
+#29 0x0000000101e5fd74 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101137d74)
+#30 0x0000000101e6ea9c (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101146a9c)
+#31 0x0000000101e7f28c (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x10115728c)
+#32 0x0000000101dd45dc (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1010ac5dc)
+#33 0x0000000101e8afa0 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101162fa0)
+#34 0x0000000101e80040 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101158040)
+#35 0x0000000101e80df8 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101158df8)
+#36 0x0000000101e80be0 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101158be0)
+#37 0x0000000101e804f4 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1011584f4)
+#38 0x0000000102022ed4 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1012faed4)
+#39 0x00000001020f6ad8 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1013cead8)
+#40 0x00000001020f5c08 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1013cdc08)
+#41 0x00000001020f125c (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1013c925c)
+#42 0x00000001020f5d68 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1013cdd68)
+#43 0x00000001020f7138 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1013cf138)
+#44 0x00000001020f24ec (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1013ca4ec)
+#45 0x00000001020f22b4 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1013ca2b4)
+#46 0x000000010250968c (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1017e168c)
+#47 0x0000000102509570 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1017e1570)
+#48 0x000000010247cd80 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101754d80)
+#49 0x00000001025af8a8 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1018878a8)
+#50 0x0000000102134dc0 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x10140cdc0)
+#51 0x0000000102138540 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x101410540)
+#52 0x00000001021383c0 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1014103c0)
+#53 0x0000000102134c74 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x10140cc74)
+#54 0x00000001011fd0a0 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1004d50a0)
+#55 0x00000001011f3f24 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1004cbf24)
+#56 0x00000001011f3e5c (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1004cbe5c)
+#57 0x0000000100fe4b30 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1002bcb30)
+#58 0x0000000100fe204c (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1002ba04c)
+#59 0x0000000100d5a9b0 (/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend+0x1000329b0)
+#60 0x0000000195edbe80

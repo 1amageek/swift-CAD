@@ -1,0 +1,5 @@
+<unknown>:0: error: unknown argument: '-static-stdlib'
+<unknown>:0: error: unknown argument: '-Xlinker'
+<unknown>:0: error: unknown argument: '-z'
+<unknown>:0: error: unknown argument: '-Xlinker'
+<unknown>:0: error: unknown argument: '-Xclang-linker'

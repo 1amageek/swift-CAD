@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/native/coaxial-regression"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 1.385642083012499,
+  "peakRSSBytes": 13221888,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "85b9544cf4f4e366b770aaf584e1275e5d197dd2a54b7ca2afb92ed38d89a151"
+}

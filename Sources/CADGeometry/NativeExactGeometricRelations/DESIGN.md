@@ -891,10 +891,37 @@ Other certified role/source families remain independently marked incomplete.
 
 All six ordinary/admitted/box bare/rich SSI entries consume the original primitive
 family before tolerance-based coaxial dispatch. Rich output retains complete
-symbolic XYZ/UV families on finite/unbounded requests. The current bare curve-array route rejects every nonempty selection with
-nonDiscreteIntersection; exact empty selections succeed. Source-backed geometric
-curve/point publication remains an explicit M7 obligation. Rich family publication
-retains the complete selected symbolic relation without claiming array completion.
+symbolic XYZ/UV families on finite/unbounded requests. Bare and rich entries publish originalCoaxial geometric cover pieces, with exact
+interval scope, image/fiber dimensions and retained symbolic XYZ/all-UV queries.
+Complete empty selections succeed. Legacy numeric-only consumers explicitly
+refuse this representation until original material/curve composition is connected.
 The same caller allowance flows through source, exact DI selection, coefficient/
 period queries, output and final cancellation; retained queries reuse preparation.
 Other axes/noncoaxial families remain separate mandatory capabilities.
+
+### Original coaxial geometric array components
+
+The existing SurfaceSurfaceIntersection array gains an originalCoaxial case
+whose payload owns the previously issued relation and one selected phase interval.
+The source producer alone constructs it after complete DI resolution, under the
+same caller admission; no unchecked certificate initializer is public. Each
+component exposes its original source pair, interval inclusion, image0 or image1
+and fiber0, and exact symbolic XYZ/both-UV member queries. Independent arbitrary
+integer lifts remain constrained by both retained requests. Interval components
+are not rounded Curve3D circles and singleton components are not guessed points.
+
+The payload holds an immutable relation and ordinals; no source preparation,
+solver replay, per-component array copy or new mutable state is introduced.
+Hashable compares retained owner identity and ordinals, never XYZ proximity.
+Native serialization rejects retained proof objects explicitly rather than
+dropping authority or constructing unchecked proof during decoding. Unconverted
+legacy consumers must reject this representation explicitly; their remaining
+material/curve conversion capability is not counted as complete by publication.
+Verification must cover all six ordinary/admitted/box entries, prepared arrays,
+whole/finite/seam/singleton/empty, count/work/storage/depth/cancel/lifetime and
+member scope. All target witnesses share the same immutable ownership contract.
+
+Output interval counts are checked with overflow and the caller's result cap
+before complete payload storage is admitted and reserved. A three-component
+selection must not grow to an unadmitted four-element buffer. The resource
+fixture covers this input as well as whole and complete-empty publication.

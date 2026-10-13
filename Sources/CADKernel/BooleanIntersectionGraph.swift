@@ -2,6 +2,7 @@ import CADCore
 import CADGeometry
 import CADIR
 import CADTopology
+import HashTreeCollections
 
 public struct BooleanIntersectionGraph: Hashable, Sendable {
     public let facePairs: [BooleanFacePairCandidate]
@@ -53,6 +54,13 @@ public struct BooleanIntersectionGraph: Hashable, Sendable {
                 residual = value.maximumResidual
             case let .point(value):
                 residual = value.residual
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Boolean material clipping must
+            // consume the original source/UV relation before symbolic SSI can
+            // enter its numeric residual validator. No complete Boolean claim
+            // is valid from this representation gate alone.
+            case .originalCoaxial:
+                throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                    message: "Boolean material clipping requires the original symbolic source relation.")
             case let .coincident(value):
                 residual = value.residual
             }

@@ -1,0 +1,113 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:44:42: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+ 42 |                     try require(result.representation == .exactRelation && result.intersections.count == 2)
+ 43 |                     try require(r.branches.count == 2 && r.hasPositiveDimensionalSolutions && r.hasPositiveDimensionalImage)
+ 44 |                     try require(r.source.original.coneIsFirst != reverse)
+    |                                          `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+ 45 |                     var a=try ledger();let f=r.source.original.field,q=ExactRationalScalarDomain()
+ 46 |                     var huge=try q.integer(1,using:&a)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:104:43: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+102 |         try require(boundedBare.count == 1)
+103 |         try require(r.branches.count == 1 && r.branches[0].positive && r.branches[0].imageDimension == 1)
+104 |         var a=try ledger();let f=r.source.original.field,q=ExactRationalScalarDomain()
+    |                                           `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+105 |         let zero=try OriginalParameterCycle(exact:q.integer(0,using:&a),using:&a)
+106 |         _ = try r.member(branch:0,phase:f.dividing(f.integer(1,using:&a),f.integer(8,using:&a),using:&a),coneCycle:zero,cylinderCycle:zero,limits:limits(),using:&a)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:120:43: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+118 |     }
+119 |     static func prepared(_ r:Relation) throws {
+120 |         var a=try ledger();let f=r.source.original.field
+    |                                           `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+121 |         let all=try ExactParameterInterval<V>.checked(field:f,lower:.negativeInfinity,upper:.positiveInfinity,depth:.init(value:0,coefficient:0),using:&a)
+122 |         let b=r.source.original.labelPeriod,z=try f.integer(0,using:&a)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:199:64: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+197 |         for (i,element) in result.enumerated() {
+198 |             guard case .originalCoaxial(let component)=element else {throw Failure(line:#line)}
+199 |             var a=try ledger();let f=component.relation.source.original.field,q=ExactRationalScalarDomain()
+    |                                                                `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+200 |             let zero=try OriginalParameterCycle(exact:q.integer(0,using:&a),using:&a)
+201 |             let minusOne=try OriginalParameterCycle(exact:q.integer(-1,using:&a),using:&a)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:245:32: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+243 |         let d=try owner(p.intersectionResult(firstBox:b,secondBox:b,options:.init()))
+244 |         var usage=try ledger()
+245 |         let chart=try d.source.chart(0,limits:limits().source,using:&usage)
+    |                                `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+246 |         try require(a.source.owns(chart))
+247 |         try require(a.branches.count == 1 && d.branches.count == 1)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:251:34: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+249 |     static func main() async throws {
+250 |         let r=try success();try bounded();try scopedArrays();try prepared(r);try session();try resources();try await publicationCancellation()
+251 |         var a=try ledger();try r.admitProof(limits:limits(),using:&a)
+    |                                  `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+252 |         print("PASS source-backed coaxial SSI arrays, exact images/UV, selections and lifetime")
+253 |     }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:113:80: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+111 |         let pointField=point.relation.source.original.field
+112 |         _ = try point.member(phase:pointField.integer(0,using:&a),coneCycle:zero,cylinderCycle:zero,limits:limits(),using:&a)
+113 |         try rejects {_ = try point.member(phase:pointField.dividing(pointField.integer(1,using:&a),pointField.integer(8,using:&a),using:&a),coneCycle:zero,cylinderCycle:zero,limits:limits(),using:&a)}
+    |                                                                                `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+114 |         let s=try owner(singleResult)
+115 |         try require(s.branches.count == 1 && s.branches[0].imageDimension == 0 && !s.hasPositiveDimensionalSolutions)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:128:32: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+126 |         // Open one-period windows exclude their seam phase for the zero index.
+127 |         let positive=p.branches.firstIndex {$0.positive}!
+128 |         try rejects {_ = try p.member(branch:positive,phase:z,coneCycle:zero,cylinderCycle:zero,limits:limits(),using:&a)}
+    |                                `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+129 |         let half=try f.dividing(b,f.integer(2,using:&a),using:&a)
+130 |         let phaseHalf=try f.dividing(f.integer(1,using:&a),f.integer(2,using:&a),using:&a)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:135:32: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+133 |         for control in 0..<4 {
+134 |             let l=try limits(source:control == 0 ? 0:1,charts:control == 1 ? 1:2,families:control == 2 ? 1:2,transport:control == 3 ? 0:1)
+135 |             try rejects {try r.admitProof(limits:l,using:&a)}
+    |                                `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+136 |         }
+137 |         if r.proofDepth.coefficient > 0 {var shallow=try ledger(coefficient:r.proofDepth.coefficient-1);try rejects {try r.admitProof(limits:limits(),using:&shallow)}}
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:137:124: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+135 |             try rejects {try r.admitProof(limits:l,using:&a)}
+136 |         }
+137 |         if r.proofDepth.coefficient > 0 {var shallow=try ledger(coefficient:r.proofDepth.coefficient-1);try rejects {try r.admitProof(limits:limits(),using:&shallow)}}
+    |                                                                                                                            `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+138 |         a.cancel();try rejects {try r.admitProof(limits:limits(),using:&a)}
+139 |     }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:138:39: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+136 |         }
+137 |         if r.proofDepth.coefficient > 0 {var shallow=try ledger(coefficient:r.proofDepth.coefficient-1);try rejects {try r.admitProof(limits:limits(),using:&shallow)}}
+138 |         a.cancel();try rejects {try r.admitProof(limits:limits(),using:&a)}
+    |                                       `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+139 |     }
+140 |     final class Counter: Sendable {
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:206:44: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+204 |             _ = try component.member(phase:i == 0 ? first:last,coneCycle:i == 0 ? zero:minusOne,
+205 |                 cylinderCycle:i == 0 ? zero:minusOne,limits:limits(),using:&a)
+206 |             try rejects {_ = try component.member(phase:i == 0 ? last:first,coneCycle:zero,cylinderCycle:zero,limits:limits(),using:&a)}
+    |                                            `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+207 |             let foreign=try F(originalRadians:0.7,using:&a)
+208 |             try rejects {_ = try component.member(phase:foreign.integer(0,using:&a),coneCycle:zero,cylinderCycle:zero,limits:limits(),using:&a)}
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:208:65: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+206 |             try rejects {_ = try component.member(phase:i == 0 ? last:first,coneCycle:zero,cylinderCycle:zero,limits:limits(),using:&a)}
+207 |             let foreign=try F(originalRadians:0.7,using:&a)
+208 |             try rejects {_ = try component.member(phase:foreign.integer(0,using:&a),coneCycle:zero,cylinderCycle:zero,limits:limits(),using:&a)}
+    |                                                                 `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+209 |             a.cancel();try rejects {_ = try component.member(phase:first,coneCycle:zero,cylinderCycle:zero,limits:limits(),using:&a)}
+210 |         }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/inputs/Tests/OriginalPublicAcceptanceVerification/CoaxialSSIArrayAcceptance.swift:209:55: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+207 |             let foreign=try F(originalRadians:0.7,using:&a)
+208 |             try rejects {_ = try component.member(phase:foreign.integer(0,using:&a),coneCycle:zero,cylinderCycle:zero,limits:limits(),using:&a)}
+209 |             a.cancel();try rejects {_ = try component.member(phase:first,coneCycle:zero,cylinderCycle:zero,limits:limits(),using:&a)}
+    |                                                       `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+210 |         }
+211 |         let threeFirst=try box(0,2*Double.pi*0.6,-10,10),threeSecond=try box(0,2*Double.pi*0.9,-10,10)
+
+[#EmbeddedRestrictions]: <https://docs.swift.org/compiler/documentation/diagnostics/embedded-restrictions>

@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-wasm/Compatibility.wasm",
+    "caller"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.2833197920117527,
+  "peakRSSBytes": 1032192,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "669c199616186a0459d5c7b30fbd73d2777ff9a61e1b54ce19d24d6a5456028c"
+}

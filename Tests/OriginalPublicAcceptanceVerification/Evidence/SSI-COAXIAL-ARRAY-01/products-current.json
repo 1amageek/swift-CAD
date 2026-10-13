@@ -1,0 +1,21 @@
+{
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/native/CADGeometry.swiftmodule": "7520c696cc46dd57302f5a3b7c6d7f94b102ca261998a65dca11b8d4b33debd5",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/native/libCADGeometry.a": "f57b1fabdeee660b9dab62d63082453d7c32313c2246c3cec92548fec3bbc64a",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/native/Public": "9bcf974fef48e34697a5815f1325e7b2ae6016dd20a3370695b1a49e0aab95b4",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-direct-native/Compatibility": "45096b7896f24a4b46bfb9fd32ce77bd0c0cebd1c0596d715430790ce2d40f88",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-20261013/edge-native/libCADTopology.a": "c74df1ee0b2e99e89dc6c7d5d59ae9f7c9fb35ce4abfaa4c7ac6a6e4d65967b9",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/asan/CADGeometry.swiftmodule": "7520c696cc46dd57302f5a3b7c6d7f94b102ca261998a65dca11b8d4b33debd5",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/asan/libCADGeometry.a": "b2eed06fc0e8c163116daa3f2578f60e357a7dc44a8f0887cbfa302107044f9b",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/asan/Public": "7cc0791d3d04442c48a521b9b32af4cf22dcda36671694f30518e1158c4b6f6c",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-direct-asan/Compatibility": "f21e4460a9b536f9512ea6662cd2913409d9ee8d675605659f2a3fb652be2d85",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-20261013/edge-asan/libCADTopology.a": "dc86281a5bda507ae83004cf13f8a8416071f7e0c8073c2b4690bb9be3e57a1a",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/wasm/CADGeometry.swiftmodule": "f9a2a691fb6e79548938c932afa3ee4cc80fedafd8d131328b1fcd5b029237fa",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/wasm/libCADGeometry.a": "3eb0c4ef90854a69902bf6f670ef1bd3123b50baf4ce2174dd32dcdec6c69071",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/wasm/Public.wasm": "2133cc9877e5c08dd2b5a7d853381a4d856eb6549ee5acc0db1b7f6f59cfe200",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-direct-wasm/Compatibility.wasm": "8dd708dba42b136bf6160b4ce6131b34de1341f5902330c481e07c902dce92f0",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/trimmed-fold-20261013/edge-wasm/libCADTopology.a": "f682033ee6861bd4e086273fd3301a35e5f841e3abba7623223b16bf13d1b30c",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/embedded/Public-composed.wasm": "202fd5d0c5efffb32d77fb6e39a690affc2bdd9072b5bfb090cca7ba8ee87405",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/kernel-embedded/Compatibility.wasm": "35511aa664071ded0888960c6e2f416d63f9fc37431c1b22bc9600d9b427c6f1",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/embedded-imported/CADGeometry.swiftmodule": "2c075bde46deb6249fe68b879ed99f2c294b0eea99f72672adc17d01d9891f43",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coaxial-ssi-array-20261014-v4/embedded-imported/libCADGeometry.a": "63b12fff62e13db087496532e34aa4cdc9840580a93756766d665d536f9c9bd2"
+}
