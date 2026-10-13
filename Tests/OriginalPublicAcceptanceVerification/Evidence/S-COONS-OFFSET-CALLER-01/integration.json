@@ -1,0 +1,49 @@
+{
+  "status": "PASS",
+  "implementationCommit": "612c4500",
+  "baseMain": "66d02269",
+  "productionPremisesChecked": 8824,
+  "importedMetadataCount": 12,
+  "runtime": {
+    "native": {
+      "record": {
+        "exitCode": 0,
+        "elapsedSeconds": 99.85274037497584,
+        "command": [
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-offset-immutable-products/native/e861ee8059ae39aa3cdda72454edf39e2090ab74b012e060b14b95fec68beb1c"
+        ]
+      },
+      "recordSHA256": "385780f27a846f04cdbb08a360e21130cdeb0aa1c543a50dd4e556d44b4f5d35",
+      "logSHA256": "049df5a4afd6823534b6675f25446a8e173770c589edce5e6ae5d46cbd737afe"
+    },
+    "embedded": {
+      "record": {
+        "exitCode": 0,
+        "elapsedSeconds": 76.39485704200342,
+        "command": [
+          "/usr/local/bin/node",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coons-offset-immutable-products/embedded/bf89befcf9f922aa48a7120bfa950cffd43d32994afdce85bdc34cca3f215f30.wasm",
+          "caller"
+        ]
+      },
+      "recordSHA256": "f951c2cd48d7ef66bd93ccd8b73eeabc1dfa7f5d1ca12504f83c0e2af36fb783",
+      "logSHA256": "cca690bdc0825f8002b4e427e973813681cdc79894611b16bb6c1c680ff809eb"
+    }
+  },
+  "protected": {
+    "/Users/1amageek/Desktop/3D/swift-CAD/.git/worktrees/cad-di-m4-source-support-20261009/ORIG_HEAD": "ec7cd863ae39b200a610ac76f89ab5821459f88008c7db111de13b89031cfeeb",
+    "/Users/1amageek/Desktop/3D/swift-CAD/.git/worktrees/cad-di-m4-source-support-20261009/HEAD": "53678726cda6cd84f7128521f3e7fa818b06e650f9239186e11dab9ae0ba4582",
+    "/Users/1amageek/Desktop/3D/swift-CAD/.git/worktrees/cad-di-m4-source-support-20261009/index": "2634909b627e3d4b384229137627c09cd499cb1f8af27f3bcd87c9b53c345071",
+    "/Users/1amageek/Desktop/3D/swift-CAD/.git/worktrees/cad-di-m4-source-support-20261009/COMMIT_EDITMSG": "91387c7962a1c91b9baf89c1e61c73fdc7c39f5c5b78c41c7732724ab9cec7d1",
+    "/Users/1amageek/Desktop/3D/swift-CAD/.git/worktrees/cad-di-m6-consumers-20261009/AUTO_MERGE": "49a01912916c36bd6ece858eaa3c12103ab27b33dcb8cf71ae810cff92a46d77",
+    "/Users/1amageek/Desktop/3D/swift-CAD/.git/worktrees/cad-di-m6-consumers-20261009/ORIG_HEAD": "449ccb8c7f6899315e11b3136273ad61796459a8e718f64151d12593f8e76876",
+    "/Users/1amageek/Desktop/3D/swift-CAD/.git/worktrees/cad-di-m6-consumers-20261009/MERGE_MSG": "f82ee83c86143285e05a351c77cf7c5bcec7469771be7db84b6fbb0cdfcd9599",
+    "/Users/1amageek/Desktop/3D/swift-CAD/.git/worktrees/cad-di-m6-consumers-20261009/HEAD": "f639729f02f9aa29d8f2dd3ce502f46800f35670421ac70306ef9448d53269bf",
+    "/Users/1amageek/Desktop/3D/swift-CAD/.git/worktrees/cad-di-m6-consumers-20261009/index": "75728445bdb94cfdc3e310b64bcbbd7ab717342fa6c66bb29ea9f49de7aca58e",
+    "/Users/1amageek/Desktop/3D/swift-CAD/.git/worktrees/cad-di-m6-consumers-20261009/MERGE_HEAD": "a634a67d088ba4326a714f06fc65d248c98c4ce2f619943693cd2aa20daf3440",
+    "/Users/1amageek/Desktop/3D/swift-CAD/.git/worktrees/cad-di-m6-consumers-20261009/COMMIT_EDITMSG": "e85be888d2e7c8d9d9d30d6f956d26b8c5ba34fdf071e7249fa23871389e9328",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/pending-public-publisher.patch": "97db4b01b16d6c5a66cdd0bfdfbeda4aa939389f12481b2e0ba8d10d873e8016"
+  },
+  "scope": "Unchanged four-lane proof composition plus fresh Native/Embedded real caller. No new build or extra aggregate review. Whole-seven1/7."
+}
