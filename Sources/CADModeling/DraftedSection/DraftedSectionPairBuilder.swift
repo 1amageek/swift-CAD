@@ -26,7 +26,7 @@ package struct DraftedSectionPairBuilder: Sendable {
         let converter = CertifiedGeometryConverter()
         var count = 1
         for _ in 0..<requirements.maximumCandidateCount {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try admission?.chargeWork()
             guard count <= (requirements.maximumControlPointCount - 1) / 3 else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
@@ -86,7 +86,7 @@ package struct DraftedSectionPairBuilder: Sendable {
         let converter = CertifiedGeometryConverter()
         var count = 1
         for _ in 0..<requirements.maximumCandidateCount {
-            try Task.checkCancellation(); try admission.chargeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try admission.chargeWork()
             guard count <= (requirements.maximumControlPointCount - 1) / 3 else {
                 throw GeometryConversionError.resourceLimitExceeded("Original draft sections exhausted their unchanged shared control allowance.")
             }

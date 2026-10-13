@@ -34,7 +34,7 @@ package struct ClosedSweepIntervalFrameAction: Sendable {
             }
             values.append(translation)
         }
-        guard values.allSatisfy(\.isFinite) else {
+        guard values.allSatisfy({ $0.isFinite }) else {
             throw GeometryConversionError.resourceLimitExceeded("The original endpoint frame action has nonfinite bounds.")
         }
         coefficients = values

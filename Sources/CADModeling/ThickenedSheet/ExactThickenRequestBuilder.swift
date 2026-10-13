@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 import CADIR
@@ -103,7 +104,7 @@ package struct ExactThickenRequestBuilder: Sendable {
         }
         var patches: [BRepSewingFacePatch] = []
         for index in source.faces.indices {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let original = source.faces[index], low = lower.faces[index], high = upper.faces[index]
             guard low.loops.count == original.loops.count, high.loops.count == original.loops.count else {
                 throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance,
@@ -391,7 +392,7 @@ package struct ExactThickenRequestBuilder: Sendable {
         let integrator = SurfaceParameterCurveAreaIntegrator()
         var bounds = SurfaceParameterAreaBounds.zero
         for segment in loop {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let curve: Curve3D
             let start: Double
             let end: Double
@@ -710,7 +711,7 @@ package struct ExactThickenRequestBuilder: Sendable {
                     message: "Exact multi-face thicken requires canonical planar source faces."
                 )
             }
-            for edge in face.loops.flatMap(\.edges) {
+            for edge in face.loops.flatMap { $0.edges } {
                 guard try isExactLineBoundary(edge, tolerance: tolerance) else {
                     throw failure(
                         .unsupportedCapability,
@@ -1062,7 +1063,7 @@ package struct ExactThickenRequestBuilder: Sendable {
         in source: SourceSheet
     ) -> [VertexID: Point3D] {
         var result: [VertexID: Point3D] = [:]
-        for edge in source.faces.flatMap({ $0.loops.flatMap(\.edges) }) {
+        for edge in source.faces.flatMap({ $0.loops.flatMap { $0.edges } }) {
             result[edge.startVertexID] = edge.startPoint
             result[edge.endVertexID] = edge.endPoint
         }
@@ -1074,7 +1075,7 @@ package struct ExactThickenRequestBuilder: Sendable {
     ) -> [VertexID: [Int]] {
         var result: [VertexID: Set<Int>] = [:]
         for faceIndex in source.faces.indices {
-            for edge in source.faces[faceIndex].loops.flatMap(\.edges) {
+            for edge in source.faces[faceIndex].loops.flatMap { $0.edges } {
                 result[edge.startVertexID, default: []].insert(faceIndex)
                 result[edge.endVertexID, default: []].insert(faceIndex)
             }
@@ -1335,7 +1336,7 @@ package struct ExactThickenRequestBuilder: Sendable {
         let aXZ = Point2D(x: start.x, y: start.z), bXZ = Point2D(x: end.x, y: end.z)
         let aYZ = Point2D(x: start.y, y: start.z), bYZ = Point2D(x: end.y, y: end.z)
         for point in points {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard try RobustPredicates.orientation2D(aXY, bXY,
                 relativeTo: Point2D(x: point.x, y: point.y), determinantTolerance: 0) == .zero,
                 try RobustPredicates.orientation2D(aXZ, bXZ,
@@ -1553,7 +1554,7 @@ package struct ExactThickenRequestBuilder: Sendable {
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterBox {
         try ExactSurfaceParameterBoundsResolver().resolve(
-            parameterCurves: loops.flatMap(\.edges).map(\.parameterCurve),
+            parameterCurves: loops.flatMap { $0.edges }.map { $0.parameterCurve },
             on: surface,
             tolerance: tolerance
         )

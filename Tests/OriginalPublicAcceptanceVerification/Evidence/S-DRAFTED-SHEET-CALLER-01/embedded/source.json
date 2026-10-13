@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/drafted-sheet-20261014/embedded/Source.wasm",
+    "source"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.2792762500466779,
+  "peakRSSBytes": 933888,
+  "wallLimitSeconds": 240,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "465dcc6e09857b65d1147178c22269e0aa4fb503df3831d627ba7dfbfb280483"
+}

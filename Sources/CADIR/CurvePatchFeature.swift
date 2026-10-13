@@ -33,7 +33,7 @@ public struct CurvePatchFeature: Hashable, Sendable {
 #endif
 
     public func validate() throws {
-        guard curves.isEmpty == false, Set(curves.map(\.featureID)).count == curves.count else {
+        guard curves.isEmpty == false, Set(curves.map { $0.featureID }).count == curves.count else {
             throw FeatureEvaluationError.invalidGraph("A curve patch spans one or more distinct curves.")
         }
         for curve in curves {

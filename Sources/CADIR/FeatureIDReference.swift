@@ -1,10 +1,17 @@
 import CADCore
 
+#if hasFeature(Embedded)
+public protocol FeatureIDReference: Hashable, Sendable {
+    var featureID: FeatureID { get }
+    init(featureID: FeatureID)
+}
+#else
 public protocol FeatureIDReference: Codable, Hashable, Sendable {
     var featureID: FeatureID { get }
 
     init(featureID: FeatureID)
 }
+#endif
 
 public extension FeatureIDReference {
 #if !hasFeature(Embedded)
@@ -23,6 +30,8 @@ public extension FeatureIDReference {
 #endif
 }
 
+#if !hasFeature(Embedded)
 private enum FeatureIDReferenceCodingKey: String, CodingKey {
     case featureID
 }
+#endif

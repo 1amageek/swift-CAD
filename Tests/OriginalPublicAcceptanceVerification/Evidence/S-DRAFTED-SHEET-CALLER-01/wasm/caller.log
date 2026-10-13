@@ -1,0 +1,4 @@
+(node:66685) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS actual drafted sheet standalone receipt session
+PASS actual drafted sheet with DefaultOffsetResultValidator

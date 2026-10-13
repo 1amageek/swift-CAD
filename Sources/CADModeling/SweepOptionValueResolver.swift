@@ -75,7 +75,7 @@ package struct SweepOptionValueResolver: Sendable {
         let angles = try sweep.options.twistLaw?.map {
             try resolvedAngle($0.angle, operation: "sweep.twistLaw.angle", parameters: parameters)
         } ?? [0, twistAngle]
-        guard angles.allSatisfy(\.isFinite), angles.first == 0, angles.last == twistAngle else {
+        guard angles.allSatisfy({ $0.isFinite }), angles.first == 0, angles.last == twistAngle else {
             throw FeatureEvaluationError.invalidGraph("Sweep twist law must start at zero and end at twistAngle.")
         }
         return SweepOptionValues(
@@ -83,7 +83,7 @@ package struct SweepOptionValueResolver: Sendable {
             endScale: endScale,
             distanceFraction: distanceFraction,
             approximationTolerance: allowance,
-            twistPositions: sweep.options.twistLaw?.map(\.position) ?? [0, 1],
+            twistPositions: sweep.options.twistLaw?.map { $0.position } ?? [0, 1],
             twistAngles: angles
         )
     }

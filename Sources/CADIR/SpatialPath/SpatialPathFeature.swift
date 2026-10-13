@@ -19,7 +19,7 @@ public struct SpatialPathFeature: Hashable, Sendable {
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
-        guard knots.count >= (isClosed ? 3 : 2), Set(knots.map(\.id)).count == knots.count else {
+        guard knots.count >= (isClosed ? 3 : 2), Set(knots.map { $0.id }).count == knots.count else {
             throw FeatureEvaluationError.invalidGraph("A spatial path requires unique knots and at least two open or three closed knots.")
         }
         for knot in knots { try knot.validate(tolerance: tolerance) }

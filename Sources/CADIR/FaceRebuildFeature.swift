@@ -1,3 +1,4 @@
+import CADGeometry
 import CADCore
 
 /// Rebuild Face: each chosen face of a body takes a B-spline surface refitted to its own on the

@@ -1,4 +1,9 @@
+import HashTreeCollections
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADCore
 import CADGeometry
 import CADIR
@@ -586,9 +591,9 @@ package struct FaceSurfaceReplacementRebuilder: Sendable {
                 model.loops[loopID] = loop
             }
         }
-        let referencedCurves = Set(model.edges.values.map(\.curveID))
+        let referencedCurves = Set(model.edges.values.map { $0.curveID })
         model.geometry.curves = model.geometry.curves.filter { referencedCurves.contains($0.key) }
-        let referencedSurfaces = Set(model.faces.values.map(\.surfaceID))
+        let referencedSurfaces = Set(model.faces.values.map { $0.surfaceID })
         model.geometry.surfaces = model.geometry.surfaces.filter { referencedSurfaces.contains($0.key) }
     }
 

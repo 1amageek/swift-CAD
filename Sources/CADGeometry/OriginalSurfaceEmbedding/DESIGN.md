@@ -31,6 +31,28 @@ On a convex original chart box, a separately issued continuous piecewise-Lipschi
 The atlas covers the complete symmetric product by two closed diagonal children and their one unordered cross pair. No small cell or coincident numerical endpoints prove injectivity. All cross contacts reach the original contact visitor. A full-domain certificate accepts an original implicit contact cell only when an injective hull proves that all its contacts belong to the same UV parameter, or throws self-intersection for a nonempty cell whose two parameter boxes are strictly separated and strictly inside the authored domain. A domain-boundary contact can represent an original periodic seam or declared boundary incidence; numerical parameter separation cannot label it an interior self-intersection. Critical, point, coincident and unresolved overlapping-UV or domain-boundary contacts require their original producer proofs before certification; they fail explicitly in the current partial branch. No absent numerical witness proves contact absence.
 
 ## State, Ownership, and Lifecycle
+
+The drafted-sheet projection consumer retains the original wall and its separately
+issued coordinate-projection source/DI/full self-product. It excludes only the
+checked authored diagonal in unchanged original UV. A completely empty residual
+proves original nonstructural contact exclusion by the source-owned projection
+inclusion theorem. A nonempty residual is unresolved for original XYZ and must
+not reject original contact or certify embedding. Source guard/regularity checks
+and final cancellation remain mandatory. This exact path serves both the actual
+single-wall package session and Kernel's complete-global-exclusion material case.
+
+The actual feature's unchanged8MiB storage ceiling rejects full decomposition
+of its one projected pair (37,312,875bytes in the independent source oracle).
+Retain the existing L5 compiled complete symbolic equality predicate instead.
+Verify every graph's parameter-to-authored UV map is identity and auxiliary-free.
+For each ordered pair, exact division proves the compiled X and projected-Z
+equations are nonzero scalar multiples of the corresponding UV differences.
+The L5 compiler's retained nonzero-W division theorem preserves those equations
+under every source guard. Every selected raw tuple therefore belongs to the
+checked M5 authored diagonal. Retain every pair predicate, source/cover owner,
+diagonal receipt and inherited depth. Failure to prove this implication is
+unsupported, never absence or contact. No cell decomposition or new solver is
+added; no scope or allowance is changed.
 The session retains immutable original pair, UV domain, policy and callbacks once. No shared mutable counters are introduced; the composing invocation remains their owner on all targets. The atlas reserves its typed DFS payload before allocation. Intersection temporary accounting remains the lower producer's contract.
 
 ## Failure, Concurrency, and Constraints

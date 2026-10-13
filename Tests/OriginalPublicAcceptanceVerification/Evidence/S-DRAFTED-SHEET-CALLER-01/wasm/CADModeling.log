@@ -1,0 +1,64 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/DraftedSection/OriginalDraftedSurfaceRegularity.swift:49:21: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+47 |             let first = try ScalarInterval(lower:interval.lower,upper:middle)
+48 |             let second = try ScalarInterval(lower:middle,upper:interval.upper)
+49 |             let a = try SurfaceParameterBox(u:alongU ? first : cell.box.u,v:alongU ? cell.box.v : first)
+   |                     `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+50 |             let b = try SurfaceParameterBox(u:alongU ? second : cell.box.u,v:alongU ? cell.box.v : second)
+51 |             pending.append(.init(box:b,depth:cell.depth+1));pending.append(.init(box:a,depth:cell.depth+1))
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/DraftedSection/OriginalDraftedSurfaceRegularity.swift:50:21: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+48 |             let second = try ScalarInterval(lower:middle,upper:interval.upper)
+49 |             let a = try SurfaceParameterBox(u:alongU ? first : cell.box.u,v:alongU ? cell.box.v : first)
+50 |             let b = try SurfaceParameterBox(u:alongU ? second : cell.box.u,v:alongU ? cell.box.v : second)
+   |                     `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+51 |             pending.append(.init(box:b,depth:cell.depth+1));pending.append(.init(box:a,depth:cell.depth+1))
+52 |         }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/EvaluationContext+SubshapeLookup.swift:24:5: warning: 'package' modifier is redundant for instance method declared in a package extension
+22 |     }
+23 | 
+24 |     package func bodyID(generatedBy featureID: FeatureID) throws -> BodyID {
+   |     `- warning: 'package' modifier is redundant for instance method declared in a package extension
+25 |         let reference = try topologyReference(
+26 |             generatedBy: featureID,
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/ExactDraftedProfileBoundaryBuilder.swift:216:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+214 | 
+215 |     private func elements(of loop: ProfileLoop) throws -> [Element] {
+216 |         let elements = try loop.boundarySegments.map { segment -> Element in
+    |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+217 |             switch segment {
+218 |             case let .line(line): return .line(start: line.start, end: line.end)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/ThickenedSheet/ExactThickenRequestBuilder.swift:714:44: warning: trailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+ 712 |                 )
+ 713 |             }
+ 714 |             for edge in face.loops.flatMap { $0.edges } {
+     |                                            `- warning: trailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+ 715 |                 guard try isExactLineBoundary(edge, tolerance: tolerance) else {
+ 716 |                     throw failure(
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/ThickenedSheet/ExactThickenRequestBuilder.swift:1078:63: warning: trailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+1076 |         var result: [VertexID: Set<Int>] = [:]
+1077 |         for faceIndex in source.faces.indices {
+1078 |             for edge in source.faces[faceIndex].loops.flatMap { $0.edges } {
+     |                                                               `- warning: trailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+1079 |                 result[edge.startVertexID, default: []].insert(faceIndex)
+1080 |                 result[edge.endVertexID, default: []].insert(faceIndex)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/SurfaceFootResolver.swift:57:9: warning: default will never be executed
+55 |             let projection = try procedural.closestParameterProjection(of: point, options: SurfaceParameterProjectionOptions(), tolerance: tolerance)
+56 |             return try frame(on: surface, u: projection.u, v: projection.v, tolerance: tolerance)
+57 |         default:
+   |         `- warning: default will never be executed
+58 |             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+59 |                               message: "The nearest point of this kind of surface is not available.")
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/EvaluationContext+SubshapeLookup.swift:24:5: warning: 'package' modifier is redundant for instance method declared in a package extension
+22 |     }
+23 | 
+24 |     package func bodyID(generatedBy featureID: FeatureID) throws -> BodyID {
+   |     `- warning: 'package' modifier is redundant for instance method declared in a package extension
+25 |         let reference = try topologyReference(
+26 |             generatedBy: featureID,

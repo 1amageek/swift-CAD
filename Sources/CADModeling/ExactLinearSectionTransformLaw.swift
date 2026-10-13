@@ -1,3 +1,4 @@
+import CADGeometry
 import CADCore
 
 package struct ExactLinearSectionTransformLaw: Sendable, Hashable {

@@ -37,7 +37,7 @@ package struct PlanarOffsetJointResolver: Sendable {
         let originalStarts = starts, originalEnds = ends
         let encloser = DefaultCurveDifferentialEncloser()
         for index in curves.indices {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let next = (index + 1) % curves.count
             let first = curves[index], second = curves[next]
             let corner = originalCorners[index]

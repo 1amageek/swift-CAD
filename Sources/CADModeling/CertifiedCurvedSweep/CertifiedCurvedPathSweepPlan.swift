@@ -1,4 +1,8 @@
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADCore
 import CADGeometry
 import CADIR
@@ -280,7 +284,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
 
         // The section's control points as offsets from the path start, with the section normal
         // carried alongside; all move with the frame.
-        let sectionPoints = sectionLoops.flatMap { $0.flatMap(\.curve.controlPoints) }
+        let sectionPoints = sectionLoops.flatMap { $0.flatMap { $0.curve.controlPoints } }
         // Across the start tangent the section spans two lateral axes the frame also carries, so
         // the overlap certificate reads the section's extent along each of them.
         let lateral = try Self.lateralAxes(of: startTangent, tolerance: tolerance)
@@ -300,12 +304,12 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             first: .exact(normal.dot(lateral.0)), second: .exact(normal.dot(lateral.1)))
         let guideLaw = try guideSpans.map { spans in
             try CurvedSweepGuideLaw(method: sweep.options.guideMethod, guide: spans,
-                                    section: sectionLoops.flatMap { $0.map(\.curve) }, pathStart: pathStart,
+                                    section: sectionLoops.flatMap { $0.map { $0.curve } }, pathStart: pathStart,
                                     startTangent: startTangent, startAxes: (lateral.0, lateral.1), featureID: featureID, tolerance: tolerance)
         }
         let secondLaw = try secondGuideSpans.map { spans in
             try CurvedSweepGuideLaw(method: .point, guide: spans,
-                                    section: sectionLoops.flatMap { $0.map(\.curve) }, pathStart: pathStart,
+                                    section: sectionLoops.flatMap { $0.map { $0.curve } }, pathStart: pathStart,
                                     startTangent: startTangent, startAxes: (lateral.0, lateral.1), featureID: featureID, tolerance: tolerance)
         }
         // The two contacts' lateral offsets at the start, whose inverse the linear maps share.
@@ -330,7 +334,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         }
         // The section's reach about the path start, and the largest scale its sections take: the
         // end scale's, or (guided) the largest a guide's law takes on an accepted piece.
-        let baseReach = offsets.map(\.length).max() ?? 0
+        let baseReach = offsets.map { $0.length }.max() ?? 0
         var largestScale = max(1, values.endScale)
         var smallestScale = min(1, values.endScale)
         let extent = { (axis: Vector3D) -> Interval in
@@ -707,7 +711,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                 ]
                 for (row, enclosure) in enclosures.enumerated() {
                     let chosen = row == 3 && values.endScale == 0 && endLaw.scale == 0
-                        ? endPath.derivative(0).map(\.midpoint) : enclosure.map(\.midpoint)
+                        ? endPath.derivative(0).map { $0.midpoint } : enclosure.map { $0.midpoint }
                     numeric = max(numeric, zip(enclosure, chosen).reduce(Interval.exact(0)) {
                         $0 + .exact(($1.0 - .exact($1.1)).absoluteUpperBound)
                     }.upper)

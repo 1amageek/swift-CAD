@@ -1,3 +1,4 @@
+import CADGeometry
 import CADCore
 
 public struct CurveTrimFeature: Hashable, Sendable {

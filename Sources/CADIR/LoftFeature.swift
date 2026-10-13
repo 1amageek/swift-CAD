@@ -32,7 +32,7 @@ public struct LoftFeature: Hashable, Sendable {
     /// guides and the apex's body.
     public var inputs: [FeatureInput] {
         var seen = Set<FeatureInput>()
-        return (sections.flatMap(\.inputs) + guides.map { FeatureInput(featureID: $0.featureID, role: .guide) }
+        return (sections.flatMap { $0.inputs } + guides.map { FeatureInput(featureID: $0.featureID, role: .guide) }
                 + (apex.map { [FeatureInput(featureID: $0.source, role: $0.bodyRole)] } ?? []))
             .filter { seen.insert($0).inserted }
     }
@@ -90,14 +90,14 @@ public struct LoftFeature: Hashable, Sendable {
         guard uniqueSections.count == sections.count else {
             throw FeatureEvaluationError.invalidGraph("Loft profile sections must be unique.")
         }
-        let uniqueFeatureIDs = Set(sections.map(\.featureID))
+        let uniqueFeatureIDs = Set(sections.map { $0.featureID })
         guard uniqueFeatureIDs.count == sections.count else {
             throw FeatureEvaluationError.invalidGraph("Loft profile section features must be unique.")
         }
         guard sections.dropFirst().dropLast().allSatisfy({ $0.hasContinuity == false }) else {
             throw FeatureEvaluationError.invalidGraph("Loft continuity belongs to the first or last section.")
         }
-        let guideFeatureIDs = guides.map(\.featureID)
+        let guideFeatureIDs = guides.map { $0.featureID }
         guard Set(guideFeatureIDs).count == guideFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Loft guide references must be unique.")
         }

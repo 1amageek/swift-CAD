@@ -1,5 +1,9 @@
 import CADCore
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADGeometry
 import CADTopology
 

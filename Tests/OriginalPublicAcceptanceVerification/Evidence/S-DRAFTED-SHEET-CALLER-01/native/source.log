@@ -1,0 +1,3 @@
+PROOF COST 13722 186108 DEPTH 0 0
+PASS actual nonzero drafted source, exact X/Z oracle, complete symbolic diagonal exclusion under8MiB
+PASS exact N/N-1 work/storage, original source depth3 versus retained ceiling20, cancellation and detached owner

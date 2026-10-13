@@ -117,7 +117,7 @@ package struct PlanarOffsetCurveSource: GeometryCurveConversionSource {
     private func originalJet(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws -> IntervalVectorDerivativeJet {
         var work = 0
         return try originalJet(over: parameters, tolerance: tolerance, depth: 0) {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             work += 1
             guard work <= 65_536 else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
@@ -136,12 +136,12 @@ package struct PlanarOffsetCurveSource: GeometryCurveConversionSource {
             let closed = try original.closedNativeJets(over: parameters, tolerance: tolerance,
                 maximumSpanCount: 4_096, maximumSubdivisionDepth: 32,
                 remainingSourceDepth: 32 - depth, consumeWork: consumeWork)
-            func coordinate(_ key: KeyPath<SurfaceIntervalVectorJet, SurfaceIntervalJet>)
+            func coordinate(_ key: (SurfaceIntervalVectorJet) -> SurfaceIntervalJet)
                 throws -> IntervalDerivativeJet {
                 var result: [OutwardScalarInterval]?
                 for span in closed.spans {
                     try consumeWork()
-                    let jet = span.jet[keyPath: key]
+                    let jet = key(span.jet)
                     let fields = [jet.value, jet.derivativeU, jet.secondDerivativeUU, jet.thirdDerivativeUUU]
                     if let old = result {
                         result = zip(old, fields).map { $0.0.union($0.1) }
@@ -153,7 +153,7 @@ package struct PlanarOffsetCurveSource: GeometryCurveConversionSource {
                 }
                 return .init(derivatives: result)
             }
-            return try .init(x: coordinate(\.x), y: coordinate(\.y), z: coordinate(\.z))
+            return try .init(x: coordinate({ $0.x }), y: coordinate({ $0.y }), z: coordinate({ $0.z }))
         }
     }
 

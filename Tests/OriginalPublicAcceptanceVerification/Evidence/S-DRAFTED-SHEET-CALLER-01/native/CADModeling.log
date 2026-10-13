@@ -1,0 +1,142 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/DraftedSection/OriginalDraftedSurfaceRegularity.swift:49:21: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+47 |             let first = try ScalarInterval(lower:interval.lower,upper:middle)
+48 |             let second = try ScalarInterval(lower:middle,upper:interval.upper)
+49 |             let a = try SurfaceParameterBox(u:alongU ? first : cell.box.u,v:alongU ? cell.box.v : first)
+   |                     `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+50 |             let b = try SurfaceParameterBox(u:alongU ? second : cell.box.u,v:alongU ? cell.box.v : second)
+51 |             pending.append(.init(box:b,depth:cell.depth+1));pending.append(.init(box:a,depth:cell.depth+1))
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/DraftedSection/OriginalDraftedSurfaceRegularity.swift:50:21: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+48 |             let second = try ScalarInterval(lower:middle,upper:interval.upper)
+49 |             let a = try SurfaceParameterBox(u:alongU ? first : cell.box.u,v:alongU ? cell.box.v : first)
+50 |             let b = try SurfaceParameterBox(u:alongU ? second : cell.box.u,v:alongU ? cell.box.v : second)
+   |                     `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+51 |             pending.append(.init(box:b,depth:cell.depth+1));pending.append(.init(box:a,depth:cell.depth+1))
+52 |         }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/EdgeBlendFeatureEvaluator.swift:2068:13: warning: variable 'mitred' was written to, but never read
+2066 |             && section.controlPoints(links[0].start, links[0].along.first, links[0].along.second)[1]
+2067 |                 .isApproximatelyEqual(to: links[0].start, tolerance: tolerance.distance)
+2068 |         var mitred = false
+     |             `- warning: variable 'mitred' was written to, but never read
+2069 |         /// Link `index`'s section at `point`, from `firstFace` (one of its faces) to the other.
+2070 |         func sectionPoints(_ index: Int, at point: Point3D, from firstFace: FaceID) -> [Point3D] {
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/EdgeContinuity/OriginalPlanarEdgeContinuityCertifier.swift:113:30: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+111 |                     throw failure(.resourceLimitExceeded, featureID, tolerance, "Final plane derivative cover exceeds its original span ceiling.")
+112 |                 }
+113 |                 let domain = try SurfaceParameterBox(u: native.uBounds, v: native.vBounds)
+    |                              `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+114 |                 let original = try OriginalRationalSurfacePolynomial(source: corrected.construction,
+115 |                     native: native, domain: domain, view: .unitZ, tolerance: tolerance, usage: &usage)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/EdgeContinuity/OriginalPlanarEdgeContinuityCertifier.swift:149:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+147 |             let interval = try ScalarInterval(lower: cell.lower, upper: cell.upper)
+148 |             let fixed = try ScalarInterval(lower: station, upper: station)
+149 |             let box = try SurfaceParameterBox(u: restrictU ? fixed : interval, v: restrictU ? interval : fixed)
+    |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+150 |             let q: OriginalSurfaceFirstOrderEnclosure
+151 |             if let projected {
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/EvaluationContext+SubshapeLookup.swift:24:5: warning: 'package' modifier is redundant for instance method declared in a package extension
+22 |     }
+23 | 
+24 |     package func bodyID(generatedBy featureID: FeatureID) throws -> BodyID {
+   |     `- warning: 'package' modifier is redundant for instance method declared in a package extension
+25 |         let reference = try topologyReference(
+26 |             generatedBy: featureID,
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/ExactDraftedProfileBoundaryBuilder.swift:216:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+214 | 
+215 |     private func elements(of loop: ProfileLoop) throws -> [Element] {
+216 |         let elements = try loop.boundarySegments.map { segment -> Element in
+    |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+217 |             switch segment {
+218 |             case let .line(line): return .line(start: line.start, end: line.end)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/ThickenedSheet/ExactThickenRequestBuilder.swift:714:44: warning: trailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+ 712 |                 )
+ 713 |             }
+ 714 |             for edge in face.loops.flatMap { $0.edges } {
+     |                                            `- warning: trailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+ 715 |                 guard try isExactLineBoundary(edge, tolerance: tolerance) else {
+ 716 |                     throw failure(
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/ThickenedSheet/ExactThickenRequestBuilder.swift:1078:63: warning: trailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+1076 |         var result: [VertexID: Set<Int>] = [:]
+1077 |         for faceIndex in source.faces.indices {
+1078 |             for edge in source.faces[faceIndex].loops.flatMap { $0.edges } {
+     |                                                               `- warning: trailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+1079 |                 result[edge.startVertexID, default: []].insert(faceIndex)
+1080 |                 result[edge.endVertexID, default: []].insert(faceIndex)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/XNurbs/XNurbsSurfaceFitter.swift:139:50: warning: immutable value 'limits' was never used; consider replacing with '_' or removing it [#NoUsage]
+137 |                 }
+138 |             }
+139 |             guard spans < Self.maximumSpans, let limits else {
+    |                                                  `- warning: immutable value 'limits' was never used; consider replacing with '_' or removing it [#NoUsage]
+140 |                 throw failure(.classificationFailure,
+141 |                               "XNURBS could not meet its tolerances: \(position) m from the boundary and \(angleDeviation) rad beside its faces at \(spans) spans (asked \(limits.map { "\($0.position) m, \($0.angle) rad" } ?? "")).",
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/SurfaceFootResolver.swift:57:9: warning: default will never be executed
+55 |             let projection = try procedural.closestParameterProjection(of: point, options: SurfaceParameterProjectionOptions(), tolerance: tolerance)
+56 |             return try frame(on: surface, u: projection.u, v: projection.v, tolerance: tolerance)
+57 |         default:
+   |         `- warning: default will never be executed
+58 |             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+59 |                               message: "The nearest point of this kind of surface is not available.")
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/EdgeContinuity/OriginalPlanarEdgeContinuityCertifier.swift:107:41: warning: will never be executed
+105 |             for native in corrected.retainedNativeOwners {
+106 |                 try usage.consumeExactWork(1)
+107 |                 let range = restrictU ? native.uBounds : native.vBounds
+    |                             |           `- warning: will never be executed
+    |                             `- note: condition always evaluates to false
+108 |                 guard range.lower <= station, range.upper >= station else { continue }
+109 |                 ownerCount += 1
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/EdgeContinuity/OriginalPlanarEdgeContinuityCertifier.swift:121:55: warning: will never be executed
+119 |                 for partial in derivatives.partials {
+120 |                     try usage.consumeExactWork(1)
+121 |                     let derivativeOrder = restrictU ? partial.uOrder : partial.vOrder
+    |                                           |           `- warning: will never be executed
+    |                                           `- note: condition always evaluates to false
+122 |                     let otherOrder = restrictU ? partial.vOrder : partial.uOrder
+123 |                     guard otherOrder == 0, derivativeOrder > 0,
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/EdgeContinuity/OriginalPlanarEdgeContinuityCertifier.swift:122:50: warning: will never be executed
+120 |                     try usage.consumeExactWork(1)
+121 |                     let derivativeOrder = restrictU ? partial.uOrder : partial.vOrder
+122 |                     let otherOrder = restrictU ? partial.vOrder : partial.uOrder
+    |                                      |           `- warning: will never be executed
+    |                                      `- note: condition always evaluates to false
+123 |                     guard otherOrder == 0, derivativeOrder > 0,
+124 |                         derivativeOrder <= (order == .curvature ? 2 : 1) else { continue }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/Loft/ExactLoftBodyBuilder.swift:385:87: warning: will never be executed
+ 383 |                 geometry: &geometry,
+ 384 |                 generatedSubshapes: &generatedSubshapes,
+ 385 |                 originalBoundaries: publishesOriginalBoundaries ? sectionBoundaries : nil,
+     |                                     |                                                 `- warning: will never be executed
+     |                                     `- note: condition always evaluates to true
+ 386 |                 allowance: &originalAllowance
+ 387 |             )
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/Loft/ExactLoftBodyBuilder.swift:598:89: warning: will never be executed
+ 596 |                 geometry: &geometry,
+ 597 |                 generatedSubshapes: &generatedSubshapes,
+ 598 |                 originalBoundaries: publishesOriginalBoundaries ? connectorBoundaries : nil,
+     |                                     |                                                   `- warning: will never be executed
+     |                                     `- note: condition always evaluates to true
+ 599 |                 allowance: &originalAllowance
+ 600 |             )
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADModeling/EvaluationContext+SubshapeLookup.swift:24:5: warning: 'package' modifier is redundant for instance method declared in a package extension
+22 |     }
+23 | 
+24 |     package func bodyID(generatedBy featureID: FeatureID) throws -> BodyID {
+   |     `- warning: 'package' modifier is redundant for instance method declared in a package extension
+25 |         let reference = try topologyReference(
+26 |             generatedBy: featureID,

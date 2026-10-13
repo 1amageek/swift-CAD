@@ -1,4 +1,8 @@
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADCore
 
 package struct ExactSectionTransform2D: Sendable, Hashable {

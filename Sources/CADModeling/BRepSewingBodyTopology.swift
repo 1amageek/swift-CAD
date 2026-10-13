@@ -18,7 +18,7 @@ public enum BRepSewingBodyTopology: Equatable, Sendable {
     public var shellStableIDs: [String] {
         switch self {
         case .solid(let components):
-            components.flatMap(\.shellStableIDs)
+            components.flatMap { $0.shellStableIDs }
         case .sheet(let shellStableIDs):
             shellStableIDs
         }
@@ -29,7 +29,7 @@ public enum BRepSewingBodyTopology: Equatable, Sendable {
         tolerance: ModelingTolerance
     ) throws {
         let declaredShellStableIDs = shellStableIDs
-        let availableShellStableIDs = shells.map(\.stableID)
+        let availableShellStableIDs = shells.map { $0.stableID }
         guard declaredShellStableIDs.isEmpty == false,
               Set(declaredShellStableIDs).count == declaredShellStableIDs.count,
               Set(declaredShellStableIDs) == Set(availableShellStableIDs) else {

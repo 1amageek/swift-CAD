@@ -47,7 +47,7 @@ public struct JoinBodiesFeature: Hashable, Sendable {
         guard targets.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph("Join bodies features require at least two target bodies.")
         }
-        let targetFeatureIDs = targets.map(\.featureID)
+        let targetFeatureIDs = targets.map { $0.featureID }
         guard Set(targetFeatureIDs).count == targetFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Join bodies target references must be unique.")
         }

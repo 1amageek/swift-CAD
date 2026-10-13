@@ -44,7 +44,7 @@ public struct SquareSurfaceFeature: Hashable, Sendable {
         guard (2...4).contains(sides.count) else {
             throw FeatureEvaluationError.invalidGraph("A Square is framed by two to four curves.")
         }
-        guard Set(sides.map(\.curve.featureID)).count == sides.count else {
+        guard Set(sides.map { $0.curve.featureID }).count == sides.count else {
             throw FeatureEvaluationError.invalidGraph("A Square's sides are distinct curves.")
         }
         for side in sides {
@@ -57,7 +57,7 @@ public struct SquareSurfaceFeature: Hashable, Sendable {
     public var inputs: [FeatureInput] {
         var seen = Set<FeatureInput>()
         return (sides.map { FeatureInput(featureID: $0.curve.featureID, role: .curve) }
-            + sides.compactMap(\.continuity).map { FeatureInput(featureID: $0.source, role: $0.bodyRole) })
+            + sides.compactMap { $0.continuity }.map { FeatureInput(featureID: $0.source, role: $0.bodyRole) })
             .filter { seen.insert($0).inserted }
     }
 }

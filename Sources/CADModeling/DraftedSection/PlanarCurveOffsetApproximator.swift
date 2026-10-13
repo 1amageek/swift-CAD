@@ -1,4 +1,8 @@
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADCore
 import CADGeometry
 
@@ -270,7 +274,7 @@ package struct PlanarCurveOffsetApproximator {
         stray.reserveCapacity(max(0, breaks.count - 1))
         for span in 0..<(breaks.count - 1) {
             let (a, b) = (breaks[span], breaks[span + 1])
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             do {
                 if let admission {
                     _ = try CertifiedGeometryConverter().certifyCurve(source: source, candidate: approximant,

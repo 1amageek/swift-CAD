@@ -20,7 +20,7 @@ public struct ImprintBodyFeature: Hashable, Sendable {
 
     public func validate() throws {
         try target.validate()
-        let features = tools.map(\.body.featureID)
+        let features = tools.map { $0.body.featureID }
         guard features.isEmpty == false, Set(features).count == features.count, features.contains(target.featureID) == false else {
             throw FeatureEvaluationError.invalidGraph("Imprint needs one or more distinct tools other than its target.")
         }

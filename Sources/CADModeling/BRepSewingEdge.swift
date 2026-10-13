@@ -56,7 +56,7 @@ public struct BRepSewingEdge: Sendable {
     consumeWork: @Sendable (Int) throws -> Void,
     consumeStorage: (@Sendable (Int) throws -> Void)?
   ) throws {
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     try consumeWork(0)
     self.stableID = stableID
     self.curve = curve
@@ -82,9 +82,9 @@ public struct BRepSewingEdge: Sendable {
       startParameter.isFinite,
       endParameter.isFinite,
       abs(endParameter - startParameter) > max(tolerance.angle, Double.ulpOfOne),
-      parentSubshapeIDs.allSatisfy(\.isValid),
-      startVertexParentSubshapeIDs.allSatisfy(\.isValid),
-      endVertexParentSubshapeIDs.allSatisfy(\.isValid)
+      parentSubshapeIDs.allSatisfy({ $0.isValid }),
+      startVertexParentSubshapeIDs.allSatisfy({ $0.isValid }),
+      endVertexParentSubshapeIDs.allSatisfy({ $0.isValid })
     else {
       throw KernelError(
         phase: .topology,

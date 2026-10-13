@@ -1370,6 +1370,16 @@ The temporary ordered view and imported term storage both use the same caller.
 
 ### Exact-zero drafted Native wall intake
 
+The drafted coordinate-projection provider binds the separate immutable
+OriginalDraftedCoordinateProjection input owned by Original Drafted Section.
+It imports that projected source's exact homogeneous cells through the existing
+retained-surface port. The projected input retains the original wall, source
+guards and inherited depth. Its graph denotes the projected position, never
+original XYZ. Original UV is unchanged and authored support remains [0,1]^2.
+The self-exclusion consumer may use an empty projected residual to prove original
+exclusion because original position equality implies projected equality. A
+nonempty projection grants no original contact or identity authority.
+
 `OriginalDraftedRuledSurfaceSnapshotProvider` consumes the single immutable
 `OriginalDraftedZeroTranslationRationalAtlas` owned by
 [Original Drafted Section](../OriginalDraftedSection/DESIGN.md). It accepts only

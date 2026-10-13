@@ -59,8 +59,8 @@ public struct BRepSewingRequest: Sendable {
 
     public func validate(tolerance: ModelingTolerance) throws {
         guard shells.isEmpty == false,
-              Set(shells.map(\.stableID)).count == shells.count,
-              bodyParentSubshapeIDs.allSatisfy(\.isValid) else {
+              Set(shells.map { $0.stableID }).count == shells.count,
+              bodyParentSubshapeIDs.allSatisfy({ $0.isValid }) else {
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,
@@ -84,7 +84,7 @@ public struct BRepSewingRequest: Sendable {
                     phase: .topology,
                     code: .topologyFailure,
                     tolerance: tolerance,
-                    message: "B-rep sewing request contains invalid shell \(shell.stableID). \(error)"
+                    message: "B-rep sewing request contains invalid shell \(shell.stableID). \(portableFailureDescription(error))"
                 )
             }
         }
@@ -92,7 +92,7 @@ public struct BRepSewingRequest: Sendable {
         let stableIDs = shells.flatMap { shell in
             [shell.stableID] + shell.patches.flatMap { patch in
                 [patch.stableID] + patch.loops.flatMap { loop in
-                    [loop.stableID] + loop.edges.map(\.stableID)
+                    [loop.stableID] + loop.edges.map { $0.stableID }
                 }
             }
         }
@@ -112,7 +112,7 @@ public struct BRepSewingRequest: Sendable {
     ) -> BRepSewingBodyTopology {
         switch bodyKind {
         case .sheet:
-            return .sheet(shellStableIDs: shells.map(\.stableID))
+            return .sheet(shellStableIDs: shells.map { $0.stableID })
         case .solid:
             let outerShellStableIDs = shells.compactMap {
                 $0.orientation == .forward ? $0.stableID : nil
@@ -131,4 +131,13 @@ public struct BRepSewingRequest: Sendable {
             })
         }
     }
+    private func portableFailureDescription(_ error: any Error) -> String {
+#if hasFeature(Embedded)
+        if let kernel = error as? KernelError { return kernel.message }
+        return "Original producer failed."
+#else
+        return String(describing:error)
+#endif
+    }
+
 }

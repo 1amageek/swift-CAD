@@ -1,4 +1,8 @@
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADCore
 import CADGeometry
 
@@ -77,7 +81,7 @@ package struct CurvedHingeDraftSurfaceBuilder {
         reference: Surface3D, referenceSign: Double,
         outward: Vector3D, angle: Double, reach: Double
     ) throws -> Construction {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try tolerance.validate()
         try hinge.validate(tolerance: tolerance)
         try reference.validate(tolerance: tolerance)
@@ -250,9 +254,9 @@ package struct CurvedHingeDraftSurfaceBuilder {
                       width: Interval) -> Double {
         guard controls.count == 4, controls.allSatisfy({ $0.x.isFinite && $0.y.isFinite && $0.z.isFinite }),
               width.isFinite, width.lower > 0,
-              lowerJet.derivative(0).allSatisfy(\.isFinite), lowerJet.derivative(1).allSatisfy(\.isFinite),
-              upperJet.derivative(0).allSatisfy(\.isFinite), upperJet.derivative(1).allSatisfy(\.isFinite),
-              wholeJet.derivative(4).allSatisfy(\.isFinite) else { return .infinity }
+              lowerJet.derivative(0).allSatisfy({ $0.isFinite }), lowerJet.derivative(1).allSatisfy({ $0.isFinite }),
+              upperJet.derivative(0).allSatisfy({ $0.isFinite }), upperJet.derivative(1).allSatisfy({ $0.isFinite }),
+              wholeJet.derivative(4).allSatisfy({ $0.isFinite }) else { return .infinity }
         guard let third = width.divided(by: .exact(3)), let remainderFactor = Interval.exact(1).divided(by: .exact(384)) else { return .infinity }
         let ideal = [lowerJet.derivative(0),
                      zip(lowerJet.derivative(0), lowerJet.derivative(1)).map { $0 + $1 * third },
@@ -271,7 +275,7 @@ package struct CurvedHingeDraftSurfaceBuilder {
     private func fitted(law: OriginalLaw, hinge: Curve3D, reference: Surface3D, start: Double, end: Double,
                         referenceSign: Double, outward: Vector3D, angle: Double, reach: Double) throws -> Construction {
         let depths = [-0.05 * reach, 1.5 * reach]
-        guard depths.allSatisfy(\.isFinite), depths[0] < depths[1] else {
+        guard depths.allSatisfy({ $0.isFinite }), depths[0] < depths[1] else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "Cubic draft depths are not finite.")
         }
         let angular = try CertifiedRotationTrigonometry.evaluate(.exact(min(tolerance.angle, .pi / 2)), tolerance: tolerance).sine.lower
@@ -280,7 +284,7 @@ package struct CurvedHingeDraftSurfaceBuilder {
         var spans: [ClosedSpan] = []
         var maximumPositionError = 0.0, maximumRulingError = 0.0
         while let (a, b, region) = pending.popLast() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let width = Interval.exact(b) - .exact(a)
             var accepted = false
             if let all = try law.jets(over: Interval(lower: a, upper: b), region: region),
@@ -314,7 +318,7 @@ package struct CurvedHingeDraftSurfaceBuilder {
                         }
                         return result
                     }
-                    let values = differences.map(\.midpoint)
+                    let values = differences.map { $0.midpoint }
                     divisionError = divisionError.union(differences.enumerated().reduce(Interval.exact(0)) { $0 + .exact(($1.element - .exact(values[$1.offset])).absoluteUpperBound) })
                     directionControls.append(Point3D(x: values[0], y: values[1], z: values[2]))
                 }

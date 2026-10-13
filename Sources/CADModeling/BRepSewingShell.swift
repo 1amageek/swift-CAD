@@ -21,7 +21,7 @@ public struct BRepSewingShell: Sendable {
     public func validate(tolerance: ModelingTolerance) throws {
         guard stableID.isEmpty == false,
               patches.isEmpty == false,
-              Set(patches.map(\.stableID)).count == patches.count else {
+              Set(patches.map { $0.stableID }).count == patches.count else {
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,
@@ -45,9 +45,18 @@ public struct BRepSewingShell: Sendable {
                     phase: .topology,
                     code: .topologyFailure,
                     tolerance: tolerance,
-                    message: "B-rep sewing shell \(stableID) contains invalid patch \(patch.stableID). \(error)"
+                    message: "B-rep sewing shell \(stableID) contains invalid patch \(patch.stableID). \(sewingFailureDescription(error))"
                 )
             }
         }
     }
+    private func sewingFailureDescription(_ error: any Error) -> String {
+#if hasFeature(Embedded)
+        if let kernel = error as? KernelError { return kernel.message }
+        return "Original sewing producer failed."
+#else
+        return String(describing:error)
+#endif
+    }
+
 }

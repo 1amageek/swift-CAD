@@ -1,0 +1,33 @@
+{
+  "newSharedMutableState": false,
+  "consumers": [
+    {
+      "owner": "CurvedSweepSourceBudget",
+      "targets": [
+        "Native",
+        "WASM",
+        "Embedded"
+      ],
+      "storage": "Mutex<State>",
+      "read": "withLock",
+      "write": "withLock",
+      "release": "immutable shared budget owner"
+    },
+    {
+      "owner": "OffsetFeasibilityInvocation",
+      "targets": [
+        "Native",
+        "WASM",
+        "Embedded"
+      ],
+      "storage": "Mutex<State>",
+      "read": "withLock",
+      "write": "withLock",
+      "release": "query-local retained invocation"
+    }
+  ],
+  "targetDifferences": [
+    "Native/WASM Codable capability; Embedded feature identity keeps Hashable and Sendable.",
+    "Error display and platform math imports only; no state, Sendable or callback weakening."
+  ]
+}

@@ -1,0 +1,4 @@
+(node:69031) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS actual nonzero drafted source, exact X/Z oracle, complete symbolic diagonal exclusion under8MiB
+PASS exact N/N-1 work/storage, original source depth3 versus retained ceiling20, cancellation and detached owner

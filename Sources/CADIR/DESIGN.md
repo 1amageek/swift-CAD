@@ -2,6 +2,13 @@
 
 ## Purpose and Scope
 
+The drafted-sheet caller verification compiles its real declaration dependency
+closure on WASM/Embedded, retaining the same module and production declarations.
+Direct imports and closure-based member projections supply Embedded witnesses;
+Codable is a Native/ordinary-WASM capability, while identity, Hashable and Sendable
+contracts remain common. This scoped evidence does not certify unrelated document
+authoring or the whole IR target on Embedded.
+
 `CADIR` owns source/evaluation interchange values, topology references, and
 complete geometry signatures. It also owns the serialized source value for an
 exact imported B-rep feature. It is a child of the [Swift-CAD package

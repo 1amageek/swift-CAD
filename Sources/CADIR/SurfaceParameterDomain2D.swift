@@ -1,3 +1,4 @@
+import CADGeometry
 import CADCore
 
 public struct SurfaceParameterDomain2D: Sendable, Hashable {
@@ -47,7 +48,7 @@ public struct SurfaceParameterDomain2D: Sendable, Hashable {
         try tolerance.validate()
         try surface.validate(tolerance: tolerance)
         let values = [uLowerBound, uUpperBound, vLowerBound, vUpperBound]
-        guard values.allSatisfy(\.isFinite) else {
+        guard values.allSatisfy({ $0.isFinite }) else {
             throw KernelError(
                 phase: .validation,
                 code: .invalidInput,

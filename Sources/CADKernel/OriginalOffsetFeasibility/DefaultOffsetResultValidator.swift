@@ -148,6 +148,12 @@ public struct DefaultOffsetResultValidator: OffsetResultValidating {
                 limits:limits,invocation:invocation)
             return
         }
+        if case .procedural(.originalDrafted(let wall)) = surface,!face.loops.isEmpty,
+            OriginalDraftedCoordinateProjection.supports(wall) {
+            try OriginalOffsetDraftedSelfContact.validate(wall,tolerance:tolerance,
+                limits:limits,invocation:invocation)
+            return
+        }
         // FIXME(INCOMPLETE_IMPLEMENTATION): The production generated-result
         // callers still require complete periodic, general-source and untrimmed
         // self products. Those receipts must be consumed before these can succeed.

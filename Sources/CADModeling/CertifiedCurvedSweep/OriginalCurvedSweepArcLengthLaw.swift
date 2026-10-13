@@ -115,7 +115,7 @@ package struct OriginalCurvedSweepArcLengthLaw: Sendable {
             throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
                 message: "The original sweep path length is not certified finite and positive.")
         }
-        charts = spans.map(\.originalChart)
+        charts = spans.map { $0.originalChart }
         self.preparations = preparations
         self.endpoints = endpoints
         self.starts = starts

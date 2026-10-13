@@ -1,4 +1,8 @@
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADCore
 import CADGeometry
 import CADIR
@@ -102,7 +106,7 @@ package struct CurvedSweepGuideLaw {
         var contacts: [(span: Int, parameter: Double)] = []
         let intersector = DefaultCurveSurfaceIntersector()
         for span in state.span..<spans.count {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard case let .closed(lower, upper) = spans[span].domain else {
                 throw failure("A curved sweep guide lost its retained finite support.")
             }
@@ -137,7 +141,7 @@ package struct CurvedSweepGuideLaw {
         let intersector = DefaultCurveSurfaceIntersector()
         var contacts: [(first: Double, second: Double)] = []
         for span in section {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard case let .closed(lower, upper) = span.domain else {
                 throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                     message: "A sliding section contact lost its original finite support.")

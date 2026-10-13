@@ -123,7 +123,7 @@ public struct FilletFeature: Hashable, Sendable {
             }
         }
         if variablePoints.isEmpty == false {
-            let positions = variablePoints.map(\.position)
+            let positions = variablePoints.map { $0.position }
             guard !allEdges, edges.count == 1, shape != .full, limits == nil,
                   positions.allSatisfy({ $0.isFinite && $0 > 0 && $0 < 1 }), zip(positions, positions.dropFirst()).allSatisfy({ $0 < $1 }) else {
                 throw KernelError(phase: .validation, code: .invalidInput, tolerance: nil,

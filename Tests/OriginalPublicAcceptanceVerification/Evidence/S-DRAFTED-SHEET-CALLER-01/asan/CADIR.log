@@ -1,0 +1,19 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADIR/IndependentShapeSource/OriginalSTEPPlacement/LengthSource/OriginalSTEPLengthConversion.swift:30:13: warning: variable 'usage' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+28 |     public init(from decoder: Decoder) throws {
+29 |         guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
+30 |         var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+   |             `- warning: variable 'usage' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+31 |         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
+32 |         try usage.visitExactCell(depth: 0)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Sources/CADIR/IndependentShapeSource/OriginalSTEPPlacement/OriginalSTEPIdentityCoding.swift:22:19: warning: will never be executed
+19 |         // Core's parser owns a 36-byte UTF-8 array and a 16-byte octet buffer.
+20 |         let bytes = 36.addingReportingOverflow(16)
+21 |         guard !bytes.overflow else {
+   |               `- note: condition always evaluates to true
+22 |             throw IndependentShapeSourceError.resourceLimitExceeded("Original identity parser storage overflow.")
+   |                   `- warning: will never be executed
+23 |         }
+24 |         let stride = MemoryLayout<UInt32>.stride
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>

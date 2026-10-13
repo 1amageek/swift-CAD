@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 import CADIR
@@ -87,7 +88,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
                 profilePlane: section.plane, sectionIsClosed: true, resultKind: resultKind,
                 featureID: featureID, authoredPathAnchor: plane.origin)
         try admission.chargeStorage(bytes: loops.count * MemoryLayout<Int>.stride)
-        return try evaluationResult(request: request, profileSpanCounts: loops.map(\.count),
+        return try evaluationResult(request: request, profileSpanCounts: loops.map { $0.count },
             pathSpanCount: 1, includesCaps: resultKind == .solid)
     }
 
@@ -158,7 +159,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
             endTransform: endTransform,
             featureID: featureID
         )
-        return try evaluationResult(request: request, profileSpanCounts: sectionSpanLoops.map(\.count),
+        return try evaluationResult(request: request, profileSpanCounts: sectionSpanLoops.map { $0.count },
             pathSpanCount: pathSpans.count, includesCaps: resultKind == .solid,
             includesEndCap: !endTransform.isTerminalCollapse)
     }
@@ -173,7 +174,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
             profilePlane: plan.profilePlane, sectionIsClosed: plan.sectionIsClosed, resultKind: resultKind,
             featureID: featureID, certifiedTwist: plan
         )
-        return try evaluationResult(request: request, profileSpanCounts: plan.profileSpanLoops.map(\.count),
+        return try evaluationResult(request: request, profileSpanCounts: plan.profileSpanLoops.map { $0.count },
             pathSpanCount: plan.pathSpans.count, includesCaps: resultKind == .solid,
             includesEndCap: !plan.terminalSectionCollapsed)
     }
@@ -190,7 +191,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
     ) throws -> EvaluationResult {
         let request = try CertifiedCurvedPathSweepFacePatchBuilder(tolerance: context.tolerance)
             .request(plan, resultKind: resultKind, featureID: featureID)
-        return try evaluationResult(request: request, profileSpanCounts: plan.profileSpanLoops.map(\.count),
+        return try evaluationResult(request: request, profileSpanCounts: plan.profileSpanLoops.map { $0.count },
             pathSpanCount: plan.pieceCount, includesCaps: resultKind == .solid && plan.pathIsClosed == false,
             includesEndCap: !plan.terminalSectionCollapsed)
     }

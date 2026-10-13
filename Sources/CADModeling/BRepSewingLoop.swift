@@ -24,7 +24,7 @@ public struct BRepSewingLoop: Sendable {
     ) throws {
         guard stableID.isEmpty == false,
               edges.count >= 2,
-              Set(edges.map(\.stableID)).count == edges.count else {
+              Set(edges.map { $0.stableID }).count == edges.count else {
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,
@@ -78,7 +78,16 @@ public struct BRepSewingLoop: Sendable {
             phase: .topology,
             code: .topologyFailure,
             tolerance: tolerance,
-            message: "\(message) \(error)"
+            message: "\(message) \(sewingFailureDescription(error))"
         )
     }
+    private func sewingFailureDescription(_ error: any Error) -> String {
+#if hasFeature(Embedded)
+        if let kernel = error as? KernelError { return kernel.message }
+        return "Original sewing producer failed."
+#else
+        return String(describing:error)
+#endif
+    }
+
 }

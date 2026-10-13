@@ -86,7 +86,7 @@ package struct OriginalSweepPathLinearity {
         }
         if (chart.endParameter < chart.startParameter) != fractionGain.isNegative {
             try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
-            result.direction = result.direction.map(\.negated)
+            result.direction = result.direction.map { $0.negated }
         }
         return result
     }
@@ -124,7 +124,7 @@ package struct OriginalSweepPathLinearity {
             let gain = try image.parameterGain.exactCoefficient(usage: &usage)
             if gain.isNegative {
                 try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
-                result.direction = result.direction.map(\.negated)
+                result.direction = result.direction.map { $0.negated }
             }
             return result
         case .originalConstructionChart(let image):
@@ -144,7 +144,7 @@ package struct OriginalSweepPathLinearity {
                 let directed = try last.subtracting(first, usage: &usage)
                 if directed.isNegative {
                     try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
-                    result.direction = result.direction.map(\.negated)
+                    result.direction = result.direction.map { $0.negated }
                 }
                 return result
             case .traversal(let traversal):
@@ -155,7 +155,7 @@ package struct OriginalSweepPathLinearity {
                         depth: depth + 1, usage: &usage) else { return nil }
                     if last < first {
                         try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
-                        result.direction = result.direction.map(\.negated)
+                        result.direction = result.direction.map { $0.negated }
                     }
                     return result
                 }

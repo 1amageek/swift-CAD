@@ -247,9 +247,9 @@ package struct CertifiedTwistSweepPlan: Sendable {
                                 try Self.retain(3, of: Double.self, admission: admission, tolerance: tolerance)
                                 let chosen: [Double]
                                 if terminal {
-                                    chosen = try arithmetic.pathPoint(station: s1).map(\.midpoint)
+                                    chosen = try arithmetic.pathPoint(station: s1).map { $0.midpoint }
                                 } else {
-                                    chosen = enclosure.map(\.midpoint)
+                                    chosen = enclosure.map { $0.midpoint }
                                 }
                                 let error = zip(enclosure, chosen).reduce(OutwardScalarInterval.exact(0)) {
                                     $0 + .exact(($1.0 - .exact($1.1)).absoluteUpperBound)

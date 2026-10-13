@@ -147,7 +147,7 @@ package struct OriginalSewingPatchValidator: Sendable {
         residual(.exact(first.x), .exact(first.y), .exact(first.z), to: second)
     }
 
-    private func step() throws { try Task.checkCancellation(); try consumeWork(0) }
+    private func step() throws { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0) }
 
     private func failure(_ code: KernelErrorCode, _ tolerance: ModelingTolerance,
         _ message: String) -> KernelError {

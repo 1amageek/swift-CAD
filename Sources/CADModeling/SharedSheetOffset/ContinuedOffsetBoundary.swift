@@ -1,4 +1,8 @@
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADCore
 import CADGeometry
 
@@ -31,7 +35,7 @@ struct ContinuedOffsetBoundary {
         func native(_ endpoint: SurfaceParameter, seed: Double) throws -> Double {
             var parameter = seed
             for _ in 0..<32 {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 let jet = try source.pointAndDerivative(at: parameter, tolerance: tolerance)
                 let delta = Vector3D(x: jet.point.x - endpoint.u, y: jet.point.y - endpoint.v, z: 0)
                 if delta.length <= tolerance.distance { return parameter }

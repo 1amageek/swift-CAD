@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 import CADIR
@@ -107,7 +108,7 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
             topologyIDs: &topologyIDs,
             context: context
         ))
-        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: builtLoops.map(\.loopID))
+        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: builtLoops.map { $0.loopID })
         model.shells[shellID] = Shell(id: shellID, faceIDs: [faceID])
         model.bodies[bodyID] = Body(
             id: bodyID,

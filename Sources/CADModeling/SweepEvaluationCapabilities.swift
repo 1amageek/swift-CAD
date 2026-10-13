@@ -1,13 +1,18 @@
 import CADCore
 import CADIR
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 
 public struct SweepEvaluationCapabilities: Sendable {
-    public enum PathShape: Codable, Equatable, Hashable, Sendable {
+    public enum PathShape: Equatable, Hashable, Sendable {
         case straight(profileNormalComponent: Double)
         case circularArc
         case curved
 
+#if !hasFeature(Embedded)
         private enum CodingKeys: String, CodingKey {
             case kind
             case profileNormalComponent
@@ -48,9 +53,10 @@ public struct SweepEvaluationCapabilities: Sendable {
                 try container.encode(Kind.curved, forKey: .kind)
             }
         }
+#endif
     }
 
-    public enum SectionState: String, Codable, Equatable, Hashable, Sendable {
+    public enum SectionState: String, Equatable, Hashable, Sendable {
         case identity
         case linearScale
         case pointGuide
@@ -58,7 +64,7 @@ public struct SweepEvaluationCapabilities: Sendable {
         case guided
     }
 
-    public enum EvaluationKind: String, Codable, Equatable, Hashable, Sendable {
+    public enum EvaluationKind: String, Equatable, Hashable, Sendable {
         case certifiedStraightTwist
         case certifiedCurvedPathNormal
         case exactMitredPolylineSweep
@@ -69,7 +75,7 @@ public struct SweepEvaluationCapabilities: Sendable {
         case exactCircularPathRevolve
     }
 
-    public enum OutputTopologyKind: String, Codable, Equatable, Hashable, Sendable {
+    public enum OutputTopologyKind: String, Equatable, Hashable, Sendable {
         case certifiedTwistSolid
         case certifiedTwistSheet
         case certifiedCurvedPathSolid
@@ -87,7 +93,7 @@ public struct SweepEvaluationCapabilities: Sendable {
         case exactCircularRevolveSolid
     }
 
-    public enum BooleanSupportKind: String, Codable, Equatable, Hashable, Sendable {
+    public enum BooleanSupportKind: String, Equatable, Hashable, Sendable {
         case newBody
         case targetBoolean
         case targetSlice
@@ -554,3 +560,23 @@ private extension SweepEvaluationCapabilities.EvaluationKind {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension SweepEvaluationCapabilities.PathShape: Codable {}
+#endif
+
+#if !hasFeature(Embedded)
+extension SweepEvaluationCapabilities.SectionState: Codable {}
+#endif
+
+#if !hasFeature(Embedded)
+extension SweepEvaluationCapabilities.EvaluationKind: Codable {}
+#endif
+
+#if !hasFeature(Embedded)
+extension SweepEvaluationCapabilities.OutputTopologyKind: Codable {}
+#endif
+
+#if !hasFeature(Embedded)
+extension SweepEvaluationCapabilities.BooleanSupportKind: Codable {}
+#endif

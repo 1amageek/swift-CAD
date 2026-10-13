@@ -128,7 +128,7 @@ public struct PipeFeature: Hashable, Sendable {
                 )
             }
         }
-        let targetIDs = targets.map(\.featureID)
+        let targetIDs = targets.map { $0.featureID }
         guard Set(targetIDs).count == targetIDs.count, !targetIDs.contains(path.featureID) else {
             throw FeatureEvaluationError.invalidGraph("A pipe's targets are unique bodies distinct from its path.")
         }

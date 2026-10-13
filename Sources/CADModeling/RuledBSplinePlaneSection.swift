@@ -1,4 +1,8 @@
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADCore
 import CADGeometry
 
@@ -90,7 +94,7 @@ package struct RuledBSplinePlaneSection {
         func pieces(_ span: Int) -> [Piece]? {
             var pending: [(lower: Double, upper: Double, q0: [Vector3D], q1: [Vector3D], w: [Double], f0: [Double], f1: [Double], depth: Int)] = [
                 (breaks[span], breaks[span + 1], q0[span].map { $0 - .origin }, q1[span].map { $0 - .origin },
-                 packed[span].map(\.x), packed[span].map(\.y), packed[span].map(\.z), 0),
+                 packed[span].map { $0.x }, packed[span].map { $0.y }, packed[span].map { $0.z }, 0),
             ]
             var result: [Piece] = []
             while let piece = pending.popLast() {
@@ -122,7 +126,7 @@ package struct RuledBSplinePlaneSection {
         guard let homePieces = pieces(home) else { return nil }
         // The run stops before rulings turn within a hundredth of the home span's angle to the
         // plane, where the cut runs far off and its weights fall toward zero.
-        let scale = homePieces.flatMap(\.denominator).max() ?? 0
+        let scale = homePieces.flatMap { $0.denominator }.max() ?? 0
         func steep(_ more: [Piece]) -> Bool { more.allSatisfy { $0.denominator.min() ?? 0 > 0.01 * scale } }
         var run = homePieces
         var lower = home - 1
@@ -177,7 +181,7 @@ package struct RuledBSplinePlaneSection {
     }
 
     package func sections(of receipt: CurvedHingeDraftSurfaceBuilder.Receipt, by plane: Plane3D) throws -> [Cut] {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try tolerance.validate()
         try Surface3D.plane(plane).validate(tolerance: tolerance)
         guard receipt.tolerance == tolerance, case let .bSpline(surface) = receipt.surface,
@@ -207,7 +211,7 @@ package struct RuledBSplinePlaneSection {
         var admitted: [(Piece, Double)] = []
         var excluded = 0
         while let piece = pending.popLast() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let first = Interval.enclosing(piece.firstDistance), second = Interval.enclosing(piece.secondDistance)
             if (first.lower > 0 && second.lower > 0) || (first.upper < 0 && second.upper < 0) {
                 excluded += 1

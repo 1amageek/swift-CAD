@@ -128,11 +128,11 @@ package struct AdmittedPlanarOffsetCurveSource: GeometryCurveConversionSource {
                 remaining -= 1
                 try admission.visit(depth: cell.depth)
                 let source = owner.jet
-                func vector(_ field: KeyPath<SurfaceIntervalJet, I>) -> V {
-                    .init(x: source.x[keyPath: field], y: source.y[keyPath: field], z: source.z[keyPath: field])
+                func vector(_ field: (SurfaceIntervalJet) -> I) -> V {
+                    .init(x: field(source.x), y: field(source.y), z: field(source.z))
                 }
-                let c = vector(\.value), velocity = vector(\.derivativeU)
-                let acceleration = vector(\.secondDerivativeUU), jerk = vector(\.thirdDerivativeUUU)
+                let c = vector({ $0.value }), velocity = vector({ $0.derivativeU })
+                let acceleration = vector({ $0.secondDerivativeUU }), jerk = vector({ $0.thirdDerivativeUUU })
                 let speed = I(lower: velocity.bounds.lengthLowerBound, upper: velocity.bounds.lengthUpperBound)
                 guard speed.lower > 0, let inverse = I.exact(1).divided(by: speed) else { unresolved = true; break }
                 let inverse3 = inverse * inverse * inverse

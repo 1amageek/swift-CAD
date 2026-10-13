@@ -1,9 +1,14 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 
 public struct DefaultBRepSewer: BRepSewing {
   public init() {}
@@ -139,7 +144,7 @@ public struct DefaultBRepSewer: BRepSewing {
       let shellID = topologyIDs.nextShellID()
       model.shells[shellID] = Shell(
         id: shellID,
-        faceIDs: faceRecords.map(\.id),
+        faceIDs: faceRecords.map { $0.id },
         orientation: shell.orientation
       )
       generatedShells.append((shell, shellID))
@@ -271,9 +276,9 @@ public struct DefaultBRepSewer: BRepSewing {
 
     // ponytail: O(n²) endpoint scan; use a conservative spatial index if
     // endpoint comparisons dominate after eliminating full edge-value copies.
-    let pairs = uses.map(\.slots)
+    let pairs = uses.map { $0.slots }
     for firstIndex in pairs.indices {
-      try Task.checkCancellation()
+      try CurrentTaskCancellationChecker().checkCancellation()
       let first = pairs[firstIndex]
       // Singular parameter boundaries have no physical span to share. Preserve each
       // face's own original UV law, even when two boundaries map to the same point.
@@ -592,13 +597,13 @@ public struct DefaultBRepSewer: BRepSewing {
                 && candidate.endVertexID == edge.endVertexID)
                 || (candidate.startVertexID == edge.endVertexID
                   && candidate.endVertexID == edge.startVertexID))
-          }.flatMap(\.stableIDs).sorted()
+          }.flatMap { $0.stableIDs }.sorted()
           throw KernelError(
             phase: .topology,
             code: edge.orientations.count > 2 ? .nonManifoldResult : .topologyFailure,
             tolerance: tolerance,
             message:
-              "Solid sewing edge \(edge.stableIDs.sorted()) owned by patches \(edge.patchStableIDs.sorted()) from \(String(describing: start)) to \(String(describing: end)) has \(edge.orientations.count) uses with \(forwardCount) forward and \(reversedCount) reversed. Distinct curve-span records with the same endpoint pair: \(endpointPeers)."
+              "Solid sewing edge \(edge.stableIDs.sorted()) owned by patches \(edge.patchStableIDs.sorted()) from \(pointDescription(start)) to \(pointDescription(end)) has \(edge.orientations.count) uses with \(forwardCount) forward and \(reversedCount) reversed. Distinct curve-span records with the same endpoint pair: \(endpointPeers)."
           )
         }
       case .sheet:
@@ -773,4 +778,13 @@ public struct DefaultBRepSewer: BRepSewing {
     let subshapes: [SubshapeID: TopologyReference]
     let lineage: [SubshapeID: TopologyLineage]
   }
+  private func pointDescription(_ point: Point3D?) -> String {
+#if hasFeature(Embedded)
+    guard let point else { return "nil" }
+    return "(\(point.x), \(point.y), \(point.z))"
+#else
+    return String(describing: point)
+#endif
+  }
+
 }

@@ -7,7 +7,7 @@ package struct OriginalOffsetCurveContinuation {
 
     package func curve(_ original: SurfaceParameterCurve, from lower: Double, to upper: Double,
                tolerance: ModelingTolerance) throws -> SurfaceParameterCurve {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try tolerance.validate()
         guard lower.isFinite, upper.isFinite, lower != upper else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,

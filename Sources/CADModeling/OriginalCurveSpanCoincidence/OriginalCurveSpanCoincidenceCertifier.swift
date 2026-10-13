@@ -1,7 +1,11 @@
 import CADCore
 import CADGeometry
 import CADTopology
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 
 /// Proves correspondence on both complete original spans using outward native jets.
 package struct OriginalCurveSpanCoincidenceCertifier {
@@ -16,7 +20,7 @@ package struct OriginalCurveSpanCoincidenceCertifier {
     private struct ContinuityUsage: RationalAlgebraAdmitting {
         let admission: GeometryConversionAdmission?
         mutating func visitExactCell(depth: Int) throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             if let admission {
                 guard depth >= 0, admission.maximumAlgebraicDepth.map({ depth <= $0 }) ?? true else {
                     throw GeometryConversionError.resourceLimitExceeded("Original coincidence exhausted exact algebra depth.")
@@ -27,7 +31,7 @@ package struct OriginalCurveSpanCoincidenceCertifier {
         mutating func visitCoefficientCell(depth: Int) throws { try visitExactCell(depth: depth) }
         mutating func consumeExactWork(_ count: Int) throws {
             guard count >= 0 else { throw GeometryConversionError.invalidInput("Coincidence work must be nonnegative.") }
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try admission?.chargeWork(count)
         }
         mutating func retainExactStorage(_ count: Int) throws {
@@ -35,7 +39,7 @@ package struct OriginalCurveSpanCoincidenceCertifier {
             guard count >= 0, !bytes.overflow else {
                 throw GeometryConversionError.resourceLimitExceeded("Original coincidence storage overflows.")
             }
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try admission?.chargeStorage(bytes: bytes.partialValue)
         }
     }
@@ -77,14 +81,14 @@ package struct OriginalCurveSpanCoincidenceCertifier {
                     consumeStorage: { try admission.chargeStorage(bytes: $0) })
             } else {
                 cover = try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
-                    consumeWork: { try Task.checkCancellation() })
+                    consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             }
             guard let first = cover.spans.first else {
                 throw GeometryConversionError.invalidInput("Original coincidence has no closed owning cover.")
             }
             var result = first.jet
             for span in cover.spans.dropFirst() {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try admission?.chargeWork()
                 result = result.union(span.jet)
             }

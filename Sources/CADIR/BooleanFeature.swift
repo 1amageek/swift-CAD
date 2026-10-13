@@ -57,11 +57,11 @@ public struct BooleanFeature: Hashable, Sendable {
         guard tools.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Boolean features require at least one tool body.")
         }
-        let targetFeatureIDs = targets.map(\.featureID)
+        let targetFeatureIDs = targets.map { $0.featureID }
         guard Set(targetFeatureIDs).count == targetFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Boolean target references must be unique.")
         }
-        let toolFeatureIDs = tools.map(\.featureID)
+        let toolFeatureIDs = tools.map { $0.featureID }
         guard Set(toolFeatureIDs).count == toolFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Boolean tool references must be unique.")
         }

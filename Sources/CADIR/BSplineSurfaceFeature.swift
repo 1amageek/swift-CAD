@@ -1,3 +1,4 @@
+import CADGeometry
 import CADCore
 
 public struct BSplineSurfaceFeature: Sendable, Hashable {

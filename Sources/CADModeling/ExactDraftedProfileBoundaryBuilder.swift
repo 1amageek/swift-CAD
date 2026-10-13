@@ -1,4 +1,8 @@
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADCore
 import CADGeometry
 import CADIR
@@ -87,7 +91,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             element = .arc(ProfileCircularArcSegment(center: center, normal: axisNormal, radius: radius, start: start, end: end,
                                                      sweepAngle: upper - lower))
         default:
-            let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: curve).map(\.curve)
+            let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: curve).map { $0.curve }
             element = .spline(spans.count == 1 ? spans[0] : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance))
         }
         // Toward the curve's left: the shift along the outward (right-hand) normal is negative.

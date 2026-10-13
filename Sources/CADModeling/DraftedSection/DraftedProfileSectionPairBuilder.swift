@@ -90,7 +90,7 @@ package struct DraftedProfileSectionPairBuilder: Sendable {
         var lower: [[ExactPrismaticBoundarySegment]] = []
         var upper: [[ExactPrismaticBoundarySegment]] = []
         for boundary in boundaries {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             var bottom: [ExactPrismaticBoundarySegment] = []
             var top: [ExactPrismaticBoundarySegment] = []
             for segment in boundary {

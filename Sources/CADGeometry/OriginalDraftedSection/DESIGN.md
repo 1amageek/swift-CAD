@@ -15,6 +15,28 @@ owns construction candidates, final correspondence, topology and publication.
 CADGeometry composition owns enum, prepared-owner and common-query adapters.
 The parent invocation owns work, storage, source nesting and subdivision limits.
 
+The S-DRAFTED-SHEET-CALLER-01 exclusion route owns a separate exact coordinate
+projection of the original wall, not a replacement XYZ law. For an authored
+Native generator parallel to X, raw normal and axis parallel to Z and pull equal
+to axis, the original ruling A+k(T cross N) has X component zero and Z component
+sign(axis.z). The projected source is (C.x(u), C.z(u)+sign(axis.z)*height(v), 0).
+Its original UV and all generator cells remain unchanged. Source-owned closed
+ruling admission keeps speed, normalization and selected-root guards. The omitted
+Y component and physical angle remain in the retained original wall.
+
+The proved source chain has three edges (direct Native traversal, drafted curve,
+ruled surface). Its binding records depth3, independently of the retained query
+capability. Guard queries use the smaller caller/source capability; a caller depth
+below3 fails. A retained query ceiling20 must not be mistaken for authored depth20.
+
+Original XYZ equality implies equality of these projected coordinates. Complete
+projected self-product minus the authored diagonal can therefore prove original
+nonstructural contact exclusion when it is empty. A nonempty projection proves
+neither original contact nor embedding. No approximate sine, synthetic XYZ law,
+scope enlargement or inverse from numerical positions is permitted. Existing
+source/DI/M5/L5/L4 contracts own the projected relation; the consumer retains the
+original source and this checked projection theorem through publication.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |

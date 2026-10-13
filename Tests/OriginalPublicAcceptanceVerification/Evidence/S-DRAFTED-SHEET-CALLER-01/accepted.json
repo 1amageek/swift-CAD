@@ -1,0 +1,202 @@
+{
+  "native": {
+    "CADGeometry": {
+      "elapsedSeconds": 82.81733020802494,
+      "peakRSSBytes": 4311252992,
+      "wallLimitSeconds": 1199.943309208029,
+      "rssLimitBytes": 10737418240
+    },
+    "CADIR": {
+      "elapsedSeconds": 25.358909750008024,
+      "peakRSSBytes": 2196160512,
+      "wallLimitSeconds": 1116.9442496660631,
+      "rssLimitBytes": 10737418240
+    },
+    "CADModeling": {
+      "elapsedSeconds": 32.647562916972674,
+      "peakRSSBytes": 1820147712,
+      "wallLimitSeconds": 1199.8191177080153,
+      "rssLimitBytes": 10737418240
+    },
+    "CADKernel": {
+      "elapsedSeconds": 1.1033486250089481,
+      "peakRSSBytes": 200015872,
+      "wallLimitSeconds": 120,
+      "rssLimitBytes": 10737418240
+    },
+    "caller-compile": {
+      "elapsedSeconds": 0.8270622090203688,
+      "peakRSSBytes": 469286912,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "caller": {
+      "elapsedSeconds": 1.1119916249299422,
+      "peakRSSBytes": 32768,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "source-compile": {
+      "elapsedSeconds": 0.5498295829165727,
+      "peakRSSBytes": 248332288,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "source": {
+      "elapsedSeconds": 0.8308127080090344,
+      "peakRSSBytes": 32768,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    }
+  },
+  "asan": {
+    "CADGeometry": {
+      "elapsedSeconds": 118.49053483398166,
+      "peakRSSBytes": 8068317184,
+      "wallLimitSeconds": 1199.8199848330114,
+      "rssLimitBytes": 10737418240
+    },
+    "CADIR": {
+      "elapsedSeconds": 31.205200791941024,
+      "peakRSSBytes": 3972366336,
+      "wallLimitSeconds": 1081.177664207993,
+      "rssLimitBytes": 10737418240
+    },
+    "CADModeling": {
+      "elapsedSeconds": 39.2614894999424,
+      "peakRSSBytes": 3030958080,
+      "wallLimitSeconds": 1199.8115865839645,
+      "rssLimitBytes": 10737418240
+    },
+    "CADKernel": {
+      "elapsedSeconds": 1.108249666984193,
+      "peakRSSBytes": 248283136,
+      "wallLimitSeconds": 120,
+      "rssLimitBytes": 10737418240
+    },
+    "caller-compile": {
+      "elapsedSeconds": 0.8302868340397254,
+      "peakRSSBytes": 669597696,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "caller": {
+      "elapsedSeconds": 1.7022362080169842,
+      "peakRSSBytes": 58261504,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "source-compile": {
+      "elapsedSeconds": 0.5512844999320805,
+      "peakRSSBytes": 518307840,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "source": {
+      "elapsedSeconds": 1.111503417021595,
+      "peakRSSBytes": 30818304,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    }
+  },
+  "wasm": {
+    "CADGeometry": {
+      "elapsedSeconds": 84.42467554204632,
+      "peakRSSBytes": 9836265472,
+      "wallLimitSeconds": 1199.9408638749737,
+      "rssLimitBytes": 10737418240
+    },
+    "CADIR": {
+      "elapsedSeconds": 9.949606416979805,
+      "peakRSSBytes": 2674311168,
+      "wallLimitSeconds": 1115.3808532078983,
+      "rssLimitBytes": 10737418240
+    },
+    "CADModeling": {
+      "elapsedSeconds": 9.465767792076804,
+      "peakRSSBytes": 1450803200,
+      "wallLimitSeconds": 1199.7253194580553,
+      "rssLimitBytes": 10737418240
+    },
+    "CADKernel": {
+      "elapsedSeconds": 0.8285025410586968,
+      "peakRSSBytes": 215334912,
+      "wallLimitSeconds": 120,
+      "rssLimitBytes": 10737418240
+    },
+    "caller-compile": {
+      "elapsedSeconds": 1.3830296250525862,
+      "peakRSSBytes": 869253120,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "caller": {
+      "elapsedSeconds": 0.5565094579942524,
+      "peakRSSBytes": 679493632,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "source-compile": {
+      "elapsedSeconds": 0.8299008749891073,
+      "peakRSSBytes": 712818688,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "source": {
+      "elapsedSeconds": 0.27261508407536894,
+      "peakRSSBytes": 983040,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    }
+  },
+  "embedded": {
+    "CADGeometry": {
+      "elapsedSeconds": 185.4158934170846,
+      "peakRSSBytes": 8639889408,
+      "wallLimitSeconds": 1199.9551012909506,
+      "rssLimitBytes": 10737418240
+    },
+    "CADIR": {
+      "elapsedSeconds": 77.50684083299711,
+      "peakRSSBytes": 9517006848,
+      "wallLimitSeconds": 1014.1277782500256,
+      "rssLimitBytes": 10737418240
+    },
+    "CADModeling": {
+      "elapsedSeconds": 98.25348112499341,
+      "peakRSSBytes": 6949011456,
+      "wallLimitSeconds": 1199.6427637500456,
+      "rssLimitBytes": 10737418240
+    },
+    "CADKernel": {
+      "elapsedSeconds": 79.3556903329445,
+      "peakRSSBytes": 9521840128,
+      "wallLimitSeconds": 120,
+      "rssLimitBytes": 10737418240
+    },
+    "caller-compile": {
+      "elapsedSeconds": 81.48603087500669,
+      "peakRSSBytes": 9755983872,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "caller": {
+      "elapsedSeconds": 0.5527264579432085,
+      "peakRSSBytes": 528744448,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "source-compile": {
+      "elapsedSeconds": 70.77194150001742,
+      "peakRSSBytes": 7635517440,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    },
+    "source": {
+      "elapsedSeconds": 0.2792762500466779,
+      "peakRSSBytes": 933888,
+      "wallLimitSeconds": 240,
+      "rssLimitBytes": 10737418240
+    }
+  }
+}

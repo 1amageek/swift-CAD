@@ -67,18 +67,18 @@ public struct SweepFeature: Hashable, Sendable {
         guard sections.count == 1 else {
             throw FeatureEvaluationError.invalidGraph("Sweep features currently require exactly one section.")
         }
-        let sectionFeatureIDs = sections.map(\.featureID)
+        let sectionFeatureIDs = sections.map { $0.featureID }
         guard Set(sectionFeatureIDs).count == sectionFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Sweep section references must be unique.")
         }
         try sections.forEach { try $0.validate() }
         try path.validate()
-        let guideFeatureIDs = guides.map(\.featureID)
+        let guideFeatureIDs = guides.map { $0.featureID }
         guard Set(guideFeatureIDs).count == guideFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Sweep guide references must be unique.")
         }
         try guides.forEach { try $0.validate() }
-        let targetFeatureIDs = targets.map(\.featureID)
+        let targetFeatureIDs = targets.map { $0.featureID }
         guard Set(targetFeatureIDs).count == targetFeatureIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Sweep target references must be unique.")
         }
@@ -92,12 +92,12 @@ public struct SweepFeature: Hashable, Sendable {
         }
         // A face section may combine with the body it lies on, as a face extrusion does.
         let reservedSourceFeatureIDs = reservedCurveFeatureIDs.union(guideFeatureIDs)
-            .subtracting(sections.filter(\.isFace).map(\.featureID))
+            .subtracting(sections.filter({ $0.isFace }).map { $0.featureID })
         guard targetFeatureIDs.allSatisfy({ reservedSourceFeatureIDs.contains($0) == false }) else {
             throw FeatureEvaluationError.invalidGraph("Sweep targets must be distinct from sections, path, and guides.")
         }
         if options.resultKind == .solid {
-            guard sections.allSatisfy(\.isClosedRegion) else {
+            guard sections.allSatisfy({ $0.isClosedRegion }) else {
                 throw FeatureEvaluationError.invalidGraph("Solid sweep sections must reference closed profiles or planar faces.")
             }
         }

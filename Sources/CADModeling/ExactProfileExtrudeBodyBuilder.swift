@@ -1,4 +1,9 @@
+import HashTreeCollections
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADCore
 import CADGeometry
 import CADIR
@@ -104,7 +109,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
             let sewn = try sewer.sew(
                 BRepSewingRequest(featureID: featureID, bodyKind: .solid, shells: shells), tolerance: context.tolerance
             )
-            let subshapes = try wallSubshapes(sewn: sewn, regionCounts: bottom.map { $0.map(\.count) })
+            let subshapes = try wallSubshapes(sewn: sewn, regionCounts: bottom.map { $0.map { $0.count } })
             return EvaluationResult(
                 brep: try BRepModelCombiner().combined([context.brep, sewn.brep]),
                 subshapes: subshapes,
@@ -211,7 +216,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         ])
         let subshapes = try semanticSubshapes(
             sewn: sewn,
-            boundaryCounts: boundaries.map(\.count),
+            boundaryCounts: boundaries.map { $0.count },
             includesCaps: includesCaps
         )
         return EvaluationResult(

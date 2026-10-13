@@ -45,9 +45,34 @@ package struct DefaultOriginalSurfaceEmbeddingPreparer: OriginalSurfaceEmbedding
             remainingSourceDepth: remainingSourceDepth,
             consumeWork: { try consumeWork(0) }, consumeStorage: consumeStorage,
             maximumAlgebraicDepth: maximumAlgebraicDepth)
+        let exclusion: OriginalDraftedSelfExclusion?
+        if case .procedural(.originalDrafted(let wall)) = surface,
+            OriginalDraftedCoordinateProjection.supports(wall) {
+            let scalarDepth=maximumAlgebraicDepth ?? 32
+            let usage=OriginalRelationUsage(consumeWork:{ count in
+                for _ in 0..<count { try consumeWork(0) }
+            },retainStorage:{ words in
+                let bytes=words.multipliedReportingOverflow(by:4)
+                guard !bytes.overflow else { throw ExactScalarFailure.countOverflow }
+                try consumeStorage?(bytes.partialValue)
+            },visitCell:{ depth in
+                guard depth<=scalarDepth else { throw ExactScalarFailure.resourceLimit(.valueDepth) }
+                try consumeWork(0)
+            },visitCoefficientCell:{ depth in
+                guard depth<=scalarDepth else { throw ExactScalarFailure.resourceLimit(.coefficientDepth) }
+                try consumeWork(0)
+            })
+            var exact=NativeExactPublicAdmission(usage:usage,maximumDepth:scalarDepth)
+            let limits=try OriginalDomainIdentityLimits(source:.init(remainingSourceDepth:remainingSourceDepth),
+                maximumTransportDepth:scalarDepth,maximumCharts:maximumSpanCount,
+                maximumFamilies:maximumSpanCount,maximumIdentityProofs:maximumSpanCount)
+            let pairs=maximumSpanCount.multipliedReportingOverflow(by:maximumSpanCount)
+            exclusion=try OriginalDraftedSelfExclusion.prepare(wall,limits:limits,
+                maximumPairs:pairs.overflow ? Int.max:pairs.partialValue,using:&exact)
+        } else { exclusion=nil }
         return Session(pair: pair, domain: domain, options: effective, tolerance: tolerance,
             continuousDomain: try pair.admitsFirstOrderContinuity(over: domain),
-            work: consumeWork, storage: consumeStorage)
+            work: consumeWork, storage: consumeStorage,exclusion:exclusion)
     }
 
     private struct Session: OriginalSurfaceEmbeddingSession {
@@ -58,6 +83,7 @@ package struct DefaultOriginalSurfaceEmbeddingPreparer: OriginalSurfaceEmbedding
         let continuousDomain: Bool
         let work: @Sendable (Int) throws -> Void
         let storage: (@Sendable (Int) throws -> Void)?
+        let exclusion:OriginalDraftedSelfExclusion?
 
         func visitCrossContacts(excluding: (SurfaceParameterBox, Int) throws -> Bool,
             admit: (SurfaceSurfaceIntersection, SurfaceParameterBox, SurfaceParameterBox, Int) throws -> Void) throws {
@@ -65,12 +91,15 @@ package struct DefaultOriginalSurfaceEmbeddingPreparer: OriginalSurfaceEmbedding
                 tolerance: tolerance, consumeWork: work, consumeStorage: storage,
                 provesInjectivity: { try injective($0, depth: $1) },
                 visitCrossPair: { first, second, depth in
+                    // Complete source exclusion also covers every selected material subset.
+                    if exclusion != nil { try work(depth);return }
                     if try excluding(first, depth) || excluding(second, depth) { return }
                     for contact in try pair.intersections(firstBox: first, secondBox: second, options: options) {
                         try work(depth)
                         try admit(contact, first, second, depth)
                     }
                 })
+            try CurrentTaskCancellationChecker().checkCancellation()
         }
 
         func certify() throws {

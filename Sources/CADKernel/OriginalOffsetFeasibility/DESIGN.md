@@ -58,6 +58,14 @@ The actual S-COONS-OFFSET-CALLER-01 unit-square face and Native folded rejection
 control own success/failure/resource/cancel/lifetime/portable caller verification.
 
 ### Exact consumer migration and retired legacy dispatch
+
+The supported drafted coordinate-projection case consumes Geometry's checked
+OriginalDraftedSelfExclusion with the same result invocation. Complete global
+original exclusion covers every actual face material subset, including holes.
+The wall remains the validated face's stored source. A projection that cannot
+prove the complete symbolic diagonal implication fails explicitly; it cannot
+classify original contact. Distinct-face and unsupported source obligations
+remain unchanged. No extra solve, private allowance or approximate angle enters.
 The default owner removes its former interval callback and opaque Boolean/Loft
 contact replay: they do not establish the complete material exclusion required
 by this contract. Successful admission intentionally narrows to connected exact

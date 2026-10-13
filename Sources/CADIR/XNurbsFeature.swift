@@ -64,7 +64,7 @@ public struct XNurbsFeature: Hashable, Sendable {
             throw FeatureEvaluationError.invalidGraph(quadSided ? "A quad-sided XNURBS is framed by two to four curves."
                                                                : "An XNURBS is framed by one closed curve or two or more boundary curves.")
         }
-        let curves = boundaries.map(\.curve.featureID) + guides.map(\.featureID)
+        let curves = boundaries.map { $0.curve.featureID } + guides.map { $0.featureID }
         guard Set(curves).count == curves.count else {
             throw FeatureEvaluationError.invalidGraph("An XNURBS's boundaries and guides are distinct curves.")
         }
@@ -94,7 +94,7 @@ public struct XNurbsFeature: Hashable, Sendable {
         var seen = Set<FeatureInput>()
         return (boundaries.map { FeatureInput(featureID: $0.curve.featureID, role: .curve) }
             + guides.map { FeatureInput(featureID: $0.featureID, role: .curve) }
-            + boundaries.compactMap(\.continuity).map { FeatureInput(featureID: $0.source, role: $0.bodyRole) })
+            + boundaries.compactMap { $0.continuity }.map { FeatureInput(featureID: $0.source, role: $0.bodyRole) })
             .filter { seen.insert($0).inserted }
     }
 

@@ -98,7 +98,7 @@ public struct RevolveFeature: Hashable, Sendable {
             }
         } else {
             guard resultKind == .solid, !targets.isEmpty,
-                  Set(targets.map(\.featureID)).count == targets.count,
+                  Set(targets.map { $0.featureID }).count == targets.count,
                   section.isFace || !targets.contains(where: { $0.featureID == section.featureID }) else {
                 throw FeatureEvaluationError.invalidGraph("Boolean revolve requires solid output and unique targets distinct from its section.")
             }

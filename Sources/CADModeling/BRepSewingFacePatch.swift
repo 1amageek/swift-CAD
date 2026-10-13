@@ -31,7 +31,7 @@ public struct BRepSewingFacePatch: Sendable {
         consumeWork: @Sendable (Int) throws -> Void,
         consumeStorage: (@Sendable (Int) throws -> Void)?
     ) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork(0)
         self.stableID = stableID
         self.surface = surface
@@ -50,14 +50,14 @@ public struct BRepSewingFacePatch: Sendable {
                 phase: .topology,
                 code: .topologyFailure,
                 tolerance: tolerance,
-                message: "Sewing face patch \(stableID) has an invalid support surface. \(error)"
+                message: "Sewing face patch \(stableID) has an invalid support surface. \(portableFailureDescription(error))"
             )
         }
         guard stableID.isEmpty == false,
               loops.isEmpty == false,
               loops.filter({ $0.role == .outer }).count == 1,
-              Set(loops.map(\.stableID)).count == loops.count,
-              parentSubshapeIDs.allSatisfy(\.isValid) else {
+              Set(loops.map { $0.stableID }).count == loops.count,
+              parentSubshapeIDs.allSatisfy({ $0.isValid }) else {
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,
@@ -81,7 +81,7 @@ public struct BRepSewingFacePatch: Sendable {
                     phase: .topology,
                     code: .topologyFailure,
                     tolerance: tolerance,
-                    message: "Sewing face patch \(stableID) contains invalid loop \(loop.stableID). \(error)"
+                    message: "Sewing face patch \(stableID) contains invalid loop \(loop.stableID). \(portableFailureDescription(error))"
                 )
             }
         }
@@ -97,4 +97,13 @@ public struct BRepSewingFacePatch: Sendable {
             maximumAlgebraicDepth: maximumAlgebraicDepth, consumeWork: consumeWork,
             consumeStorage: consumeStorage).validate(self, tolerance: tolerance)
     }
+    private func portableFailureDescription(_ error: any Error) -> String {
+#if hasFeature(Embedded)
+        if let kernel = error as? KernelError { return kernel.message }
+        return "Original producer failed."
+#else
+        return String(describing:error)
+#endif
+    }
+
 }

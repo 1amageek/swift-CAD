@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADIR
 import CADGeometry

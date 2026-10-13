@@ -5,7 +5,7 @@ package enum AdmittedSewingProvenance {
     package static func canonical(_ input: [SubshapeID],
         consumeWork: @Sendable (Int) throws -> Void,
         consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> [SubshapeID] {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork(0)
         guard !input.isEmpty else { return [] }
         let bytes = input.count.multipliedReportingOverflow(by: MemoryLayout<SubshapeID>.stride)
@@ -17,14 +17,14 @@ package enum AdmittedSewingProvenance {
         var output: [SubshapeID] = []
         output.reserveCapacity(input.count)
         for value in input {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try consumeWork(0)
             output.append(value)
         }
         func sift(_ root: Int, count: Int, values: inout [SubshapeID]) throws {
             var parent = root
             while parent < count / 2 {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try consumeWork(0)
                 var child = parent * 2 + 1
                 if child + 1 < count {
@@ -43,7 +43,7 @@ package enum AdmittedSewingProvenance {
                 try sift(root, count: output.count, values: &output)
             }
             for end in stride(from: output.count - 1, through: 1, by: -1) {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try consumeWork(0)
                 output.swapAt(0, end)
                 try sift(0, count: end, values: &output)
@@ -51,7 +51,7 @@ package enum AdmittedSewingProvenance {
         }
         var retained = 1
         for index in output.indices.dropFirst() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try consumeWork(0)
             if output[index] != output[retained - 1] {
                 try consumeWork(0)

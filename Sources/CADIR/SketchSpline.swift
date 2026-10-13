@@ -105,7 +105,7 @@ public struct SketchSpline: Sendable, Hashable {
         guard knots.count == count + degree + 1 else {
             throw SketchError.unsupportedEntity("A sketch spline's knot vector needs control points + degree + 1 values.")
         }
-        guard knots.allSatisfy(\.isFinite), zip(knots, knots.dropFirst()).allSatisfy({ $0 <= $1 }) else {
+        guard knots.allSatisfy({ $0.isFinite }), zip(knots, knots.dropFirst()).allSatisfy({ $0 <= $1 }) else {
             throw SketchError.unsupportedEntity("A sketch spline's knots must be finite and non-decreasing.")
         }
         let first = knots[0], last = knots[knots.count - 1]

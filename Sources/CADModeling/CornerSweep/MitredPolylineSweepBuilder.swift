@@ -1,4 +1,8 @@
+#if canImport(Foundation)
 import Foundation
+#else
+import WASILibc
+#endif
 import CADCore
 import CADGeometry
 import CADIR
@@ -86,7 +90,7 @@ package struct MitredPolylineSweepBuilder {
 
     /// The direction of an open section made of straight spans along one line, nil otherwise.
     private func straightSectionDirection(_ loops: [[ExactBSplineCurveSpan]]) throws -> Vector3D? {
-        let points = loops.flatMap { $0.flatMap(\.curve.controlPoints) }
+        let points = loops.flatMap { $0.flatMap { $0.curve.controlPoints } }
         guard let first = points.first, let far = points.max(by: { ($0 - first).length < ($1 - first).length }),
               (far - first).length > tolerance.distance else { return nil }
         let direction = try (far - first).normalized(tolerance: tolerance.distance)
@@ -181,7 +185,7 @@ package struct MitredPolylineSweepBuilder {
         if pathIsClosed {
             // A closed path starts at the corner nearest the section, leaving along the leg that
             // runs most across the section's plane.
-            let sectionPoints = sectionLoops.flatMap { $0.flatMap(\.curve.controlPoints) }
+            let sectionPoints = sectionLoops.flatMap { $0.flatMap { $0.curve.controlPoints } }
             let centroid = sectionPoints.reduce(Vector3D.zero) { $0 + ($1 - .origin) } * (1 / Double(max(sectionPoints.count, 1)))
             guard let nearest = legs.indices.filter({ cornerBefore($0, in: legs) })
                 .min(by: { (legs[$0].start - .origin - centroid).length < (legs[$1].start - .origin - centroid).length }) else {
@@ -301,7 +305,7 @@ package struct MitredPolylineSweepBuilder {
             // rigid unit-scale transport. Its production path requires original scale
             // through curved legs and corners before nonunit scale can be admitted.
             // The existing retained affine scale law belongs to straight-arm sweeps.
-            guard legs.allSatisfy(\.isStraight) else {
+            guard legs.allSatisfy({ $0.isStraight }) else {
                 throw failure(.sweepRoundCornerUnavailable,
                     "A sweep containing curved legs takes no end scale.", featureID)
             }
@@ -347,10 +351,10 @@ package struct MitredPolylineSweepBuilder {
             }
             remainingPlaneVisits -= 1
         }
-        let loops = try splitSections(sectionLoops, origin: origin, across: roundCorners.values.map(\.inner),
+        let loops = try splitSections(sectionLoops, origin: origin, across: roundCorners.values.map { $0.inner },
             consumeWork: consumePlaneWork, admission: admission)
         // The curved legs' plans over the section as split (their frames do not depend on it).
-        let plans = loops.map(\.count) == sectionLoops.map(\.count) ? firstFrames.plans : try frames(loops).plans
+        let plans = loops.map { $0.count } == sectionLoops.map { $0.count } ? firstFrames.plans : try frames(loops).plans
         /// Whether a section span lies on the outer side of round corner `j`.
         func isOuter(_ span: ExactBSplineCurveSpan, corner j: Int) throws -> Bool {
             guard let corner = roundCorners[j] else { return false }
@@ -501,7 +505,7 @@ package struct MitredPolylineSweepBuilder {
             })
         }
         return Request(request: request, armCount: pieceCount, includesCaps: includesCaps, includesEndCap: values.endScale != 0,
-                       profileSpanCounts: loops.map(\.count), cornerFaceIDs: cornerFaceIDs)
+                       profileSpanCounts: loops.map { $0.count }, cornerFaceIDs: cornerFaceIDs)
     }
 
     /// `loops` with each span split where it crosses one of the planes through `origin` across
@@ -542,7 +546,7 @@ package struct MitredPolylineSweepBuilder {
                             tolerance: tolerance, message: "Round Sweep split contacts exhausted their request budget.")
                     }
                     remainingContacts -= contacts.count
-                    roots.append(contentsOf: contacts.map(\.curveParameter))
+                    roots.append(contentsOf: contacts.map { $0.curveParameter })
                 }
                 var cuts: [Double] = []
                 for root in roots.sorted() where root > bounds.lower && root < bounds.upper {

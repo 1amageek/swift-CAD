@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADIR
 import CADTopology
@@ -142,7 +143,7 @@ extension BRepModel {
         }
         let faceIDs = body.shellIDs.flatMap { shells[$0]?.faceIDs ?? [] }
         func edges(of faceID: FaceID) -> [EdgeID] {
-            faces[faceID]?.loops.flatMap { loops[$0]?.edges.map(\.edgeID) ?? [] } ?? []
+            faces[faceID]?.loops.flatMap { loops[$0]?.edges.map { $0.edgeID } ?? [] } ?? []
         }
         switch reference {
         case .body(let referenceBodyID):

@@ -137,7 +137,7 @@ public struct FeatureOutput: Sendable, Hashable {
 extension FeatureNode {
     /// The solid (`body`) or sheet output this feature declares, if it declares exactly one.
     public var bodyOrSheetOutput: FeaturePort? {
-        let ports = Set(outputs.map(\.role)).intersection([.body, .sheet])
+        let ports = Set(outputs.map { $0.role }).intersection([.body, .sheet])
         return ports.count == 1 ? ports.first : nil
     }
 }

@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 import CADIR
@@ -324,8 +325,8 @@ package struct ExactFacePcurveBuilder {
             tolerance: tolerance
         )
         let threshold = max(tolerance.distance, tolerance.angle)
-        let uValues = unwrapped(samples.map(\.u), domain: surface.uDomain)
-        let vValues = unwrapped(samples.map(\.v), domain: surface.vDomain)
+        let uValues = unwrapped(samples.map { $0.u }, domain: surface.uDomain)
+        let vValues = unwrapped(samples.map { $0.v }, domain: surface.vDomain)
         let candidate: SurfaceParameterCurve
         if spread(uValues) <= threshold,
            let firstV = vValues.first,

@@ -176,6 +176,16 @@ these final checks do not charge additional work or storage.
 
 ## Verification and Change Impact
 
+S-DRAFTED-SHEET-CALLER-01 verifies the actual PlanarExtrudeFeatureEvaluator,
+OriginalDraftedSheetRequestBuilder and BRep sewer, both with the generated-body
+validator and through the standalone embedding session. The final source remains
+the original nonzero-angle ruled wall. Geometry owns its checked projected
+exclusion and retains its separate continuity/regularity obligations.
+WASM/Embedded compile the production caller declaration closure, with direct
+imports, closure member projections and the existing cancellation port. No
+alternate evaluator, sewing stub, synchronization removal or whole-Kernel port
+supplies this evidence; unrelated Modeling paths remain outside its scope.
+
 Behavioral verification belongs to extrusion tests and must compare wall normals
 with the retained independent pull direction, including curved boundaries and
 failed angle feasibility. Source-only implementation does not assert verified
