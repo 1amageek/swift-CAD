@@ -22,8 +22,10 @@ files = {str(p.relative_to(r)): sha(p) for p in e.rglob('*') if p.is_file() and 
 runs = []
 for lane in ['native', 'embedded']:
     proof = json.loads((e / 'accepted' / lane / 'premises.json').read_text())
-    suffix = '/Proof' if lane == 'native' else '/Proof.wasm'
-    executable = next(p for p in proof['checks'] if p.endswith(suffix))
+    compile_receipt = json.loads((e / 'accepted' / lane / 'compile.json').read_text())
+    command = compile_receipt['command']
+    executable = command[command.index('-o') + 1]
+    assert executable in proof['checks'] and sha(executable) == proof['checks'][executable]
     for group in ['complete', 'empty']:
         for p, h in proof['checks'].items(): assert sha(p) == h, p
         command = [executable,group] if lane == 'native' else ['/usr/local/bin/node', str(r / 'Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs'), executable,group]

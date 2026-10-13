@@ -1,0 +1,9 @@
+{
+  "status": "REJECTED",
+  "cause": "Suffix selection chose an inherited same-name executable before the current cell executable.",
+  "unexpectedMarker": "PASS every terminal raw/refined iff",
+  "expectedMarker": "PASS complete singular terminal iff",
+  "correction": "Select the exact -o output of the accepted cell compile command and admit its hash before replay.",
+  "productionChange": false,
+  "fixtureChange": false
+}
