@@ -4,6 +4,7 @@ import hashlib
 import itertools
 import json
 import re
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 DESIGN = ROOT / 'Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md'
@@ -64,26 +65,32 @@ for first, second in itertools.combinations_with_replacement(('PLANE', 'NATIVE',
     add(f'SSI-PRIMITIVE.{first}.{second}', 'Primitive surface public matrix', 2,
         dict(first=first, second=second), 'SSI')
 
-# Every historical named input remains addressable; later exact source-pair
-# definitions override the four old certified oracle gaps, never rounded laws.
-overrides = {
-    'CS-CERT-CONECONE-FULL-NEG-01': 'Certified branch expansion and source authority',
-    'CS-CERT-CONECONE-FULL-POS-01': 'Certified branch expansion and source authority',
-    'CS-CERT-CONECONE-POSITIVE-PLANE-01': 'Certified branch expansion and source authority',
-    'CS-CERT-CONECYLINDER-POSITIVE-PLANE-01': 'Certified branch expansion and source authority',
-    'CS-CERT-CONETORUS-REGULAR-PLANE-01': 'Certified branch expansion and source authority',
-}
+# Bind declarations, including prose and headings, without turning references
+# elsewhere in the document into new input definitions.
+IDENTIFIER = r'\b(?:CS|SSI|SRC|CERT|CERTIFIED|PCURVE|IMPLICIT|B|S|I|PROJECTION|M8)-[A-Z0-9.-]+-01(?:\.[A-Z]+)?\b'
 named = {}
 for section, body in SECTIONS.items():
+    heading_ids = re.findall(IDENTIFIER, section)
+    if re.match(IDENTIFIER, section):
+        for identifier in heading_ids:
+            named[identifier] = section
     for line in body.splitlines():
-        if not line.startswith('| '):
-            continue
-        first = line.split('|')[1]
-        for identifier in re.findall(r'\b(?:CS|SSI|SRC|CERTIFIED|B|S|I|PROJECTION|M8)-[A-Z0-9.-]+-01(?:\.[A-Z]+)?\b', first):
+        if line.startswith('| '):
+            declaration = line.split('|')[1]
+        else:
+            declaration = re.match(
+                rf'^({IDENTIFIER}(?: and {IDENTIFIER})?) (?:uses|use|reuses|reuse|starts)\b', line)
+            if declaration is None:
+                continue
+            declaration = declaration.group(1)
+        for identifier in re.findall(IDENTIFIER, declaration):
             named[identifier] = section
 for identifier, section in sorted(named.items()):
     phase = 1 if 'CALLER' in identifier else 6 if identifier.startswith('PROJECTION') else 8 if identifier.startswith('M8') else 5 if identifier.startswith(('B-', 'S-', 'I-')) else 4 if any(x in identifier for x in ('CERT', 'IMPLICIT', 'JOIN', 'LIFT')) else 3
-    add(identifier, overrides.get(identifier, section), phase,
+    suffix = identifier.split('-')[0]
+    if suffix == 'PCURVE':
+        suffix = 'CS'
+    add(identifier, section, phase, suffix=suffix if suffix in SUFFIXES else None,
         extra=dict(namedRow=identifier, historicalBinding=section))
 
 base_instances = []
@@ -146,7 +153,8 @@ accepted = ([f'4-P{i}' for i in range(1, 12)] + [f'5-C{i}' for i in range(1, 13)
     [f'6-I{i}' for i in range(1, 5)] + [f'6-B{i}' for i in range(1, 12)] +
     [f'6-S{i}' for i in range(1, 12)] + ['M7', 'M8'])
 assert len(accepted) == 51
-assert len({cell['id'] for cell in cells}) == len(cells)
+cell_ids = {cell['id'] for cell in cells}
+assert len(cell_ids) == len(cells)
 assert len(CERTIFIED) == 6  # Five families plus the sphere/cone endpoint enum.
 interactions = [name for name in named if name.startswith('M8-')]
 assert len(interactions) == 12
@@ -156,23 +164,38 @@ for cell in cells:
     body = SECTIONS[cell['binding']]
     key = cell.get('sourcePrefix') or cell.get('namedRow')
     if key:
-        rows = [line for line in body.splitlines() if line.startswith('| ') and key in line.split('|')[1]]
+        rows = [line for line in body.splitlines() if line.startswith('| ') and (
+            line.split('|')[1].strip().split(' / ')[0] == key if cell.get('sourcePrefix')
+            else key in re.findall(IDENTIFIER, line.split('|')[1]))]
+        assert len(rows) <= 1, (cell['id'], rows)
         if rows:
             row = rows[-1]
             row_key = cell['binding'] + ':' + row.split('|')[1].strip()
             row_refs[row_key] = dict(binding=cell['binding'], firstColumn=row.split('|')[1].strip(),
                 SHA256=hashlib.sha256(row.encode()).hexdigest())
             cell['rowRef'] = row_key
-    cell['inputRef'] = dict(binding=cell['binding'], variant=cell['variant'])
-    cell['expectedRef'] = dict(binding=cell['binding'], consumer=cell['consumer'])
-    cell['stopRef'] = dict(binding=cell['binding'], row=cell.get('rowRef'),
-        observation='Use only linked runtime evidence; otherwise static missing-receipt cause, not reproduced failure.')
+    definition = dict(binding=cell['binding'])
+    if cell.get('rowRef'):
+        definition['row'] = cell['rowRef']
+    if cell.get('namedRow'):
+        assert cell['namedRow'] in body or cell['namedRow'] in cell['binding']
+        definition['declaration'] = cell['namedRow']
+    cell['inputRef'] = dict(**definition, variant=cell['variant'])
+    cell['expectedRef'] = dict(**definition, variant=cell['variant'], consumer=cell['consumer'])
+    cell['stopRef'] = dict(**definition, variant=cell['variant'],
+        observationPolicy='Only linked runtime evidence is observed; otherwise the bound definition owns the static cause or explicit definition gap.')
     assert body
     if cell.get('sourcePrefix') == 'SRC-DRAFT-GENERAL' and cell['variant']['branch'] in ('STATIONARY', 'A0'):
         cell['expected'] = 'Explicit required-coverage/source-guard failure; never empty success.'
     if cell.get('sourcePrefix') == 'CERT-SPHERECONE-ENDPOINT' and cell['variant'] in ('twoDouble', 'lowerSimpleUpperDouble', 'lowerDoubleUpperSimple'):
         cell['expected'] = ('Complete parent source-pair SSI despite the invalid candidate constructor.' if cell['consumer'] == 'SSI'
             else 'Explicit invalid certified-constructor refusal; not a missing positive capability.')
+    if cell.get('sourcePrefix') == 'CERT-CONECONE' and cell['variant'] in ('apex.loop', 'apex.node'):
+        cell['authorityClassification'] = 'Unrealizable positive variant of the existing binary64-frame, nonzero physical-angle primitive cone contract; negative controls only.'
+        cell['negativeControlRefs'] = ['CERTIFIED-CONE-CONE-NEAR-APEX-01', 'SSI-CONE-CONE-COMMON-APEX-01']
+        cell['expected'] = 'Reject the historical (2,0,4) apex-reduced original-source claim with OriginalSourceIssuanceFailure.invalidSource (existing public mapping: geometry/invalidInput); common-apex direct apexReducedAngularInterval construction with bounds0/B rejects with geometry/intersectionFailure. Preserve the separate complete parent SSI relation; neither rejection proves empty intersection.'
+    if cell.get('sourcePrefix') == 'CERT-CONECONE' and cell['variant'] == 'apex.isolated' and cell['consumer'] != 'SSI':
+        cell['expected'] = 'The common-apex input explicitly rejects the direct apexReducedAngularInterval constructor; the positive isolated-point result belongs to parent SSI, with both full original apex fibers.'
 groups = {suffix: [cell['id'] for cell in cells if cell.get('consumer') == suffix] for suffix in SUFFIXES}
 groups['CALLER'] = [cell['id'] for cell in cells if 'CALLER' in cell['id']]
 groups['M8'] = interactions
@@ -189,10 +212,24 @@ catalog = dict(schemaVersion=1, baseline='66d02269', authority=str(DESIGN.relati
     consumerContracts=REQUESTS, completion=COMPLETION,
     cells=sorted(cells, key=lambda c: (c['implementationOrder'], c['id'])),
     sourceSHA256=hashlib.sha256(TEXT.encode()).hexdigest(),
+    executionOrderRef='PROGRESS.md G01-G22; implementationOrder retains the historical catalog phase only and is not execution authority.',
     ownership='Definitions only. PROGRESS.md alone owns execution and completion state. Static gaps are not reproduced runtime failures. Catalog presence accepts no implementation.')
 output = ROOT / 'Tests/OriginalPublicAcceptanceVerification/AcceptanceCells.json'
 head = json.dumps({key: value for key, value in catalog.items() if key != 'cells'}, indent=2, ensure_ascii=False)
 serialized = head[:-2] + ',\n  \"cells\": [\n' + ',\n'.join('    ' + json.dumps(cell, separators=(',', ':'), ensure_ascii=False) for cell in catalog['cells']) + '\n  ]\n}\n'
 assert json.loads(serialized) == json.loads(json.dumps(catalog))
-output.write_text(serialized)
-print(f'PASS {len(cells)} explicit stable instances; 51 contracts, 17 pcurve cases, {len(rolling)} rolling selectors, five certified families and 12 interactions')
+assert set(named) <= cell_ids
+assert {'PROJECTION-CONTINUOUS-01', 'PROJECTION-DRAWING-CONTINUOUS-01',
+    'CS-NATIVE-PERIODIC-PARAM-01', 'S-COONS-PLANE-01'} <= set(named)
+assert all(cell['stopRef'].get('row') in row_refs for cell in cells if cell['stopRef'].get('row'))
+for cell in cells:
+    if cell.get('sourcePrefix'):
+        assert row_refs[cell['rowRef']]['firstColumn'].split(' / ')[0] == cell['sourcePrefix']
+    assert set(cell.get('negativeControlRefs', [])) <= cell_ids
+if sys.argv[1:] == ['--check']:
+    assert output.read_text() == serialized, 'AcceptanceCells.json differs from its authority and generator.'
+elif not sys.argv[1:]:
+    output.write_text(serialized)
+else:
+    raise SystemExit('Usage: AcceptanceCellCatalog.py [--check]')
+print(f'PASS {len(cells)} bound inventory instances; 51 contracts, 17 pcurve cases, {len(rolling)} rolling selectors, five certified families and 12 interactions; definitions only, not acceptance')

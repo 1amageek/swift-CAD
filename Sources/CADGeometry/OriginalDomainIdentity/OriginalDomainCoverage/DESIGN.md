@@ -793,10 +793,9 @@ UNOBSERVED means the exact requested public execution has not yet been accepted.
 Every cell must retain original source owners, full UV/preimages, guards, scope,
 incident germs, caller admission, explicit failure and result lifetime.
 
-The fixed order after complete mapping is: positive Coons SSI; rolling-ball SSI;
-periodic offset XYZ; identity composition/open collapse; trimmed self-contact;
-actual embedding/offset/drafted-sheet callers; remaining source/certified branches;
-general boundary and projection; complete CS/SSI/symbolic publication; M8 integration.
+The current execution order and dependencies are G01-G22 in
+[PROGRESS.md](../../../../PROGRESS.md). Historical catalog phase numbers are
+inventory metadata and do not override that execution record.
 Receipt dependencies apply per cell, without waiting for unrelated M4 production.
 
 ###### Common angular and algebraic authored inputs
@@ -1294,12 +1293,14 @@ The check uses no CAD build and does not certify the numeric fixture runtime.
 
 The second row supplies a genuine binary-authored exact apex success input and
 whole complement exclusion. It does not supply a nonzero apexReduced curve loop.
-The old near-apex test cannot discharge isolatedPointAndLoop or nodeIntervals
-under the selected original-pair authority. Their positive source constructors
-must retain an exact constructed apex-on-cone correspondence; a rounded point
-and a tolerance residual are insufficient. This concrete input is the causal
-reason for that missing source receipt, not permission to relax equality or to
-redesign L0-L5.
+The existing primitive input contract makes a distinct binary64 apex on a
+nonzero physical-angle cone impossible, as proved in the
+[certified branch authority](#certified-branch-expansion-and-source-authority).
+The old isolatedPointAndLoop/nodeIntervals labels therefore bind negative
+original-source controls; they do not require inventing a symbolic apex, changing
+the physical-angle meaning or adding a positive producer. The ordinary parent
+pair still owns its complete non-apex intersection, and genuine common-apex SSI
+still owns its isolated point, common rulings or coincidence as applicable.
 
 ###### Sphere-cone exact node-loop positive input
 
@@ -1994,9 +1995,9 @@ trigonometric identities or mathematical periods.
 
 | Candidate / original branch | Existing reproducible pair and request | Complete oracle or explicit definition gap |
 |---|---|---|
-| CS-CERT-CONECONE-POSITIVE-PLANE-01 / positiveFullBranch | [Existing input](../../../../Tests/CADGeometryTests/CertifiedConeConeSpatialDifferentialBoundsTests.swift): reference cone(apex:0,axis:Z,halfAngle:stored atan(.5)), parameterized cone(apex:4Z,axis:Y,halfAngle:stored atan(.375)), lowerAngle0/upperAngle stored2*Double.pi; target planeY0. | Definition gap: rounded-cos metric/directions and stored-period T are not bound to exact physical-angle coefficients, the selected positive root and all source UV. Reference UV is numerical projection. An ideal source-pair root set cannot assign public T/incident labels. |
-| CS-CERT-CONECYLINDER-POSITIVE-PLANE-01 / positiveFullBranch | [Existing direct input](../../../../Tests/CADGeometryTests/CertifiedConeCylinderSpatialDifferentialBoundsTests.swift): cone(apex:0,axis:Z,halfAngle:stored atan(.5)), cylinder(origin:0,axis:Z,radius1), lowerAngle0/upperAngle stored2*Double.pi; target planeY0. | Definition gap: rounded-cos cone metric, radialV constructed from the stored Double.pi/2 evaluation point, stored-period T and all sourceUV have no exact original-pair correspondence. The regenerated candidate does not establish either tan(atan(.5))=.5 or exact roots. The canonical cylinder-label/physical-cone-root oracle is now fixed in CS-CERTIFIED-CONE-CYLINDER-POSITIVE-01 above; it remains an implementation obligation, not evidence that the current candidate coefficients are exact. This branch is separate from rulingParallelLinear. |
-| CS-CERT-CONETORUS-REGULAR-PLANE-01 / regular certificate branchIndex0 | [Existing input](../../../../Tests/CADGeometryTests/CertifiedGeneralConeTorusSpatialDifferentialBoundsTests.swift): cone(apex:0,axis:stored normalize(.05,0,1),halfAngle:stored atan(6)), torus(center:0,axis:Z,R3,r1), certificate constructor maximumSubdivisionDepth24/maximumCellCount65536; target planeY0. | Definition gap: rounded sin/cos cone direction, certificate-interpolated root initialization/refinement and apex guard do not retain exact original-pair branch selection, whole T correspondence or allUV. Point projection supplies current UV. The apexReduction construction is not covered. |
+| CS-CERT-CONECONE-POSITIVE-PLANE-01 / positiveFullBranch | [Existing input](../../../../Tests/CADGeometryTests/CertifiedConeConeSpatialDifferentialBoundsTests.swift): reference cone(apex:0,axis:Z,halfAngle:stored atan(.5)), parameterized cone(apex:4Z,axis:Y,halfAngle:stored atan(.375)), lowerAngle0/upperAngle stored2*Double.pi; target planeY0. | Preserve this target. The [complete full-branch law](#complete-full-branch-certified-oracles) gives q>0, k<0, D=b*b-q*k>b*b and lambda=(-b+sqrt(D))/q>0. Since cos(beta)>0, P.y=cos(beta)*lambda>0 on all authored T: the complete result is empty, including UV/incidents/image/fiber. Exact source-bound whole-support exclusion must reach the ordinary publisher; rounded candidate coefficients do not prove it. Runtime for this target remains unobserved. |
+| CS-CERT-CONECYLINDER-POSITIVE-PLANE-01 / positiveFullBranch | [Existing direct input](../../../../Tests/CADGeometryTests/CertifiedConeCylinderSpatialDifferentialBoundsTests.swift): cone(apex:0,axis:Z,halfAngle:stored atan(.5)), cylinder(origin:0,axis:Z,radius1), lowerAngle0/upperAngle stored2*Double.pi; target planeY0. | Preserve this constructor and target. The actual full-branch angleDifferential supplies cylinder intrinsic label U=B*T to cylinder.surface.differentialGeometry; CanonicalSphereAngularPhase converts that label to physical phase(2*pi/B)*U=2*pi*T. The [existing source owner](../../OriginalSourceIssuance/DESIGN.md#certified-coaxial-cone-cylinder-root-and-traversal) and OriginalCertifiedCoaxialConeCylinderSnapshotProvider bind this same lower0/upperB input, not a replacement normalized arc. Hence height-cot(alpha), exactly T1/4 and3/4, and every parent UV follow the [coaxial law](#certified-coaxial-cone-cylinder-positive-cells). TargetUV uses this historical plane's original basis. The source-owned selected-root/label receipt must be consumed by the ordinary publisher; candidate libm coefficients and projected UV are not that receipt. Runtime for this historical entry remains unobserved. This is separate from rulingParallelLinear. |
+| CS-CERT-CONETORUS-REGULAR-PLANE-01 / regular certificate branchIndex0 | [Existing input](../../../../Tests/CADGeometryTests/CertifiedGeneralConeTorusSpatialDifferentialBoundsTests.swift): cone(apex:0,axis:stored normalize(.05,0,1),halfAngle:stored atan(6)), torus(center:0,axis:Z,R3,r1), certificate constructor maximumSubdivisionDepth24/maximumCellCount65536; target planeY0. | Preserve this constructor, branchIndex0 and target. This public certificate constructor takes no lowerAngle/upperAngle or caller-authored physical endpoints; its point(atNormalizedFraction:) evaluator closes T1 at angle0. [Its existing closed-certificate source authority](#cert-conetorus-tilted-01-complete-regular-branch-oracle) explicitly selects theta=2*pi*T and requires migration of the binary candidate evaluation/trace; sphere-cone's authored physical B*T is not this constructor's law. The independent normalized-axis quartic, ordered lambda0, exactly T1/4 and3/4 and complete parent UV remain unchanged. TargetUV uses this historical plane's original basis. Source-owned exact coefficients/root/T/allUV and ordinary publication remain missing; point projection and certificate interpolation do not supply them. Runtime remains unobserved. ApexReduction is separate. |
 | CS-CERT-PARALLELTORI-REGULAR-EMPTY-01 / regularClosed branchIndex0 | [Existing input](../../../../Tests/CADGeometryTests/CertifiedParallelTorusTorusSpatialDifferentialBoundsTests.swift): primary torus(center:0,axis:Z,R3,r1/2), secondary torus(center:(stored2.2,0,0),axis:Z,R3,r3/2), certificate constructor maximumSubdivisionDepth24/maximumCellCount65536; target planeZ2. | Complete exclusion oracle for this request: primary height is in[-1/2,1/2]; the stored curve position also has Z=(1/2)*sin(angle) throughout its domain. Thus all T are excluded, and roots/XYZ/sourceUV/targetUV/incidents/fibers are all empty. This does not prove positive-contact or original-pair T/UV correspondence. |
 
 The actual [ordinary dispatcher](../../DefaultCurveSurfaceIntersector.swift)
@@ -2139,6 +2140,19 @@ in the source registry below. They are separate cells, even if they share a rece
 An injective reparameterization uses the explicit forward law, never an assumed
 inverse. A relation oracle retains ALL roots of the displayed equations.
 
+For these shared suffix controls only, the original-coordinate unit test window
+is [0,1]^d, with d the authored parameter dimension; auxiliary graph coordinates
+are not axes of this window. If D is the actual authored/requested domain with
+all original guards, the closed lower box is Q=D intersect [0,1/2]^d and the
+half-open identity scope is H=D intersect [0,1/2)^d. Thus the surface quarter-box
+has four exact rational bounds 0 and 1/2, and curve scopes have the same two
+bounds. Each source owner receives its own Q or H; a composed identity uses the
+same retained intermediate owner on both legs. These are intersections in
+original coordinates, not a normalization of finite, periodic or unbounded
+support. Source support, physical/intrinsic units, implicit guards and all
+auxiliary predicates survive unchanged. The SSI comparison plane keeps its
+named support. Explicit requests or scopes in a named cell take precedence.
+
 | Suffix | Public input and independent whole-set oracle | Current stop and necessary change | Completion evidence |
 |---|---|---|---|
 | CS | Actual ordinary rich CS of the row's C and the named target plane. Use the explicitly listed isolated roots and contained control. For a surface-only row, use its retained diagonal lift C(t)=F(t,t), t in[0,1], and plane through the row's original origin with normalZ. Expected intersection tuples are exactly t inJ with C(t) on the named target plane, and ALL corresponding target-plane UVs in its selected support. For a retained lift, its host UV is the original pcurve relation P(t), including every declared branch/chart germ of P; it is not every host UV with the same XYZ. For the diagonal lift P(t)=(t,t), retain exactly that authored correspondence. The separate curve-versus-host B query keeps every target-host preimage. | Consume that row's source/DI/lift receipt in ordinary dispatch; the first source capability refusal is STATIC unless a runtime observation is linked above. | Complete equality/selection comparison, all UV, XYZ and image/fiber dimensions; ordinary bare must refuse a continuous result explicitly. |
@@ -2267,17 +2281,59 @@ and complete primitive UV; it does not depend on the success of a candidate curv
 |---|---|---|
 | CERT-SPHERECONE / full-/full+, bounded, open-/open+, apex | Use the fixed rootFree, boundedR2, poleToPole, simpleRootToPole, doubleRootToPole and apexR1 recipes above; both open signs and both endpoint directions. Closed full branch T retains B*T. Bounded/open expected sets use the independent slant law and explicit exact L/U and g. Apex has lambda0 and lambda=-2b, only its declared loop/node intervals. CS planeY0 selects exactly cos(theta)=0 OR lambda0; planeZ2 supplies the independently proved empty control for the apex recipe. | Exact physical coefficients, critical root selection, T and all parent UV; ordinary CS/X and both parent SSI orders. Rounded double/apex premise that is false must be rejected, never labelled a positive branch. |
 | CERT-SPHERECONE-ENDPOINT / nine enum kinds | Legal rootFree/lowerSimple/upperSimple/twoSimple/lowerDouble/upperDouble use the preceding recipes, reversal and exact discriminant multiplicity. twoDouble/lowerSimpleUpperDouble/lowerDoubleUpperSimple are explicit constructor-invalid controls, as required by the current constructor guard. | Test each legal branch's complete source correspondence; test each forbidden kind's refusal. A forbidden kind is not a missing positive capability. |
-| CERT-CONECONE / full-/full+, bounded, apex isolated/loop/node | Full uses the fixed A4Z/axisY input. Bounded uses A(.51,0,1)/axisY, same angles; exact q,b,k above select all consecutive D>=0 intervals and both roots. CS planeZ1 selects exactly lambda*cos(theta)=0; q!=0 and the original guard decide zero/apex cases. Apex uses actual common apex0 for both cones, then the fixed shared-axis and different-axis controls: lambda0 full angular fibers plus every common ruling of the two exact cones. The old near-apex(2,0,4) input remains a false-premise rejection control. | Exact metric, root ordering, interval/T receipt and apex fiber; parent SSI all roots plus CS/X. Candidate topology kind must agree with exact source or fail explicitly. |
+| CERT-CONECONE / full-/full+, bounded, apex isolated/loop/node | Full uses the fixed A4Z/axisY input. Bounded uses A(.51,0,1)/axisY, same angles; exact q,b,k above select all consecutive D>=0 intervals and both roots. For the registry CS target planeZ1, the full law P.z=4-sin(beta)*lambda*cos(theta) selects sin(beta)*lambda*cos(theta)=3; the bounded law P.z=1-sin(beta)*lambda*cos(theta) selects lambda*cos(theta)=0. Historical named CS cells retain their separately stated planes. Apex isolated uses SSI-CONE-CONE-COMMON-APEX-01 and its full independent apex fibers. Common-apex controls are not positive loop/node constructors; the impossibility and concrete negative controls are specified below. The old near-apex(2,0,4) input remains a false-premise rejection control. | Exact metric, root ordering, interval/T receipt and apex fiber; parent SSI all roots plus CS/X. Candidate topology kind must agree with exact source or fail explicitly. apex.loop/node are unrealizable positive primitive variants and own the explicit source/constructor rejection controls below; they are not missing positive capabilities. |
 | CERT-CONECYLINDER / full-/full+, bounded, lowerNode,upperNode,linear | Full coaxial oracle and both pcurve roles above. Bounded cylinder(origin(0,0,1.5),axisY,R1); node cylinder(origin(1,0,0),axisY,R1), cone0/Z/alpha:stored atan(.5). Independent cylinder q,b,k selects both roots/consecutive valid intervals and lambda0 endpoint. CS planeY0 is exactly lambda*cos(theta)=0 in the canonical cone basis, retaining all T preimages. Linear uses the actual stored-sin/cos axis input above and requires exact q=0; if false, expected explicit invalid-branch refusal and the parent quadratic SSI remains required. | Original cylinder metric, exact node/root guards and branch/T/allUV; actual certified-lift caller as well as direct CS/X and parent SSI. |
 | CERT-CONETORUS / regular branch0..3, apex | Actual tilted cone and torus input above, all four ordered quartic roots. Apex A4X retains lambda0 and ALL real nonzero roots of the displayed cubic, ordered on each exact critical interval. CS planeY0 requires lambda*cos(theta)=0, with full source T preimages and apex angular fiber. | Source-owned selected exact root/cubic branch cover and normalized T; ordinary CS/X and parent SSI all roots. |
 | CERT-PARALLELTORI / regular0..3,nodal0..3,near0..1 | Actual offsets stored2.2,2,1.9999; primaryR3/r1/2, secondaryR3/r3/2. Let z=sin(theta)/2, r=3+cos(theta)/2, rho=3+epsilon*sqrt(9/4-z*z), x=(r*r+d*d-rho*rho)/(2d), y=sigma*sqrt(r*r-x*x). Expected XYZ=(x,y,z); guards rho>0,r*r-x*x>=0. epsilon=-1 for branches0/1 and+1 for2/3, sigma=-1 for even,+1 for odd. Regular theta=2*pi*T; nodal theta=base+2*pi*T, base0/pi according to epsilon, retaining every join side. Near theta=L+(U-L)*sin(pi*T)^2, sigma positive on first half and negative on second; L/U are exact adjacent radicand-zero roots around base. CS planeZ0 selects exactly theta in pi*Z with those full T preimages; planeZ2 is empty. Both parent torus UV are the independent atan2 radial/tube arguments plus every integer B lift. | Exact radius/radicand/critical roots, declared traversal and both UV; candidate certificate counts alone are not evidence. Ordinary CS/X, parent SSI and nodal distinct-T control. |
 
 Exact critical root ordering and incidence constraints, including multiplicity,
 are the oracle; they must be independently compared with the returned complete
-selection. This closes input/expected-set definitions without requiring decimal
-approximations of transcendental roots. It does NOT claim that current source
-APIs can issue those receipts. Incompatible candidate kinds are explicit failures,
-and their corresponding positive parent intersection cells remain mandatory.
+selection. These equation oracles avoid decimal approximations of transcendental
+roots. They do NOT claim that current source APIs can issue those receipts.
+Incompatible candidate kinds are explicit failures, and their corresponding
+positive parent intersection cells remain mandatory.
+
+CERT-CONECONE.apex.loop and CERT-CONECONE.apex.node are unrealizable positive
+variants of the existing original primitive input contract. AnalyticSurface3D
+stores apex:Point3D, axis:Vector3D and halfAngle:Double; the coordinates are finite
+binary64 and the validator rejects zero halfAngle. The
+[cone image source](../../OriginalSourceIssuance/DESIGN.md#physical-radian-cone-image)
+retains an invertible binary affine frame M and exact physical alpha. For a
+candidate apex P distinct from A, q=M^-1*(P-A) is a nonzero rational tuple.
+Its exact membership equation implies
+cos(alpha)^2=qz^2/(qx^2+qy^2+qz^2), a rational number. Exact canonical axis
+normalization would make q algebraic and yields the same contradiction.
+
+The existing [physical-angle coefficient contract](../../OriginalSourceIssuance/OriginalPhysicalAngle/DESIGN.md#contracts-and-invariants)
+establishes transcendental T=tan(alpha/2) and rejection of every nonzero rational
+polynomial in T. The expression cos(alpha)^2=((1-T^2)/(1+T^2))^2 is nonconstant.
+If it had an algebraic value r, clearing denominators would give the nonzero
+polynomial (1-T^2)^2-r*(1+T^2)^2=0 over the algebraic numbers, making T algebraic
+over Q, a contradiction. Thus no distinct binary64 apex lies on this cone.
+The actual image reader also exposes only Double center/frame/physicalHalfAngle;
+there is no symbolic-apex or rational-tangent alternative in this primitive
+contract. CanonicalAnalyticSurface rejects Native and symbolic wrapper surfaces,
+and offset cones, from the existing certified cone-cone constructor.
+
+The six existing apex.loop/node CS/SSI/X IDs therefore own these two concrete
+negative controls, with no new positive source prerequisite:
+
+| Control | Actual public input and independent expected failure | Current stop / required behavior |
+|---|---|---|
+| Historical noncommon apex | Reuse CERTIFIED-CONE-CONE-NEAR-APEX-01: reference cone0/Z/alpha:stored atan(.5), second cone(2,0,4)/Y/beta:stored atan(.375), standard tolerance, both ordinary SSI orders and whole original support. Retain every apexReducedAngularInterval candidate emitted by the actual ConeConeApexContactIntersector; its subsequent ordinary CS uses the registry planeZ1, wholeT[0,1] and whole planeUV, and X attempts the same retained candidate publication. The exact source claim k=0 is false by the existing independent inequality. Its source issuance must reject with OriginalSourceIssuanceFailure.invalidSource; the existing NativeExactGeometryPublicationFailure maps that cause to KernelError geometry/invalidInput. | The current classifier admits sqrt(abs(candidate k))<=tolerance.distance and may emit loop/node metadata without the exact original-pair k=0 theorem. Missing source-branch validation and complete parameter/UV proof must remain explicit; numeric residual admission or a publication without that proof cannot satisfy this control. An ordinary parent query may instead return its complete correct non-apex quadratic relation. It must not call the pair disjoint or discard its other roots. |
+| Common apex direct curve | Reuse the actual SSI-CONE-CONE-COMMON-APEX-01 pair: both apices0, axesZ/Y, both halfAngles stored0.5. Call public CertifiedConeConeIntersectionCurve.init with componentKind:apexReducedAngularInterval, lowerAngle0, upperAngleB=stored2*Double.pi and standard tolerance. The expected constructor error is KernelError geometry/intersectionFailure, so no CS/X curve result exists. | The actual producer calls apexContactTopology; baseOffset=0 forces b=k=0, returns isolatedPoint, and the direct curve's validate rejects that topology. Retain this refusal rather than manufacturing an authored T for a point. The matching ordinary parent SSI is the separate positive full-apex-fiber cell. |
+
+The first control rejects a false apex-reduced original-source claim, not the
+valid two-cone input. The second rejects an invalid curve component, not the
+positive common-apex SSI relation. General non-apex roots, common rulings and
+coincident regions keep their existing mandatory parent-cell obligations.
+Catalog classification and these independent expectations do not establish
+runtime acceptance, branch migration or general cone support.
+For CERT-CONECONE.apex.isolated.CS/X use the same genuine common-apex pair,
+both original angles stored0.5, and the direct apexReducedAngularInterval
+constructor with physical bounds0/B. Explicit constructor refusal is expected:
+an isolated point does not supply an authored curve T. The matching SSI cell
+retains the complete positive isolated-point relation and both angular fibers.
 
 ###### All pcurve cases and actual boundary callers
 
@@ -2339,13 +2395,15 @@ independent screen equations (t,0)=(u,0) and (t,0)=(1-u,0), or vertical edge
 intersection from projected contact. The actual document/producer binding remains
 the one fixed above; no hand-authored validation receipt is allowed.
 
-Implementation order stays Coons SSI -> rolling SSI -> periodic offset XYZ ->
-composed/open identity -> trimmed self -> actual callers -> source/certified
-branches -> general boundary/projected contact -> all ordinary/symbolic results ->
-M8. Within a prefix, issue its missing source receipt, consume DI/identity/M6 as
+Implementation order follows the current G01-G22 dependencies in
+[PROGRESS.md](../../../../PROGRESS.md). Historical implementationOrder values in
+the catalog do not own execution order. Within a prefix, issue its missing source receipt, consume DI/identity/M6 as
 applicable, then close X, four lanes, one review, commit and latest main. Do not
 wait for unrelated M4 receipts. Earlier "unmapped" inventory text is historical;
-this expansion fixes its input/expected-set/dependency/remaining-change fields.
+this expansion supplies those fields where its explicit declarations are complete.
+The original primitive source authority classifies cone-cone apex.loop/node as
+unrealizable positive variants with explicit negative controls; this is neither
+positive-family implementation nor evidence of an empty parent intersection.
 Runtime status is still UNOBSERVED unless the linked cell evidence says otherwise.
 No full requirement is accepted by the existence of this mapping.
 
@@ -2913,12 +2971,12 @@ caller; do not restore interval callback success or claim that refusal completes
 Coons embedding. S-TRIMMED-FOLD-01's exact Native material/caller evidence is at
 [Focused verification](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/S-TRIMMED-FOLD-01/Focused/VERIFICATION.md).
 
-The existing finite registries preserve all source, certified, pcurve and consumer
-branches. An explicit instance ledger is still required to reconcile their concrete
-constructors, request/oracle fields and first unavailable receipt without treating
-historical UNMAPPED or generic suffix references as a current executable cell.
-Mapping completion is an acceptance-definition gate; it changes no whole-family
-implementation count. PROGRESS.md remains the only execution record.
+The catalog binds the existing table, heading and prose declarations to their
+definition rows or exact named sections; shared suffix scopes are fixed above.
+The cone-cone apex.loop/node IDs retain their explicit unrealizable-positive
+classification and concrete negative controls. A section hash or catalog entry
+does not establish constructibility, an observed stop or public acceptance. Mapping completion is an acceptance-definition gate; it changes no
+whole-family implementation count. PROGRESS.md remains the only execution record.
 
 ### Coaxial primitive cone-cylinder rich SSI family
 
