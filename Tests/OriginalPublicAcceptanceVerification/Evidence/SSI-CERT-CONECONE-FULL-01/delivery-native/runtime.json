@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-integration-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/SSI-CERT-CONECONE-FULL-01/delivery-native/Public",
+    "all"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 41.974125457927585,
+  "peakRSSBytes": 14008320,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "2ebb7edfc7f3b564abba12ca77005de094d1647b488b235c67607bba371afcd2"
+}

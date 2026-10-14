@@ -1,0 +1,10 @@
+{
+  "sourceCommit": "06a3e02fe74c02db2cc3d254b5e72126d0a16e2f",
+  "previousMain": "7fb9c19f",
+  "sourcePremisesCount": 2142,
+  "productCount": 11,
+  "reusedProductsCount": 429,
+  "protectedCount": 12,
+  "fixtureSHA256": "4b194744f89b8f132efde9091d0b5d9cd6506987e6f63257d4085b6c77ec20de",
+  "executableSHA256": "fe4819959ca8ffc7706b72681d4e0372ec0896d0873c5ed525feb3a99b14763b"
+}

@@ -1,4 +1,5 @@
 {
+  "DELIVERY.md": "f8adc774de356e94b4a44cfb3913c973b898e6b2a702913beb39b5619432b474",
   "REVIEW.md": "cfcfe25ad1086925175ff647c35ce6fcbd26c4df5ce1ab544010f9feb8e60595",
   "VERIFICATION.md": "4f6b85f380d706f528801e1fad7bd9e799b287ad4463f73b81a120a3982b86f1",
   "accepted/asan/CADGeometry.json": "e2c60a0ab7dc20b9afc38ec29548c48a5fc9e877e0f3209522e3e66f4d7f1659",
@@ -107,6 +108,11 @@
   "accepted/wasm/runtime-terminal.json": "812f635f798595d8cf92eee81d109e790488c90f5d3a5e9b3136c1f1423fce31",
   "accepted/wasm/runtime-terminal.log": "b4ec2f03c8df43b3f197461c08bb74b0af7a220c216024e7d3b7f216fb5ec034",
   "accepted.json": "75f0e1bc04d55408331258db6d235cffee1c6f1aa3f15e37e06bada41738205b",
+  "delivery-native/compile.json": "060cbc1fd23c5b2cda810760ec1927f4c889e2510fe529b5358e44e95ca0435a",
+  "delivery-native/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "delivery-native/receipt.json": "720e2c6360b2edf8a6c47d0467a611d0f27ff5396a2caf75eb7afa6edb0043fe",
+  "delivery-native/runtime.json": "bc831fbc99287012a7b436d17bbecbc674ef503d4dcddbbbcd04bcb6b07947b0",
+  "delivery-native/runtime.log": "2ebb7edfc7f3b564abba12ca77005de094d1647b488b235c67607bba371afcd2",
   "products.json": "c41121bad1d567bd97ab5f00f292bd34e2c0bed9317506570db9fe7771216e88",
   "red/FullConeConeSSIObservation.swift": "ae3fcaad80794638b7444a1497c79bde2c46146d9a1a36b345940de8c743afde",
   "red/compile.json": "e852e389ec944d11351fd3cb2c9a1d5bc76194ceedf39f088f341543e17c4467",
