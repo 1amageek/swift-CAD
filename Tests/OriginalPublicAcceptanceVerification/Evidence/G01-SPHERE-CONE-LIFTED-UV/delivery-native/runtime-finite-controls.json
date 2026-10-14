@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-integration-recovered/swift-CAD/.build/g01-lifted-main-delivery-20261014/Public",
+    "finite-controls"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 11.627034416073002,
+  "peakRSSBytes": 13058048,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "eab4bc60d529d7ca63ac3fb4f1787feaac5ca08d89b05875220e16910d4fed4b"
+}
