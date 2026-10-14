@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/full-sphere-cone-ssi-20261014/v2/native/Public",
+    "endpoints"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 5.736969041056,
+  "peakRSSBytes": 12681216,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "bcbe0f353fac8b638911a70972adff773911ef1cb3fd0d4943855a93e73fb8c7"
+}

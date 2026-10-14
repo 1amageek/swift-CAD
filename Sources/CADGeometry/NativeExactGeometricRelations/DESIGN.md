@@ -955,3 +955,13 @@ pretending a numerical residual is exact authority. Serialization cannot
 construct/discard proof objects. Native/ASAN/normalWASM imported and Embedded
 composed success, whole/quarter scopes, resource/depth/cancel/lifetime and
 existing certified CS regressions are the verification ownership boundary.
+
+### Full sphere-cone public family
+
+Six SSI entries and prepared pair queries retain the full ordered original
+pair, two branch components, both closed source charts, symbolic exact XYZ
+and uniquely scoped inverse UV plus independent arbitrary integer cycles.
+Empty publication retains complete source/request exclusion. All output
+storage, counts/depth/work and terminal cancel remain caller-admitted.
+The new full-family representation joins existing original proof-loss codec
+and unconverted Kernel material-refinement refusal gates.

@@ -16,4 +16,11 @@ public struct OriginalBoundedSphereConeSurfaceSnapshot: Sendable {
     public let upperHalfAngle: Field.Value
     public let labelPeriod: Field.Value
     public let proofDepth: ExactScalarDepth
+    public func sectionValues<A: ExactScalarAdmission & ~Copyable>(halfAngle: Field.Value,
+        using a: inout A) throws -> OriginalSphereConeSurfaceSectionValues {
+        let boundary = try criticalField.compare(halfAngle, lowerHalfAngle, using: &a) == .equal
+            || criticalField.compare(halfAngle, upperHalfAngle, using: &a) == .equal
+        return try OriginalSphereConeSurfaceSectionValues.issue(halfAngle: halfAngle, chart: 0,
+            sourceSine: sine, sourceCosine: cosine, apexX: 2, constant: 16, isDoubleRoot: boundary, using: &a)
+    }
 }

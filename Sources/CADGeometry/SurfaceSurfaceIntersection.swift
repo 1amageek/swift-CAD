@@ -5,6 +5,7 @@ public enum SurfaceSurfaceIntersection: Hashable, Sendable {
     /// Original symbolic geometric components retain complete source/UV authority.
     case originalCoaxial(OriginalCoaxialSurfaceComponent)
     case originalBoundedSphereCone(OriginalBoundedSphereConeSurfaceComponent)
+    case originalFullSphereCone(OriginalFullSphereConeSurfaceComponent)
 
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
@@ -14,6 +15,7 @@ public enum SurfaceSurfaceIntersection: Hashable, Sendable {
         case coincident
         case originalCoaxial
         case originalBoundedSphereCone
+        case originalFullSphereCone
     }
 #endif
 
@@ -24,6 +26,7 @@ public enum SurfaceSurfaceIntersection: Hashable, Sendable {
         case coincident
         case originalCoaxial
         case originalBoundedSphereCone
+        case originalFullSphereCone
     }
 #endif
 
@@ -43,7 +46,7 @@ public enum SurfaceSurfaceIntersection: Hashable, Sendable {
                 SurfaceSurfaceIntersectionPoint.self,
                 forKey: .point
             ))
-        case .originalCoaxial, .originalBoundedSphereCone:
+        case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone:
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath,
                 debugDescription: "Retained original proof objects require source issuance and cannot be decoded unchecked."))
         case .coincident:
@@ -66,7 +69,7 @@ public enum SurfaceSurfaceIntersection: Hashable, Sendable {
         case let .point(point):
             try container.encode(Kind.point, forKey: .kind)
             try container.encode(point, forKey: .point)
-        case .originalCoaxial, .originalBoundedSphereCone:
+        case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone:
             throw EncodingError.invalidValue(self, .init(codingPath: encoder.codingPath,
                 debugDescription: "Retained original proof authority cannot be discarded during serialization."))
         case let .coincident(coincidence):

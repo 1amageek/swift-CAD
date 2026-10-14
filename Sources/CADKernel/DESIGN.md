@@ -1552,3 +1552,7 @@ assigning a numerical residual. This compatibility update establishes refusal
 safety; general Boolean/material clipping and whole Kernel portability are not
 completed by the new Geometry family. Verify the affected primary bodies and
 actual graph refusal with real ordered sources/IDs when Geometry is stable.
+
+Full sphere-cone symbolic SSI uses the existing original material-refinement
+refusal in graph validation and finite splitting. This protects its all-UV
+owner; it does not claim completed Boolean clipping.

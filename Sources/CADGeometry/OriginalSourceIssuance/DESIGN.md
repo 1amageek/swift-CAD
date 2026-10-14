@@ -3095,3 +3095,23 @@ A point section retains its input scalar context through the checked public
 Field(retaining:) initializer and imports ordinary coefficients upward. The
 critical field owns support/boundary comparisons only; unrelated critical
 extensions do not enter a rational interior point quadratic.
+
+### Full sphere-cone parent source
+
+The fixed R3/A(1,0,-4)/Z/authored-alpha parent uses the same admitted physical
+coefficients and primitive laws as the bounded parent. Source-owned chart0 has
+S=2t/(1+t*t), C=(1-t*t)/(1+t*t), chart1 has their negatives; each t in[-1,1].
+Their closed endpoints pair by tOther=-t. Together they cover the entire original
+unit circle, retaining both incident parameter sides. b=s*S+4*c lies strictly
+between3.11 and4.05; lambda^2-2*b*lambda+8=0 has two positive distinct roots.
+P(4)<0, P(7)>0 isolate the plus root; Vieta gives the minus. Each is a closed
+nonconstant curve; source cone coordinates distinguish the two everywhere.
+XYZ=(1-s*lambda*S,s*lambda*C,-4+c*lambda), with sphere radius3.
+The existing scalar/root operations are shared through source-issued section
+values with the bounded parent, whose constant16 and apexX2 remain unchanged.
+
+Cone U is B/(2*pi)*2*atan(t)+chart*B/2+n*B. The half-period shift is an exact
+intrinsic label, not rounded mathematical pi. Sphere inverse arguments retain
+atan2(-X,Y), asin(Z/3) and every independent integer label lift. Neither sphere
+pole occurs because c/s is neither1 nor7. No certified curve endpoint window
+is mistaken for the entire parent angular support.

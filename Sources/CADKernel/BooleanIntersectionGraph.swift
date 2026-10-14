@@ -58,7 +58,7 @@ public struct BooleanIntersectionGraph: Hashable, Sendable {
             // consume the original source/UV relation before symbolic SSI can
             // enter its numeric residual validator. No complete Boolean claim
             // is valid from this representation gate alone.
-            case .originalCoaxial, .originalBoundedSphereCone:
+            case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone:
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                     message: "Boolean material clipping requires the original symbolic source relation.")
             case let .coincident(value):

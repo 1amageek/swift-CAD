@@ -17,9 +17,11 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
     /// Complete source-bound bounded sphere-cone curve and independent original UV lifts.
     public let originalBoundedSphereConeRelation: (any OriginalBoundedSphereConeSurfaceRelationReading)?
 
+    public let originalFullSphereConeRelation: (any OriginalFullSphereConeSurfaceRelationReading)?
+
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
-        originalIssuedGeometricRelation == nil && originalCoaxialSurfaceRelation == nil && originalBoundedSphereConeRelation == nil ? .numericalRepresentatives : .exactRelation
+        originalIssuedGeometricRelation == nil && originalCoaxialSurfaceRelation == nil && originalBoundedSphereConeRelation == nil && originalFullSphereConeRelation == nil ? .numericalRepresentatives : .exactRelation
     }
 
 
@@ -29,7 +31,8 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
         originalExactGeometricRelation: NativeExactGeometricRelation? = nil,
         originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)? = nil,
         originalCoaxialSurfaceRelation: (any OriginalCoaxialSurfaceRelationReading)? = nil,
-        originalBoundedSphereConeRelation: (any OriginalBoundedSphereConeSurfaceRelationReading)? = nil) {
+        originalBoundedSphereConeRelation: (any OriginalBoundedSphereConeSurfaceRelationReading)? = nil,
+        originalFullSphereConeRelation: (any OriginalFullSphereConeSurfaceRelationReading)? = nil) {
         self.intersections = intersections
         self.originalNativePoints = originalNativePoints
         self.originalNativeRelations = originalNativeRelations
@@ -37,6 +40,7 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
         self.originalIssuedGeometricRelation = originalIssuedGeometricRelation
         self.originalCoaxialSurfaceRelation = originalCoaxialSurfaceRelation
         self.originalBoundedSphereConeRelation = originalBoundedSphereConeRelation
+        self.originalFullSphereConeRelation = originalFullSphereConeRelation
     }
 
 }

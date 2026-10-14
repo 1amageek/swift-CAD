@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/full-sphere-cone-ssi-20261014/v2/bounded-regression-asan/Public",
+    "endpoints"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 48.45067499997094,
+  "peakRSSBytes": 333037568,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "6ca30d28b09df6153b74fb53c6ad70e11f51732eefbae81bc8e28dbd1c2531e6"
+}

@@ -185,19 +185,21 @@ import WASILibc
             maximumSpanCount: 262_144, maximumSubdivisionDepth: 8, remainingSourceDepth: sourceDepth,
             consumeWork: { try counter.consume() }, consumeStorage: { try counter.retain($0) }, maximumAlgebraicDepth: scalarDepth)
     }
-    static func publication() throws {
-        for reversed in [false, true] {
+    static func publication(selected: Int? = nil, check: Int? = nil) throws {
+        for reversed in [false, true] where selected == nil || selected! / 2 == (reversed ? 1 : 0) {
             let (first, second) = input(reversed)
-            try require(DefaultSurfaceSurfaceIntersector().intersections(first: first, second: second, tolerance: .standard).count == 1)
-            for empty in [false, true] {
+            if check == nil || check == 0 {
+                try require(DefaultSurfaceSurfaceIntersector().intersections(first: first, second: second, tolerance: .standard).count == 1)
+            }
+            for empty in [false, true] where selected == nil || selected == (reversed ? 2 : 0) + (empty ? 1 : 0) {
                 let measured = Counter(); let result = try admitted(reversed, counter: measured, empty: empty)
                 guard let result else { throw Failure(line: #line) }; try require(owner(result).isEmpty == empty)
                 let n = measured.totals
-                _ = try admitted(reversed, counter: Counter(work: n.work, bytes: n.bytes), empty: empty)
-                _ = try admitted(reversed, counter: Counter(work: n.work, bytes: n.bytes), empty: empty, bare: true)
-                try rejects { _ = try admitted(reversed, counter: Counter(work: n.work - 1, bytes: n.bytes), empty: empty) }
-                try rejects { _ = try admitted(reversed, counter: Counter(work: n.work, bytes: n.bytes - 1), empty: empty) }
-                for at in [1, n.work / 2, n.work] {
+                if check == nil || check == 0 { _ = try admitted(reversed, counter: Counter(work: n.work, bytes: n.bytes), empty: empty) }
+                if check == nil || check == 1 { _ = try admitted(reversed, counter: Counter(work: n.work, bytes: n.bytes), empty: empty, bare: true) }
+                if check == nil || check == 2 { try rejects { _ = try admitted(reversed, counter: Counter(work: n.work - 1, bytes: n.bytes), empty: empty) } }
+                if check == nil || check == 3 { try rejects { _ = try admitted(reversed, counter: Counter(work: n.work, bytes: n.bytes - 1), empty: empty) } }
+                for (index, at) in [1, n.work / 2, n.work].enumerated() where check == nil || check == index + 4 {
                     try rejects { _ = try admitted(reversed, counter: Counter(cancelAt: at), empty: empty) }
                 }
             }
@@ -246,10 +248,18 @@ import WASILibc
 #else
         let group = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "all"
 #endif
-        try require(["all", "success", "endpoints", "publication", "prepared", "terminal"].contains(group))
+        if group.hasPrefix("publication-case-") {
+            let pieces = group.split(separator: "-")
+            guard pieces.count == 4, let selected = Int(pieces[2]), let check = Int(pieces[3]),
+                (0..<4).contains(selected), (0..<7).contains(check) else { throw Failure(line: #line) }
+            try publication(selected: selected, check: check)
+            return
+        }
+        try require(["all", "success", "endpoints", "publication", "publication-0", "publication-1", "publication-2", "publication-3", "prepared", "terminal"].contains(group))
         if group == "all" || group == "success" { try success() }
         if group == "all" || group == "endpoints" { try endpoints() }
         if group == "all" || group == "publication" { try publication() }
+        for index in 0..<4 where group == "publication-" + String(index) { try publication(selected: index) }
         if group == "all" || group == "prepared" { try prepared() }
         if group == "all" || group == "terminal" { try await terminalCancel() }
         print("PASS bounded sphere-cone original parent SSI verification group")

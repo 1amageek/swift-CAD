@@ -1005,3 +1005,16 @@ same owner/depth and create only new request/effective selections. This removes
 the observed5,447,942 preparation plus1,537,867 repeated-domain work cost while
 preserving the same cumulative caller admission. No source/interval replay or
 new allowance is introduced.
+
+### Full sphere-cone parent SSI
+
+Consume the source-owned two closed circle charts and two distinct positive
+slants. A sealed relation retains primitive authored support/request/effective
+and both chart incidents without merging original UV. Section issue delegates
+to the shared source position/root law. An endpoint incident view reuses the
+same root/position values rather than re-solving the polynomial.
+Full publication has2 connected curves, original parameter dimension4, image1
+and fiber0. Quarter coneV<=3/4 requests are entirely excluded by Z<-3 against
+sphereZ>=-3. Other positive finite UV restrictions remain explicit incomplete
+coverage until exact inverse-angle refinement is connected. Prepared queries
+reuse verified frames/support under the same cumulative caller admission.
