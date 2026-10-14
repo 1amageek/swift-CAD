@@ -36,7 +36,7 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
             let level = try ExactRootAccess.add(context.level, 1)
             guard level <= context.maximumExtensionLevel else { throw ExactRealRootFailure.extensionLevelLimit }
             let issuer = ExactRealRootDomain<Self>(context: root.source.context)
-            guard try issuer.roots(root.proof, root.isolation, &a) == 1 else { throw ExactRealRootFailure.invalidEvidence }
+            try issuer.admitted(root, &a)
             try ExactRootAccess.owner((Base, ExactAlgebraicContext<Base>?, ExactRealRoot<Self>?, Int, Int, ExactScalarDepth).self, &a)
             let child = Self(context: ExactAlgebraicContext(base: context.base, parent: context, root: root,
                 level: level, maximumExtensionLevel: context.maximumExtensionLevel, depth: a.depth))
@@ -118,8 +118,35 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
         if degree == 0 {
             return try root.source.context.field.sign(of: polynomial.terms[0].coefficient, using: &a)
         }
+        if degree == 1, let sign=try linearSquareRootSign(polynomial,root:root,&a) { return sign }
         let source = try polynomialSource(polynomial, root: root, &a)
         return try ExactRealRootDomain<Self>(context: root.source.context).sign(of: source, at: root, using: &a)
+    }
+    private func linearSquareRootSign(_ polynomial:ExactPolynomial<Self>,root:ExactRealRoot<Self>,
+        _ a:inout ExactRootBorrowedAdmission) throws -> ExactSign? {
+        let law=root.proof.polynomial,parent=root.source.context.field
+        _=try root.source.context.univariate.degree(of:law,in:0,using:&a)
+        guard law.variableCount==1,law.termCount==2,law.terms[0].powers[0]==2,law.terms[1].powers[0]==0,
+            try parent.compare(law.terms[0].coefficient,parent.integer(1,using:&a),using:&a) == .equal,
+            try parent.sign(of:law.terms[1].coefficient,using:&a) == .negative else { return nil }
+        let positive:Bool
+        if case .finite(let lower)=root.isolation.lower,try parent.sign(of:lower,using:&a) != .negative {
+            positive=true
+        } else if case .finite(let upper)=root.isolation.upper,try parent.sign(of:upper,using:&a) != .positive {
+            positive=false
+        } else { return nil }
+        let slope=polynomial.terms[0].coefficient
+        let constant=try polynomial.termCount==1 ? parent.integer(0,using:&a):polynomial.terms[1].coefficient
+        let raw=try parent.sign(of:slope,using:&a)
+        let b=positive ? raw:(raw == .positive ? ExactSign.negative:raw == .negative ? .positive:.zero)
+        let c=try parent.sign(of:constant,using:&a)
+        if b == .zero { return c }
+        if c == .zero || b == c { return b }
+        let radicand=try parent.negated(law.terms[1].coefficient,using:&a)
+        let difference=try parent.subtracting(parent.multiplying(parent.multiplying(slope,slope,using:&a),radicand,using:&a),
+            parent.multiplying(constant,constant,using:&a),using:&a)
+        let sign=try parent.sign(of:difference,using:&a)
+        return sign == .zero ? .zero:sign == .positive ? b:c
     }
     func calculation(_ selected: ExactRealRoot<Self>, _ a: inout ExactRootBorrowedAdmission) throws -> ExactAlgebraicCalculation<Base> {
         guard let original = context.root else { throw ExactScalarFailure.invalidEvidence }

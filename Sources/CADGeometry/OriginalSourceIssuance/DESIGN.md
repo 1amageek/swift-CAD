@@ -3218,3 +3218,44 @@ Verification must exercise the actual source/DI/public path on independent
 radius/center/apex/angle inputs, both signs/orders and exact metric/UV, with
 resource/depth/cancel/lifetime controls. Existing scoped full/bounded consumers
 are regression assumptions; no lower solver or coefficient field is redesigned.
+
+### G01 aligned bounded sphere-cone source
+
+The existing bounded SSI source consumes actual sphere center/radius and the
+unit-Z cone with aligned offset deltaY=0, deltaX>0 and deltaZ<0. It owns its
+original quadratic independently of any regenerated certified candidate curve.
+Put C=dot(delta,delta)-R^2, m=-deltaZ*cos(alpha), r=deltaX*sin(alpha).
+The exact single bounded-arc capability is m>r>0 and m^2<C<(m+r)^2.
+Then b=m+r*sin(theta)>0 on the full circle and b^2>=C iff
+sin(theta)>=k=(sqrt(C)-m)/r, with0<k<1. This is the whole-pair theorem;
+no sampled critical point or candidate endpoint is authority.
+
+The source issues sqrt(C)>0 and H=sqrt(r^2-(sqrt(C)-m)^2)>0 using retained
+exact pure-square root receipts. Its exact half-angle boundaries are
+L=(r-H)/(sqrt(C)-m), U=(r+H)/(sqrt(C)-m). The common inverse uses
+1/(sqrt(C)-m)=(sqrt(C)+m)/(C-m^2), with the positive physical coefficient
+denominator already proved by classification. Both endpoints retain the shared
+quadratic double root and source-issued sine=(sqrt(C)-m)/r, cosine=+/-H/r.
+Endpoint publication consumes those retained values without re-evaluating a
+nested half-angle inverse. Interior root selection and XYZ use the same actual
+source data through OriginalSphereConeSurfaceSectionValues. Primitive laws
+retain original support, intrinsic labels and independent UV cycles.
+Other bounded topologies, general axis frames and finite-UV clipping retain
+their separate G01 obligations; absence of this capability proves no empty set.
+
+For aligned bounded interiors, the shared sphere-cone section issuer uses the
+exact equivalent positive radical d^2=b^2-C instead of shifted-quadratic
+isolation. Its source
+position theorem retains both slants b+d and b-d in one field/root owner.
+The bound1+abs(b)+abs(C) bounds d when the discriminant is positive. No second
+intersection decomposition, rounded branch selection or root merging is added.
+This replacement is required by the general bounded interior t1 input, whose
+shifted quadratic square-free normalization exhausts its8388608-work admission.
+
+For root-free full sections the existing source-owned original slant quadratic
+and midpoint separation remain selected, with the second root retained by Vieta.
+Aligned bounded sections select the positive discriminant root representation.
+This is an explicit construction-owner choice before solving, not a failure
+fallback. It avoids unnecessary migration of the full negative-slant arithmetic;
+its concrete regression is the original sphere-metric oracle exhausting work
+after full member generation with the changed radical representation.

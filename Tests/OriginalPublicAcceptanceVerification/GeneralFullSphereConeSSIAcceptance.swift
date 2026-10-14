@@ -92,6 +92,13 @@ import WASILibc
 #else
         let group=CommandLine.arguments.count>1 ? CommandLine.arguments[1]:"general-all"
 #endif
+#if G01_BOUNDED_ACCEPTANCE
+        for index in 0..<3 where group=="bounded-general-"+String(index) {
+            try GeneralBoundedSphereConeSSIAcceptance.success(selected:index);return
+        }
+        if group=="bounded-controls" { try GeneralBoundedSphereConeSSIControls.controls();return }
+        if group=="pure-square" { try PureSquareRootAdmissionAcceptance.main();return }
+#endif
         if group=="general-all" { try success();try controls();return }
         for index in 0..<3 where group=="general-"+String(index) { try success(selected:index);return }
         if group=="controls" { try controls();return }

@@ -17,6 +17,23 @@ extension ExactRealRootDomain {
                 classification: domain.isEmpty ? .finite(distinct: 0, totalMultiplicity: 0) : .wholeDomain,
                 factors: [], depth: a.depth)
         }
+        if source.law.variableCount == 1, source.law.termCount == 2 {
+            let leading=source.law.terms[0],constant=source.law.terms[1]
+            try a.consumeWork(2)
+            if leading.powers[0] == 2,constant.powers[0] == 0,
+                try context.field.compare(leading.coefficient,context.field.integer(1,using:&a),using:&a) == .equal,
+                try context.field.sign(of:constant.coefficient,using:&a) == .negative {
+                let x=try context.univariate.variable(0,using:&a)
+                let one=try context.univariate.constant(context.field.integer(1,using:&a),using:&a)
+                try ExactRootAccess.storage(3,ExactPolynomial<F>.self,&a)
+                try ExactRootAccess.owner((ExactPolynomial<F>,[ExactPolynomial<F>],ExactScalarDepth).self,&a)
+                let proof=ExactRootSturm(polynomial:source.law,chain:[source.law,x,one],depth:a.depth)
+                let n=try roots(proof,domain,&a)
+                try ExactRootAccess.storage(1,(proof:ExactRootSturm<F>,multiplicity:Int).self,&a)
+                return ExactRealRootCount(source:source,domain:domain,classification:.finite(distinct:n,totalMultiplicity:n),
+                    factors:[(proof,1)],depth:a.depth)
+            }
+        }
         let decomposition = try context.univariate.squareFreeDecomposition(source.law, using: &a)
         try ExactRootAccess.admit(decomposition.depth, &a)
         try ExactRootAccess.storage(decomposition.factors.count, (proof: ExactRootSturm<F>, multiplicity: Int).self, &a)
@@ -78,6 +95,17 @@ extension ExactRealRootDomain {
         try ExactRootAccess.storage(expected, ExactRealRoot<F>.self, &a)
         var result: [ExactRealRoot<F>] = []; result.reserveCapacity(expected)
         if expected == 0 { return ExactRealRootSet(count: count, roots: result, depth: a.depth) }
+        if expected == 1,count.factors.count == 1 {
+            let entry=count.factors[0]
+            guard total == entry.multiplicity else { throw ExactRealRootFailure.invalidEvidence }
+            let isolated=try finite(domain,proof:entry.proof,&a)
+            try ExactRootAccess.visit(isolated.depth,axis:source.refinementAxis,&a)
+            let before=try interval(.negativeInfinity,isolated.lower,false,!isolated.includesLower,&a)
+            let ordinal=try factorRoots(count,in:before,&a)
+            result.append(.init(source:source,multiplicity:entry.multiplicity,ordinal:ordinal,
+                isolation:isolated,proof:entry.proof,depth:a.depth))
+            return ExactRealRootSet(count:count,roots:result,depth:a.depth)
+        }
         for entry in count.factors {
             let initial = try finite(domain, proof: entry.proof, &a)
             try ExactRootAccess.storage(1, ExactRealRootInterval<F.Value>.self, &a)

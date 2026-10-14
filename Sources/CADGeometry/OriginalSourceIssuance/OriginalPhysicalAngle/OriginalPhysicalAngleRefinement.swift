@@ -47,6 +47,8 @@ struct OriginalPhysicalAngleRefinement {
             s = next
         }
         if owner.negative { s = try s.negated(q, &a) }
+        s = try s.outwardDyadic(q, &a)
+        c = try c.outwardDyadic(q, &a)
         guard try c.sign(q, &a) != nil else { return nil }
         return try s.divided(by: c, q, &a)
     }

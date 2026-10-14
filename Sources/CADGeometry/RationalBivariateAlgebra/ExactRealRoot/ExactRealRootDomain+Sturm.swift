@@ -97,6 +97,9 @@ extension ExactRealRootDomain {
     }
     func finite(_ selected: ExactRealRootInterval<F.Value>, proof: ExactRootSturm<F>,
         _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootInterval<F.Value> {
+        if case .finite = selected.lower, case .finite = selected.upper {
+            return try interval(selected.lower, selected.upper, selected.includesLower, selected.includesUpper, &a)
+        }
         let b = try bound(proof.polynomial, &a)
         let negative = try context.field.negated(b, using: &a)
         var lo = negative, hi = b, il = true, iu = true

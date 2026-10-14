@@ -1,0 +1,21 @@
+[
+  "bounded-success",
+  "bounded-endpoints",
+  "pure-square",
+  "bounded-general-0",
+  "bounded-general-1",
+  "bounded-general-2",
+  "bounded-controls",
+  "general-0",
+  "general-1",
+  "general-2",
+  "controls",
+  "full-success",
+  "full-endpoints",
+  "full-publication",
+  "full-prepared",
+  "full-terminal",
+  "bounded-publication",
+  "bounded-prepared",
+  "bounded-terminal"
+]

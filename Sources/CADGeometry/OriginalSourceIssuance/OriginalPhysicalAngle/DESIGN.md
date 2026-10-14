@@ -106,3 +106,27 @@ angle doubling, original-input lifetime, foreign-owner rejection, zero divisor,
 work/storage/depth refusal and entry/final cancellation. Native, ASAN, normal
 WASM and Embedded execute identical source/ownership contracts. The cone issuer
 must separately prove its source law and branch predicates before completion.
+
+### Width-matched rational enclosure precision
+
+Before tangent division and again before polynomial evaluation, outward dyadic
+rounding uses each certified enclosure's rational width. This keeps factorial-sized
+Taylor denominators out of interval division without changing source coefficients. For positive width N/D,
+let n and d be the canonical numerator/denominator UInt32 word counts. The
+precision32*(max(d-n,0)+1) makes the dyadic step strictly smaller than that
+width. Counts and multiplication are overflow checked. Thus rounding never
+forces additional Taylor terms merely because an unrelated order*4 grid is
+coarser than the existing proof. The exact interval remains enclosed, unresolved
+signs continue refinement, and work/storage/causal coefficient depth/cancel
+contracts are unchanged. Zero-width enclosures use the exact interval directly.
+The concrete regression is the nonzero coefficient cos(alpha)-2*sin(alpha) for
+alpha=the stored atan(1/2); it must not become zero, pole or proximity identity.
+
+Interval multiplication selects extremal endpoint products from exact endpoint
+signs. For two intervals spanning zero it compares the two possible minima and
+two possible maxima; all other sign combinations require two products without
+rational cross-corner comparisons. Closed zero endpoints remain included.
+The concrete regression is the generalized bounded section's repeated nested
+critical comparison exhausting work inside four-corner rational comparison.
+An independent integer four-corner oracle covers every sign pair and zero
+singletons; public new/legacy bounded sections remain the acceptance gate.

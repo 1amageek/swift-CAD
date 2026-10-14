@@ -21,13 +21,7 @@ extension OriginalPhysicalAngleScalarDomain {
             while true {
                 try a.checkpoint()
                 guard let exactParameter = try refinement.next(&a) else { continue }
-                let bits = refinement.order.multipliedReportingOverflow(by: 4)
-                guard !bits.overflow else { throw ExactScalarFailure.countOverflow }
-                let lower = try owner.rationals.dyadicNeighbours(exactParameter.lower,
-                    fractionalBits: bits.partialValue, using: &a).lower
-                let upper = try owner.rationals.dyadicNeighbours(exactParameter.upper,
-                    fractionalBits: bits.partialValue, using: &a).upper
-                let parameter = OriginalPhysicalAngleInterval(lower: lower, upper: upper)
+                let parameter = try exactParameter.outwardDyadic(owner.rationals, &a)
                 guard let n = try enclosed(x.numerator, at: parameter, &a).sign(owner.rationals, &a),
                     let d = try enclosed(x.denominator, at: parameter, &a).sign(owner.rationals, &a) else { continue }
                 return n == d ? .positive : .negative

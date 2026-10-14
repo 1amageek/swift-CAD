@@ -1,0 +1,30 @@
+[
+  {
+    "lane": "asan",
+    "pid": 61330,
+    "ownedProcesses": [
+      61330,
+      64254
+    ],
+    "reason": "Native v10 full-general-2 regression confirmed; stop old snapshot to avoid more noncausal runtime work"
+  },
+  {
+    "lane": "wasm",
+    "pid": 61331,
+    "ownedProcesses": [
+      61331,
+      64550
+    ],
+    "reason": "Native v10 full-general-2 regression confirmed; stop old snapshot to avoid more noncausal runtime work"
+  },
+  {
+    "lane": "embedded",
+    "pid": 61332,
+    "ownedProcesses": [
+      61332,
+      61339,
+      61343
+    ],
+    "reason": "Native v10 full-general-2 regression confirmed; stop old snapshot to avoid more noncausal runtime work"
+  }
+]

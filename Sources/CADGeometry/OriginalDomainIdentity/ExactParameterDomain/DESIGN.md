@@ -163,3 +163,15 @@ ancestor bounds without rebinding/copying the set. Foreign values/fields, depth,
 resource and cancellation failures remain typed; exclusion never hides validation.
 Existing membership continues to use the retained field with unchanged admission.
 M6 consumer fixtures own the descendant-field integration counterexample.
+
+### Finite endpoint admission
+
+For two finite endpoints, the ordered-field comparison validates both operands'
+coefficient owners and causal depths while establishing interval order. Separate
+sign decisions are redundant and are not repeated. When either endpoint is
+infinite, the remaining finite operand still receives its sign/owner/depth
+admission. Invalid infinities, reversed order, open singleton emptiness,
+foreign fields and final cancellation retain their existing failure contracts.
+The concrete source is the nested critical half-angle interval of the general
+bounded sphere-cone SSI: separately ordering its lower endpoint exhausts the
+same caller work after a successful source issuance.

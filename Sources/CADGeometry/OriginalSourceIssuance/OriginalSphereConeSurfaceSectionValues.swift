@@ -24,7 +24,7 @@ public struct OriginalSphereConeSurfaceSectionValues: Sendable {
     }
     static func issue<A:ExactScalarAdmission & ~Copyable>(halfAngle t:Field.Value,chart:Int,
         sourceSine:Field.Value,sourceCosine:Field.Value,apex:Point3D,center:Point3D,radius:Double,
-        using a:inout A) throws -> Self {
+        isDoubleRoot:Bool = false,discriminantRoot:Bool = false,using a:inout A) throws -> Self {
         let f=try Field(retaining:t,using:&a)
         let dx=try f.subtracting(f.binary64(exactly:apex.x,using:&a),f.binary64(exactly:center.x,using:&a),using:&a)
         let dy=try f.subtracting(f.binary64(exactly:apex.y,using:&a),f.binary64(exactly:center.y,using:&a),using:&a)
@@ -33,11 +33,11 @@ public struct OriginalSphereConeSurfaceSectionValues: Sendable {
         let constant=try f.subtracting(f.adding(f.adding(f.multiplying(dx,dx,using:&a),f.multiplying(dy,dy,using:&a),using:&a),
             f.multiplying(dz,dz,using:&a),using:&a),f.multiplying(r,r,using:&a),using:&a)
         return try issue(halfAngle:t,chart:chart,sourceSine:sourceSine,sourceCosine:sourceCosine,
-            apex:apex,dx:dx,dy:dy,dz:dz,constant:constant,isDoubleRoot:false,using:&a)
+            apex:apex,dx:dx,dy:dy,dz:dz,constant:constant,isDoubleRoot:isDoubleRoot,discriminantRoot:discriminantRoot,using:&a)
     }
     private static func issue<A:ExactScalarAdmission & ~Copyable>(halfAngle t:Field.Value,chart:Int,
         sourceSine:Field.Value,sourceCosine:Field.Value,apex:Point3D,dx:Field.Value,dy:Field.Value,dz:Field.Value,
-        constant:Field.Value,isDoubleRoot:Bool,using a:inout A) throws -> Self {
+        constant:Field.Value,isDoubleRoot:Bool,discriminantRoot:Bool = false,using a:inout A) throws -> Self {
         try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
             let base = try Field(retaining: t, using: &a)
             let s = try base.importing(sourceSine, using: &a), c = try base.importing(sourceCosine, using: &a)
@@ -52,7 +52,7 @@ public struct OriginalSphereConeSurfaceSectionValues: Sendable {
                 base.multiplying(base.multiplying(yOffset,s,using:&a),cosine,using:&a),using:&a),base.multiplying(zOffset,c,using:&a),using:&a)
             let field: Field, plus: Field.Value, minus: Field.Value
             if isDoubleRoot { field = base; plus = b; minus = b }
-            else {
+            else if !discriminantRoot {
                 let roots = try ExactRealRootDomain(field: base, using: &a)
                 try a.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: ExactPolynomialTerm<Field.Value>.self))
                 try a.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Int.self))
@@ -73,12 +73,45 @@ public struct OriginalSphereConeSurfaceSectionValues: Sendable {
                 field = extended.domain; plus = extended.generator
                 minus = try field.subtracting(field.importing(base.multiplying(two, b, using: &a), using: &a), plus, using: &a)
             }
+            else {
+                let roots=try ExactRealRootDomain(field:base,using:&a)
+                let discriminant=try base.subtracting(base.multiplying(b,b,using:&a),coefficient,using:&a)
+                try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:ExactPolynomialTerm<Field.Value>.self))
+                try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:Int.self))
+                let polynomial=try roots.polynomials.polynomial(terms:[
+                    .init(powers:[2],coefficient:one),
+                    .init(powers:[0],coefficient:base.negated(discriminant,using:&a))],using:&a)
+                let absB=try base.sign(of:b,using:&a) == .negative ? base.negated(b,using:&a):b
+                let absConstant=try base.sign(of:coefficient,using:&a) == .negative ? base.negated(coefficient,using:&a):coefficient
+                let bound=try base.adding(one,base.adding(absB,absConstant,using:&a),using:&a)
+                let scope=try roots.domain(lower:.finite(base.integer(0,using:&a)),upper:.finite(bound),
+                    includesLower:false,includesUpper:false,using:&a)
+                let isolated=try roots.isolate(roots.bind(polynomial,using:&a),in:scope,limits:.init(maximumRoots:1),using:&a)
+                guard isolated.roots.count==1 else { throw OriginalSourceIssuanceFailure.invalidSource }
+                let extended=try base.adjoin(isolated.roots[0],using:&a)
+                field=extended.domain
+                let middle=try field.importing(b,using:&a)
+                plus=try field.adding(middle,extended.generator,using:&a)
+                minus=try field.subtracting(middle,extended.generator,using:&a)
+            }
             let h = try field.importing(t, using: &a), ss = try field.importing(sine, using: &a), cc = try field.importing(cosine, using: &a)
             let sourceSine = try field.importing(s, using: &a), sourceCosine = try field.importing(c, using: &a)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Self.self))
             let value = Self(halfAngle: h, field: field, sine: ss, cosine: cc, plusSlant: plus, minusSlant: minus,
                 isDoubleRoot: isDoubleRoot, proofDepth: try a.depth, sourceSine: sourceSine, sourceCosine: sourceCosine, apex: apex)
             try a.checkpoint(); return value
+        }
+    }
+    static func endpoint<A:ExactScalarAdmission & ~Copyable>(halfAngle:Field.Value,sine:Field.Value,cosine:Field.Value,
+        slant:Field.Value,sourceSine:Field.Value,sourceCosine:Field.Value,apex:Point3D,using a:inout A) throws -> Self {
+        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            let f=try Field(retaining:halfAngle,using:&a)
+            let s=try f.importing(sine,using:&a),c=try f.importing(cosine,using:&a),root=try f.importing(slant,using:&a)
+            let ss=try f.importing(sourceSine,using:&a),cc=try f.importing(sourceCosine,using:&a)
+            try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Self.self))
+            let value=Self(halfAngle:halfAngle,field:f,sine:s,cosine:c,plusSlant:root,minusSlant:root,
+                isDoubleRoot:true,proofDepth:try a.depth,sourceSine:ss,sourceCosine:cc,apex:apex)
+            try a.checkpoint();return value
         }
     }
     public func position<A: ExactScalarAdmission & ~Copyable>(branch: Int, using a: inout A)

@@ -1023,3 +1023,29 @@ XYZ and sphere inverse arguments use the actual retained parent data. A collapse
 sphere azimuth retains its full angular family. Every ordinary and rich entry
 selects an existing bounded recipe before the broader full candidate. General
 bounded/open/apex and positive finite UV publication remain G01 obligations.
+
+### Aligned bounded sphere-cone publication
+
+Publication consumes the [bounded source theorem](../OriginalSourceIssuance/DESIGN.md#g01-aligned-bounded-sphere-cone-source)
+and the existing DI relation. XYZ, latitude and azimuth use actual retained
+parent data. Sphere poles retain unrestricted angular families. The broad
+bounded candidate is selected only after exact single-arc classification under
+the same caller admission; a different topology declines that capability without
+claiming absence or retrying after a failure. Full/apex dispatch then consumes
+its own proved capability. Prepared creation retains only the selected owner.
+
+### Complete sphere azimuth inverse relation
+
+Full and bounded sphere-cone UV publication emits `sphereAngularInverse` with
+both exact source-relative arguments, intrinsic label period and selected
+integer-lift offset. For nonzero argument pairs this is the principal atan2
+inverse plus its admitted integer lifts. For the EXACT zero pair it is every
+original sphere U. This conditional inverse is a complete symbolic relation,
+not an evaluated atan2(0,0), a guessed pole, a successful failed sign decision
+or an unchecked identity certificate. The original arguments and member owner
+remain retained; a near-pole argument never acquires collapsed identity.
+Old `sphereAzimuthLabel` and explicit `collapsedAngularFamily` descriptor cases
+remain deprecated data forms. The live full/bounded publishers use the complete
+inverse case. Consumers retain the condition rather than evaluating raw atan2
+without its nonzero guard. This avoids demanding an unnecessary per-member
+pole classification before publishing the source's already complete inverse.

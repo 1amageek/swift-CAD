@@ -48,11 +48,7 @@ public struct OriginalFullSphereConeSurfaceMember: Sendable {
         let u: OriginalFullSphereConeSurfaceUV.Coordinate, v: OriginalFullSphereConeSurfaceUV.Coordinate
         if isSphere {
             let args=try sphereAzimuthArguments(limits:limits,using:&a)
-            if try field.sign(of:args.sine,using:&a) == .zero,try field.sign(of:args.cosine,using:&a) == .zero {
-                u = .collapsedAngularFamily(period:period)
-            } else {
-                u = .sphereAzimuthLabel(sineArgument:args.sine,cosineArgument:args.cosine,period:period,offset:sphereLabelOffset)
-            }
+            u = .sphereAngularInverse(sineArgument:args.sine,cosineArgument:args.cosine,period:period,offset:sphereLabelOffset)
             v = .sphereLatitudeLabel(sine:try sphereLatitudeSine(limits:limits,using:&a),period:period)
         } else {
             u = .coneAngularLabel(halfAngle: coneHalfAngle, period: period, offset: coneLabelOffset)

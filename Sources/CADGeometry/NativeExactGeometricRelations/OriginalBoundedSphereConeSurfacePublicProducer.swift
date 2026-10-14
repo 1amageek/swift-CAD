@@ -10,7 +10,7 @@ struct OriginalBoundedSphereConeSurfacePublicProducer {
         guard OriginalBoundedSphereConeSurfaceSnapshotProvider.pair(input) != nil else { return nil }
         let usage = try NativeSurfaceSurfacePointAllowance(options: options, admission: admission)
         var a = Admission(usage: usage, maximumDepth: usage.maximumAlgebraicDepth)
-        let bound = try source(input, options: options, tolerance: tolerance, admission: admission, using: &a)
+        guard let bound = try source(input, options: options, tolerance: tolerance, admission: admission, using: &a) else { return nil }
         return try OriginalBoundedSphereConeSurfaceRelation.resolve(source: bound, firstBox: nil, secondBox: nil,
             maximumComponents: options.maximumSeedCount, limits: limits(options: options, admission: admission), using: &a)
     }
@@ -18,7 +18,7 @@ struct OriginalBoundedSphereConeSurfacePublicProducer {
         secondBox: SurfaceParameterBox? = nil, options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance, includeRelations: Bool = false, admission: SurfaceSurfaceQueryAdmission = .legacy,
         retained: OriginalBoundedSphereConeSurfaceRelation? = nil) throws -> SurfaceSurfaceIntersectionResult? {
-        // FIXME(INCOMPLETE_IMPLEMENTATION): This fixed bounded parent SSI publishes
+        // FIXME(INCOMPLETE_IMPLEMENTATION): This aligned single-arc parent SSI publishes
         // the complete full pair and selected exclusions. Other parent pairs and
         // nonempty finite UV clipping need their complete source/refinement owner.
         let input = OriginalBoundedSphereConeSurfaceInput(first: first, second: second)
@@ -33,7 +33,10 @@ struct OriginalBoundedSphereConeSurfacePublicProducer {
                     throw OriginalDomainIdentityFailure.foreignOwner
                 }
                 bound = retained.source
-            } else { bound = try source(input, options: options, tolerance: tolerance, admission: admission, using: &a) }
+            } else {
+                guard let issued=try source(input,options:options,tolerance:tolerance,admission:admission,using:&a) else { return nil }
+                bound=issued
+            }
             let relation = try OriginalBoundedSphereConeSurfaceRelation.resolve(source: bound, firstBox: firstBox,
                 secondBox: secondBox, maximumComponents: options.maximumSeedCount,
                 limits: limits(options: options, admission: admission), prepared: retained, using: &a)
@@ -55,8 +58,11 @@ struct OriginalBoundedSphereConeSurfacePublicProducer {
     }
     private func source(_ input: OriginalBoundedSphereConeSurfaceInput, options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission, using a: inout Admission)
-        throws -> OriginalSourceBinding<Source> {
-        let physical = try OriginalPhysicalAngleScalarDomain(originalRadians: Double(bitPattern: 0x3fddac670561bb50), using: &a)
+        throws -> OriginalSourceBinding<Source>? {
+        guard let pair=OriginalBoundedSphereConeSurfaceSnapshotProvider.pair(input),
+            case .analytic(.cone(_,_,let angle))=pair.cone else { return nil }
+        let physical=try OriginalPhysicalAngleScalarDomain(originalRadians:angle,using:&a)
+        guard try OriginalBoundedSphereConeSurfaceSnapshotProvider.admitsSingleArc(input,physical:physical,using:&a) else { return nil }
         return try DefaultOriginalSourceBindingIssuer(provider: OriginalBoundedSphereConeSurfaceSnapshotProvider(
             physical: physical, maximumExtensionLevel: a.usage.maximumAlgebraicDepth, tolerance: tolerance))
             .bind(input, limits: limits(options: options, admission: admission).source, using: &a)

@@ -1,0 +1,22 @@
+{
+  "native": {
+    "runtimeGroups": 19,
+    "compileSeconds": 103.72948104096577,
+    "runtimeSeconds": 94.84856695996132
+  },
+  "asan": {
+    "runtimeGroups": 19,
+    "compileSeconds": 126.32235479203518,
+    "runtimeSeconds": 289.95426541834604
+  },
+  "wasm": {
+    "runtimeGroups": 19,
+    "compileSeconds": 101.42540933389682,
+    "runtimeSeconds": 212.44869858189486
+  },
+  "embedded": {
+    "runtimeGroups": 19,
+    "compileSeconds": 201.37239837506786,
+    "runtimeSeconds": 117.89367612649221
+  }
+}

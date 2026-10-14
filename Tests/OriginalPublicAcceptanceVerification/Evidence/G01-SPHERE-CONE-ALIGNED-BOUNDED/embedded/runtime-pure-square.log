@@ -1,0 +1,5 @@
+(node:70418) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS all exact interval sign pairs and zero boundaries against independent four-corner integer oracle
+PASS independent whole-angle rational oracle: exact near-zero physical coefficient remains negative; opposite and equality controls
+PASS pure-square whole/finite/one-sided roots, original ordinals/multiplicities, positive/negative linear signs, generic repeated/empty controls, N/N-1 and cancellation

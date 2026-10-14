@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-chart-domain-20261014/whole-tracking-v8/Probe",
+    "success"
+  ],
+  "exitCode": -5,
+  "elapsedSeconds": 3.402281416929327,
+  "peakRSSBytes": 12976128,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "818ac9a19e22dc94f871e2d383d546ff4b143194659177b615679a773144cff1"
+}

@@ -25,8 +25,12 @@ public struct ExactParameterInterval<Value: Sendable>: Sendable {
         try ExactParameterDomainAccess.run(&admission, depth: depth) { a in
             if case .positiveInfinity = lower { throw ExactParameterDomainFailure.invalidDomain }
             if case .negativeInfinity = upper { throw ExactParameterDomainFailure.invalidDomain }
-            if case .finite(let v) = lower { _ = try field.sign(of: v, using: &a) }
-            if case .finite(let v) = upper { _ = try field.sign(of: v, using: &a) }
+            if case .finite = lower, case .finite = upper {
+                // The required comparison validates both operands in this field.
+            } else {
+                if case .finite(let v) = lower { _ = try field.sign(of: v, using: &a) }
+                if case .finite(let v) = upper { _ = try field.sign(of: v, using: &a) }
+            }
             let order = try ExactParameterDomainAccess.compare(lower, upper, field: field, using: &a)
             guard order != .greater else { throw ExactParameterDomainFailure.invalidDomain }
             let il: Bool = { if case .finite = lower { return includesLower }; return false }()

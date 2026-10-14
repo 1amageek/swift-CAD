@@ -77,7 +77,7 @@ import WASILibc
                 let first = try point.firstUV(limits: limits(), using: &a), second = try point.secondUV(limits: limits(), using: &a)
                 try require(first.isSphere == !reversed && second.isSphere == reversed)
                 let sphere = reversed ? second : first, cone = reversed ? first : second
-                guard case .sphereAzimuthLabel(let ys, let yc, _, let offset) = sphere.u,
+                guard case .sphereAngularInverse(let ys, let yc, _, let offset) = sphere.u,
                     case .sphereLatitudeLabel(let latitude, _) = sphere.v,
                     case .coneAngularLabel(let half, _, let coneOffset) = cone.u,
                     case .authoredScalar(let slant) = cone.v else { throw Failure(line: #line) }

@@ -1095,3 +1095,11 @@ It retains both circle charts, both ordered branches, actual parent domains and
 independent angular lifts. Selected height exclusion uses the authored apex,
 center and radius. Nonempty finite UV refinement remains incomplete; this
 family extension does not close G01.
+
+### General aligned bounded source consumption
+
+The existing bounded relation consumes the [aligned source theorem](../OriginalSourceIssuance/DESIGN.md#g01-aligned-bounded-sphere-cone-source).
+Its retained lower/upper half-angle support and shared endpoint germs are source
+issued. Full-pair selection, original request/support/effective domains and both
+root owners remain unchanged. Height exclusions use the actual center/radius and
+apex. General finite-UV refinements remain required before G01 completes.

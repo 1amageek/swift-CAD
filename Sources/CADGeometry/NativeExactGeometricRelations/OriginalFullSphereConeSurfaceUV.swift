@@ -8,11 +8,16 @@ public struct OriginalFullSphereConeSurfaceUV: Sendable {
         /// B/(2*pi)*2*atan(t)+chart*B/2+cycle*B, with t in[-1,1].
         case coneAngularLabel(halfAngle: Value, period: Value, offset: Value)
         /// B/(2*pi)*atan2(sineArgument,cosineArgument)+offset, principal(-pi,pi].
+        @available(*,deprecated,message:"Use the complete sphereAngularInverse relation.")
         case sphereAzimuthLabel(sineArgument: Value, cosineArgument: Value, period: Value, offset: Value)
         /// B/(2*pi)*asin(sine), on the original closed canonical latitude range.
         case sphereLatitudeLabel(sine: Value, period: Value)
         /// The source's exact pole admits every real U, with the original period theorem.
+        @available(*,deprecated,message:"The complete sphereAngularInverse retains the exact collapsed condition.")
         case collapsedAngularFamily(period:Value)
+        /// Nonzero arguments: principal atan2 plus the selected integer lift.
+        /// Exactly zero arguments: every original U; no atan2(0,0) is evaluated.
+        case sphereAngularInverse(sineArgument:Value,cosineArgument:Value,period:Value,offset:Value)
         case authoredScalar(Value)
     }
     public let member: OriginalFullSphereConeSurfaceMember

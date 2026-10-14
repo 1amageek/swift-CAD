@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-bounded-family-20261014/native/Public",
+    "full-endpoints"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 1.4204516670433804,
+  "peakRSSBytes": 13008896,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "80cd5f74971274cf733e3322bf68e935c2b601d66a312bc8d7adda527f365f26"
+}

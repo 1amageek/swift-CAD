@@ -14,6 +14,19 @@ struct OriginalPhysicalAngleInterval {
         if try q.compare(first, second, using: &a) == .greater { return .init(lower: second, upper: first) }
         return .init(lower: first, upper: second)
     }
+    func outwardDyadic<A: ExactScalarAdmission & ~Copyable>(
+        _ q: ExactRationalScalarDomain, _ a: inout A) throws -> Self {
+        let width = try q.subtracting(upper, lower, using: &a)
+        let sign = try q.sign(of: width, using: &a)
+        guard sign != .negative else { throw ExactScalarFailure.invalidEvidence }
+        if sign == .zero { return self }
+        let words = try OriginalPhysicalAngleScalarDomain.increment(max(
+            width.canonicalDenominatorWords.count - width.canonicalNumeratorWords.count, 0))
+        let bits = words.multipliedReportingOverflow(by: UInt32.bitWidth)
+        guard !bits.overflow else { throw ExactScalarFailure.countOverflow }
+        return try Self(lower: q.dyadicNeighbours(lower, fractionalBits: bits.partialValue, using: &a).lower,
+            upper: q.dyadicNeighbours(upper, fractionalBits: bits.partialValue, using: &a).upper)
+    }
     func adding<A: ExactScalarAdmission & ~Copyable>(_ rhs: Self,
         _ q: ExactRationalScalarDomain, _ a: inout A) throws -> Self {
         try .init(lower: q.adding(lower, rhs.lower, using: &a), upper: q.adding(upper, rhs.upper, using: &a))
@@ -27,15 +40,30 @@ struct OriginalPhysicalAngleInterval {
     }
     func multiplying<A: ExactScalarAdmission & ~Copyable>(_ rhs: Self,
         _ q: ExactRationalScalarDomain, _ a: inout A) throws -> Self {
-        let first = try q.multiplying(lower, rhs.lower, using: &a)
-        var lo = first, hi = first
-        // The four corners are sufficient for a bilinear product on a closed box.
-        for corner in 1..<4 {
-            try a.consumeWork(1)
-            let v = try q.multiplying(corner < 2 ? lower : upper,
-                corner % 2 == 0 ? rhs.lower : rhs.upper, using: &a)
-            if try q.compare(v, lo, using: &a) == .less { lo = v }
-            if try q.compare(v, hi, using: &a) == .greater { hi = v }
+        let lhsPositive = try q.sign(of: lower, using: &a) != .negative
+        let lhsNegative = try q.sign(of: upper, using: &a) != .positive
+        let rhsPositive = try q.sign(of: rhs.lower, using: &a) != .negative
+        let rhsNegative = try q.sign(of: rhs.upper, using: &a) != .positive
+        let lo: ExactRationalCoefficient, hi: ExactRationalCoefficient
+        if lhsPositive {
+            lo = try q.multiplying(rhsPositive ? lower : upper, rhs.lower, using: &a)
+            hi = try q.multiplying(rhsNegative ? lower : upper, rhs.upper, using: &a)
+        } else if lhsNegative {
+            lo = try q.multiplying(rhsNegative ? upper : lower, rhs.upper, using: &a)
+            hi = try q.multiplying(rhsPositive ? upper : lower, rhs.lower, using: &a)
+        } else if rhsPositive {
+            lo = try q.multiplying(lower, rhs.upper, using: &a)
+            hi = try q.multiplying(upper, rhs.upper, using: &a)
+        } else if rhsNegative {
+            lo = try q.multiplying(upper, rhs.lower, using: &a)
+            hi = try q.multiplying(lower, rhs.lower, using: &a)
+        } else {
+            let l = try q.multiplying(lower, rhs.upper, using: &a)
+            let r = try q.multiplying(upper, rhs.lower, using: &a)
+            lo = try q.compare(l, r, using: &a) == .less ? l : r
+            let u = try q.multiplying(lower, rhs.lower, using: &a)
+            let v = try q.multiplying(upper, rhs.upper, using: &a)
+            hi = try q.compare(u, v, using: &a) == .greater ? u : v
         }
         return .init(lower: lo, upper: hi)
     }

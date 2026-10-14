@@ -22,6 +22,61 @@ parameter-domain seams or publication of CAD intersections. Those consumers use
 L2 evidence later. L2 completion cannot count as completion of the seven CAD
 requirements.
 
+### Single-root count consumption
+
+If a retained count proves exactly one distinct root from one square-free
+factor, isolation consumes that complete count and the same finite scope. It
+retains the original factor proof, source, global ordinal and multiplicity,
+performs the causal visit and final publication checkpoint, and avoids counting
+the same scope again. Unbounded scopes first use the existing complete Cauchy
+bound. Global ordinal is still proved against the preceding full-real interval.
+The general multi-factor/multi-root separation algorithm remains unchanged.
+The concrete sphere-cone interior radical otherwise repeats its complete count
+inside the one-root branch and exhausts the unchanged work admission.
+
+### Adjoining an issued immutable root
+
+Every L2 root issuer proves one unique defining root in its retained isolation;
+refinement preserves that property before publishing a replacement. Adjoin
+validates coefficient-context identity and readmits source/root/isolation/proof
+depth, extension ceiling and cancellation, then consumes that immutable
+receipt. It does not count the same root again. Public callers cannot construct
+an unchecked root. Original source, global ordinal and multiplicity remain
+retained by the child context. The concrete bounded sphere-cone source reaches
+its unchanged work ceiling during that redundant second count.
+
+### Linear signs at a retained pure-square root
+
+For a retained root z of the checked monic law z^2-r, r>0, an isolation
+entirely on one side of zero proves its sign. For a linear expression a+b*z,
+same-signed terms decide directly; opposing terms compare b^2*r with a^2 in
+the parent ordered field. Exact equality gives zero. This avoids a second
+Sturm-Tarski construction while preserving the selected root, its original
+owner/ordinal and all caller admission. An incompatible law or isolation keeps
+the existing general sign algorithm. The required source input is the
+sphere-cone critical cosine over sqrt(C); near-zero is never rounded to zero.
+
+### Already-finite isolation domains
+
+After source/endpoint/depth validation, an already finite requested isolation
+interval is retained directly. Its exact root count already refers to that full
+interval. A Cauchy bound is needed only to turn an unbounded endpoint into a
+finite isolation scope. Open/closed endpoints, original ordinals and refinement
+visits remain unchanged; no admitted interval is widened or replaced by samples.
+
+### Checked pure-square Sturm construction
+
+A canonical monic univariate law x^2-r with r>0 admits the exact Sturm chain
+[x^2-r,x,1]. It has no repeated root because r is nonzero. L2 verifies the
+polynomial shape, leading coefficient and constant sign in the original field,
+then counts the requested interval with this retained chain. Original source,
+root ordinals, multiplicity one, domain endpoints, root ceiling, causal visits,
+owners and caller work/storage/depth/cancel admission are unchanged. No generic
+square-free or field-inverse operation is needed for this verified form.
+Other law shapes and r<=0 keep the existing complete generic algorithm.
+The concrete caller is the sphere-cone critical-cosine source law over a retained
+physical/algebraic field; generic square-free normalization exhausts8388608 work.
+
 ### Positive Sturm unit normalization
 
 Sturm construction makes each nonzero chain member monic through L1, then
