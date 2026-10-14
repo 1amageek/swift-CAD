@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-integration-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-ALIGNED-BOUNDED/delivery-native/Prepared"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 11.658466457971372,
+  "peakRSSBytes": 13336576,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "3ba5e1a200331e9b9a0d0d2a59138112898644744af885de8e501aec57f142fb"
+}
