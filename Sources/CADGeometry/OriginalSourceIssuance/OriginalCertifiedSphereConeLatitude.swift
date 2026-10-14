@@ -23,11 +23,14 @@ public struct OriginalCertifiedSphereConeLatitude: Sendable {
             throw OriginalSourceIssuanceFailure.invalidChart
         }
         let root = source.original.roots[phaseOrdinal], f = root.field
-        let three = try f.integer(3, using: &a)
+        guard case .analytic(.sphere(_, let radius)) = source.original.original.sphereSurface else {
+            throw OriginalSourceIssuanceFailure.invalidSource
+        }
+        let three = try f.binary64(exactly: radius, using: &a)
         let sine = try f.dividing(root.z, three, using: &a)
         // The whole-source pole-free theorem and positive slant select this sign.
-        // At the first phase only the positive full branch has negative X.
-        let negativeX = phaseOrdinal == 0 && source.original.original.componentKind == .positiveFullBranch
+        // Select azimuth from exact original X, including the bounded root switch.
+        let negativeX = try f.sign(of: root.x, using: &a) == .negative
         let absoluteX = negativeX ? try f.negated(root.x, using: &a) : root.x
         let cosine = try f.dividing(absoluteX, three, using: &a)
         let period = try f.binary64(exactly: 2 * Double.pi, using: &a)

@@ -8,9 +8,11 @@ struct OriginalCertifiedSphereConePhaseProvider: OriginalSourceSnapshotting {
         do {
             try a.checkpoint(); try a.consumeWork(1)
             guard limits.remainingSourceDepth >= 1 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
-            guard input.lowerAngle == 0, input.upperAngle == 2 * Double.pi else { throw OriginalSourceIssuanceFailure.invalidSource }
+            if input.componentKind != .boundedAngularInterval {
+                guard input.lowerAngle == 0, input.upperAngle == 2 * Double.pi else { throw OriginalSourceIssuanceFailure.invalidSource }
+            }
             switch input.componentKind {
-            case .negativeFullBranch, .positiveFullBranch: break
+            case .negativeFullBranch, .positiveFullBranch, .boundedAngularInterval: break
             default: throw OriginalSourceIssuanceFailure.unsupportedRepresentation
             }
             let end = try ExactRationalScalarDomain().binary64(exactly: 2 * Double.pi, using: &a)

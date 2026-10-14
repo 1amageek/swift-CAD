@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-bounded-20261014-v2/ledger-diagnostic/Progress"
+  ],
+  "exitCode": -5,
+  "elapsedSeconds": 7.7709937079343945,
+  "peakRSSBytes": 14106624,
+  "wallLimitSeconds": 120,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "55f74505e4b35e5473ac7d2cdadcd8f82c4652a5f1110e589eeaebf436a4a39b"
+}

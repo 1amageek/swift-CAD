@@ -1,0 +1,3 @@
+PASS exact signed dyadic neighbours without rounded coefficients
+sphere-cone work: 6352021
+sphere-cone bytes: 4903836

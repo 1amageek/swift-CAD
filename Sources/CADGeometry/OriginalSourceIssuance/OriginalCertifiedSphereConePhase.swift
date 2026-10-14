@@ -1,6 +1,6 @@
 import CADCore
 
-/// The original generator's unit radial phase, not the intersection position.
+/// Source-owned auxiliary phase for the exact plane-contact preimage.
 public struct OriginalCertifiedSphereConePhase: OriginalAnalyticCoordinateReading {
     public let original: CertifiedSphereConeIntersectionCurve
     let end: ExactRationalCoefficient
@@ -15,7 +15,9 @@ public struct OriginalCertifiedSphereConePhase: OriginalAnalyticCoordinateReadin
         return row == 2 ? 1 : 0
     }
     public func angularMap(axis: Int) -> OriginalSourceAngularMap {
-        .physicalRadianArc(start: .zero, end: end, additionalTurns: 0)
+        original.componentKind == .boundedAngularInterval
+            ? .physicalRadianArc(start: .zero, end: .zero, additionalTurns: 1)
+            : .physicalRadianArc(start: .zero, end: end, additionalTurns: 0)
     }
     public func finiteLowerBound(axis: Int) -> Double? { axis == 0 ? 0 : nil }
     public func finiteUpperBound(axis: Int) -> Double? { axis == 0 ? 1 : nil }

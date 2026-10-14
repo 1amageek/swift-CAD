@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-bounded-20261014-v2/regression-native/CertifiedSphereConeFullAcceptance"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 126.34600887505803,
+  "peakRSSBytes": 14073856,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "265375ec5b42b7cda48731404632e38e1bc0b4844ae673c2195f4fea8159b591"
+}

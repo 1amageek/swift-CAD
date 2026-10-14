@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-bounded-20261014-v2/asan-groups/Public",
+    "7"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 6.733595790923573,
+  "peakRSSBytes": 293765120,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "47c4cc7dd495a3941cf83055f5b12ca148d802845b96de8ce5b41154603d3cfc"
+}

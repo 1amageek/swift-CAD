@@ -1,0 +1,3 @@
+GROUP success
+ROOT identity 0
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.work)

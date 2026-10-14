@@ -3016,3 +3016,42 @@ Fundamental s in[0,1) plus all integer pairs covers every original tuple; both
 seam incidents remain source-period meaning. Source fields/guard proof depth
 are tracked and retained with both original primitive bindings. Coordinate
 expressions retain their source rather than substituting rounded circle centers.
+
+### Bounded sphere-cone plane-contact source
+
+The bounded R2 source authority is the original sphere0/R2 and coneA(2,0,-4)/Z
+with the authored physical angle. Original scalar s=sin(alpha), c=cos(alpha)
+remain in the existing physical field. The source issuer proves0<k=2(1-c)/s<1
+and retains the unique L=asin(k) on(0,pi/2), U=pi-L. Numeric stored critical
+endpoint angles are isolating hints for the explicitly migrated critical branch,
+not replacements for L/U. Only this fixed pair/branch with its actual validated
+critical selectors is admitted.
+
+The retained law theta=pi/2-(pi/2-L)*cos(2*pi*T) has all T[0,1]; positive slant
+root owns[0,1/2], negative root owns(1/2,1]. Its discriminant is
+(2*s*sin(theta)+4*c)^2-16>=0 on the whole interval, both slants are positive,
+and original sphere/cone equality follows by substitution. Every critical
+endpoint/join side remains authored; no high-order continuity is inferred.
+
+Since0<pi/2-L<pi/2 and s/lambda>0, planeY0 iff cos(2*pi*T)=0: exactly
+T1/4,3/4. Reuse the existing physical phase issuer with an auxiliary normalized
+full mathematical turn (start=end0/additionalTurns1), then the existing DI
+request/restriction and retained parent-UV publisher. At both contacts the cone
+phase ispi/2; the first selects the plus radical and the second the minus. The
+source radius and exact X sign select canonical sphere latitude/azimuth, rather
+than the old full-branch enum assumption.
+
+The sealed bounded-arc receipt retains the source/field, critical sine, selected
+interval theorem and proof depth. It does not offer an unchecked initializer or
+a numeric inverse. Consumers retain the same receipt through result lifetime.
+Verify original construction -> source -> DI -> all four public CS entries,
+quarter singleton versus neighbouring excluded phases, branch/order/UV guards,
+exact resource/depth/cancel/lifetime and full-branch regressions on fixed targets.
+Other bounded configurations/open/apex/parent SSI remain separate requirements.
+
+The bounded contact source adjoins the positive original slant root on(6,7)
+under the proved coefficient bounds, retaining lambda^2-2*b*lambda+16. The second
+root is2*b-lambda in the same field, by Vieta. This exact basis avoids the
+near-zero physical constant2-s*b produced by a centered radical basis; no
+zero rounding or ceiling change occurs. The one original root/poly owner is
+shared. The radical remains lambda-b and all original equalities are unchanged.

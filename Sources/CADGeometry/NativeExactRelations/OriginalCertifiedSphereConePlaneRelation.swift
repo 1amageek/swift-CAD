@@ -132,9 +132,9 @@ public final class OriginalCertifiedSphereConePlaneRelation: Sendable {
         let root = source.original.roots[phaseOrdinal], field = root.field
         let period = try field.binary64(exactly: 2 * Double.pi, using: &a)
         let quarter = try field.dividing(period, field.integer(4, using: &a), using: &a)
-        let baseCone = try field.multiplying(field.integer(phaseOrdinal == 0 ? 1 : 3, using: &a), quarter, using: &a)
+        let baseCone = try field.multiplying(field.integer(root.sine == 1 ? 1 : 3, using: &a), quarter, using: &a)
         let coneU = try field.adding(baseCone, field.multiplying(period, coneCycle.scalar(in: field, using: &a), using: &a), using: &a)
-        let negativeX = phaseOrdinal == 0 && source.original.original.componentKind == .positiveFullBranch
+        let negativeX = try field.sign(of: root.x, using: &a) == .negative
         let baseSphere = try field.multiplying(field.integer(negativeX ? 1 : 3, using: &a), quarter, using: &a)
         let sphereU = try field.adding(baseSphere, field.multiplying(period, sphereCycle.scalar(in: field, using: &a), using: &a), using: &a)
         let latitude = try OriginalCertifiedSphereConeLatitude.issue(source: source, phaseOrdinal: phaseOrdinal,

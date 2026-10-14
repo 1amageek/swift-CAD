@@ -6,11 +6,13 @@ public struct OriginalCertifiedSphereConeFullSnapshot: Sendable {
     public let physical: OriginalPhysicalAngleScalarDomain
     public let phase: OriginalAnalyticCosineZeroReceipt<OriginalCertifiedSphereConePhase, OriginalPiScalarDomain>
     public let roots: [OriginalCertifiedSphereConePlaneRoot]
+    public let boundedArc: OriginalCertifiedSphereConeBoundedArc?
     public let proofDepth: ExactScalarDepth
     init(original: CertifiedSphereConeIntersectionCurve, physical: OriginalPhysicalAngleScalarDomain,
         phase: OriginalAnalyticCosineZeroReceipt<OriginalCertifiedSphereConePhase, OriginalPiScalarDomain>,
-        roots: [OriginalCertifiedSphereConePlaneRoot], proofDepth: ExactScalarDepth) {
+        roots: [OriginalCertifiedSphereConePlaneRoot], proofDepth: ExactScalarDepth,
+        boundedArc: OriginalCertifiedSphereConeBoundedArc? = nil) {
         self.original = original; self.physical = physical; self.phase = phase
-        self.roots = roots; self.proofDepth = proofDepth
+        self.roots = roots; self.proofDepth = proofDepth; self.boundedArc = boundedArc
     }
 }

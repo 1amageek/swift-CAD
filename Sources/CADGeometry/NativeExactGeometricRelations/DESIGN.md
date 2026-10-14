@@ -925,3 +925,14 @@ Output interval counts are checked with overflow and the caller's result cap
 before complete payload storage is admitted and reserved. A three-component
 selection must not grow to an unadmitted four-element buffer. The resource
 fixture covers this input as well as whole and complete-empty publication.
+
+### Bounded sphere-cone CS publication
+
+Consume the [source-owned bounded theorem](../OriginalSourceIssuance/DESIGN.md#bounded-sphere-cone-plane-contact-source)
+through the existing sphere-cone relation and ordinary/callback CS dispatch.
+Selected T quarters are exact; projected numeric representatives are certified
+outputs only. Target U/V is(x,-z), all parent UV/cycles and source ownership remain
+retained. Requests act on T and exact target coordinates; whole-source exclusion
+is retained for empty selection. No solver retry or rounded critical law is used.
+The source owns critical normalization and root choice; DI owns selection and
+the geometric producer owns admitted representation/enclosure/terminal cancel.

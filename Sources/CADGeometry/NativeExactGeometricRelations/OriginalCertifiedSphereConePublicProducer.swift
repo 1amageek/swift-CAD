@@ -7,8 +7,8 @@ struct OriginalCertifiedSphereConePublicProducer {
         tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil)
         throws -> CurveSurfaceIntersectionResult? {
         // FIXME(INCOMPLETE_IMPLEMENTATION): This route owns the two supported
-        // full sphere-cone branches and the declared planeY0/uX target. Bounded,
-        // open, apex and other pairs need their whole original source/UV receipts
+        // full branches and the migrated fixed R2 bounded branch on planeY0/uX.
+        // Other bounded, open, apex and other pairs need their whole original source/UV receipts
         // before their existing dispatch counts as complete original intersection.
         guard OriginalCertifiedSphereConeFullSnapshotProvider.supports(curve),
             OriginalCertifiedCoaxialTargetSnapshotProvider.isPlane(surface),
@@ -52,8 +52,14 @@ struct OriginalCertifiedSphereConePublicProducer {
             for ordinal in relation.phaseOrdinals {
                 try a.consumeWork(1)
                 let coordinate = bounds[ordinal]
-                let tBounds = CanonicalSphereAngularPhase.piBounds * .exact(ordinal == 0 ? 1 : 3)
-                guard let tInterval = tBounds.divided(by: .exact(4 * Double.pi)) else { throw ExactScalarFailure.unresolved }
+                let tInterval: OutwardScalarInterval
+                if original.componentKind == .boundedAngularInterval {
+                    tInterval = .exact(ordinal == 0 ? 0.25 : 0.75)
+                } else {
+                    let tBounds = CanonicalSphereAngularPhase.piBounds * .exact(ordinal == 0 ? 1 : 3)
+                    guard let interval = tBounds.divided(by: .exact(4 * Double.pi)) else { throw ExactScalarFailure.unresolved }
+                    tInterval = interval
+                }
                 let x = try representative(coordinate.x, request: options.surfaceURange)
                 let v = try representative(-coordinate.z, request: options.surfaceVRange)
                 let t = try representative(tInterval, request: options.curveRange)
@@ -80,14 +86,17 @@ struct OriginalCertifiedSphereConePublicProducer {
             consumeWork: { try usage.consumeExactWork(1) })
         try usage.retainBytes(exactScalarPayloadBytes(count: 2, of: (OutwardScalarInterval, OutwardScalarInterval).self))
         var result: [(x: OutwardScalarInterval, z: OutwardScalarInterval)] = []; result.reserveCapacity(2)
-        for sign in [1.0, -1.0] {
+        let bounded = original.componentKind == .boundedAngularInterval
+        for ordinal in 0..<2 {
+            let sign = bounded || ordinal == 0 ? 1.0 : -1.0
             try usage.consumeExactWork(1)
-            let b = .exact(sign) * trig.sine + .exact(4) * trig.cosine
-            let d = b * b - .exact(8)
+            let b = .exact(sign * (bounded ? 2 : 1)) * trig.sine + .exact(4) * trig.cosine
+            let d = b * b - .exact(bounded ? 16 : 8)
             guard d.lower > 0, d.isFinite else { throw ExactScalarFailure.unresolved }
             let root = OutwardScalarInterval(lower: d.lower.squareRoot().nextDown, upper: d.upper.squareRoot().nextUp)
-            let slant = original.componentKind == .negativeFullBranch ? b - root : b + root
-            let x = .exact(1) - .exact(sign) * trig.sine * slant
+            let negative = original.componentKind == .negativeFullBranch || (bounded && ordinal == 1)
+            let slant = negative ? b - root : b + root
+            let x = .exact(bounded ? 2 : 1) - .exact(sign) * trig.sine * slant
             let z = .exact(-4) + trig.cosine * slant
             result.append((x, z))
         }
