@@ -1,4 +1,5 @@
 {
+  "DELIVERY.md": "79f48fbfc533123dc23b101103f8c4c4cef8760d865df00c19785c3b14f4353d",
   "REVIEW.md": "0b1fd71f49f818baed52a3aac8f1d08a282de3161f876a773bfd039ef18af9ab",
   "VERIFICATION.md": "d11f04452d4bec3e2b9ba033b61d44c57fcd8dcf890f9dfa52edf0e3fb5cd6e2",
   "accepted/asan/CADGeometry.json": "b537cfc0caaadfd3696f3a7aa66aa1ce1853ff41d31bc1ff00430e27aae9506b",
@@ -211,6 +212,11 @@
   "accepted/wasm/runtime-terminal.json": "9a2d4cc08fdea85bd92bdb7c97c5722278fdbd1b785d34549b969edcf1116fee",
   "accepted/wasm/runtime-terminal.log": "8f3b37d2172d1df260db998e69b4a63a988bf4e9b3c8ced9adca75cf2f1fa17e",
   "accepted.json": "caed85d7a09f4daef6c84bd5737f6f1631b6d5a6dcdce6158545a72b8895c9cf",
+  "delivery-native/compile.json": "75c1d44258b6345f739b7a81f16a9c307a7b52fdb9222a1ed02e6d15a4b3aff8",
+  "delivery-native/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "delivery-native/receipt.json": "8ff899337f0d6a809e35ef2847915a22f1ab8ee452361c30e2b17bd12317d73e",
+  "delivery-native/runtime.json": "4a3fab717376287238e75b7b7272afa6d4addbcb6360ce8b4dbb3cde3cf89ae7",
+  "delivery-native/runtime.log": "6aca3da1def710c2e2c8511e47fa98e37e12aa5de66755f73a06417d3c8cd6f4",
   "diagnostics/bounded-regression-asan/BoundedSphereConeSSIAcceptance.swift": "ce9d92572e922ff6a9e0f1f207758a900f05a6a13d399f07c946703f93a0b861",
   "diagnostics/bounded-regression-asan/compile.json": "e8b1a0378562d92b129a175c9ed6f7eb27e51851e85e0eb30bc781809624c85b",
   "diagnostics/bounded-regression-asan/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
