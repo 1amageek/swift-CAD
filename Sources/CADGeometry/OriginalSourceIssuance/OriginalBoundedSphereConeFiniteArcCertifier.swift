@@ -10,6 +10,10 @@ struct OriginalBoundedSphereConeFiniteArcCertifier {
     let period: ExactRationalCoefficient
     let lower: ExactRationalCoefficient
     let upper: ExactRationalCoefficient
+    let sphereLower: ExactRationalCoefficient
+    let sphereUpper: ExactRationalCoefficient
+    let coneCycle: ExactRationalCoefficient
+    let sphereCycle: ExactRationalCoefficient
     let dx: I
     let dz: I
     let radius: I
@@ -42,14 +46,27 @@ struct OriginalBoundedSphereConeFiniteArcCertifier {
                 box.u.lower<=box.u.upper,box.v.lower<=box.v.upper else { throw OriginalSourceIssuanceFailure.invalidSource }
         }
         period=try q.binary64(exactly:2*Double.pi,using:&a)
-        lower=try q.binary64(exactly:cone.u.lower,using:&a); upper=try q.binary64(exactly:cone.u.upper,using:&a)
+        try Self.requirePeriod(source.firstLaw,period:source.labelPeriod,using:&a)
+        try Self.requirePeriod(source.secondLaw,period:source.labelPeriod,using:&a)
+        guard try source.field.compare(source.field.binary64(exactly:2*Double.pi,using:&a),source.labelPeriod,using:&a) == .equal else {
+            throw OriginalSourceIssuanceFailure.foreignBinding
+        }
+        let rawLower=try q.binary64(exactly:cone.u.lower,using:&a),rawUpper=try q.binary64(exactly:cone.u.upper,using:&a)
+        let rawSphereLower=try q.binary64(exactly:sphere.u.lower,using:&a),rawSphereUpper=try q.binary64(exactly:sphere.u.upper,using:&a)
+        coneCycle=try q.dyadicNeighbours(q.dividing(rawLower,period,using:&a),fractionalBits:0,using:&a).lower
+        sphereCycle=try q.adding(q.dyadicNeighbours(q.dividing(rawSphereUpper,period,using:&a),fractionalBits:0,using:&a).lower,
+            q.integer(1,using:&a),using:&a)
+        let coneOffset=try q.multiplying(coneCycle,period,using:&a),sphereOffset=try q.multiplying(sphereCycle,period,using:&a)
+        lower=try q.subtracting(rawLower,coneOffset,using:&a); upper=try q.subtracting(rawUpper,coneOffset,using:&a)
+        sphereLower=try q.subtracting(rawSphereLower,sphereOffset,using:&a)
+        sphereUpper=try q.subtracting(rawSphereUpper,sphereOffset,using:&a)
         let zero=try q.integer(0,using:&a),two=try q.integer(2,using:&a),four=try q.integer(4,using:&a)
         let half=try q.dividing(period,two,using:&a),quarter=try q.dividing(period,four,using:&a)
         guard try q.compare(lower,zero,using:&a) == .greater,
             try q.compare(upper,half,using:&a) == .less,
             try q.compare(q.binary64(exactly:cone.v.lower,using:&a),zero,using:&a) != .less,
-            try q.compare(q.binary64(exactly:sphere.u.lower,using:&a),q.negated(half,using:&a),using:&a) == .greater,
-            try q.compare(q.binary64(exactly:sphere.u.upper,using:&a),zero,using:&a) == .less,
+            try q.compare(sphereLower,q.negated(half,using:&a),using:&a) == .greater,
+            try q.compare(sphereUpper,zero,using:&a) == .less,
             try q.compare(q.binary64(exactly:sphere.v.lower,using:&a),q.negated(quarter,using:&a),using:&a) != .less,
             try q.compare(q.binary64(exactly:sphere.v.upper,using:&a),zero,using:&a) != .greater else {
             throw OriginalSourceIssuanceFailure.unsupportedRepresentation
@@ -59,6 +76,22 @@ struct OriginalBoundedSphereConeFiniteArcCertifier {
         radius=try I(q.binary64(exactly:source.sphereRadius,using:&a))
         constant=try dx.multiplying(dx,q,&a).adding(dz.multiplying(dz,q,&a),q,&a).subtracting(radius.multiplying(radius,q,&a),q,&a)
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Self.self))
+    }
+
+    private static func requirePeriod<A:ExactScalarAdmission & ~Copyable>(
+        _ law:OriginalAnalyticCoordinateLawReceipt<OriginalAnalyticCoordinateSnapshot,OriginalBoundedSphereConeSurfaceSnapshot.Field>,
+        period:OriginalBoundedSphereConeSurfaceSnapshot.Field.Value,using a:inout A) throws {
+        var found=false
+        for proof in law.periods {
+            try a.checkpoint(); try a.consumeWork(1)
+            guard proof.axis == 0 else { continue }
+            guard !found,law.source.owns(proof.anchor),proof.meaning == .intrinsicAngularLabel,
+                try law.field.compare(proof.period,period,using:&a) == .equal else {
+                throw OriginalSourceIssuanceFailure.foreignBinding
+            }
+            found=true
+        }
+        guard found else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
     }
 
     func certify<A: ExactScalarAdmission & ~Copyable>(using a: inout A) throws -> Int {
@@ -103,8 +136,9 @@ struct OriginalBoundedSphereConeFiniteArcCertifier {
         let cb=try physical.enclosing(physical.cosine(using:&a),refinementDepth:depth,using:&a)
         let s=I(lower:sb.lower,upper:sb.upper),c=I(lower:cb.lower,upper:cb.upper)
         let m=try dz.multiplying(c,q,&a),r=try dx.multiplying(s,q,&a)
-        let lo=try boundary(sphere.u.lower,depth:depth,using:&a),hi=try boundary(sphere.u.upper,depth:depth,using:&a)
-        let vlo=try boundary(sphere.v.lower,depth:depth,using:&a),vhi=try boundary(sphere.v.upper,depth:depth,using:&a)
+        let lo=try boundary(sphereLower,depth:depth,using:&a),hi=try boundary(sphereUpper,depth:depth,using:&a)
+        let vlo=try boundary(q.binary64(exactly:sphere.v.lower,using:&a),depth:depth,using:&a)
+        let vhi=try boundary(q.binary64(exactly:sphere.v.upper,using:&a),depth:depth,using:&a)
         let vLo=try vlo.sine.multiplying(radius,q,&a),vHi=try vhi.sine.multiplying(radius,q,&a)
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:10,of:I.self))
         var width=try q.integer(0,using:&a)
@@ -160,9 +194,8 @@ struct OriginalBoundedSphereConeFiniteArcCertifier {
         return try q.compare(z.lower,k.latitudeLower.upper,using:&a) != .less
             && q.compare(z.upper,k.latitudeUpper.lower,using:&a) != .greater
     }
-    private func boundary<A:ExactScalarAdmission & ~Copyable>(_ value:Double,depth:Int,
+    private func boundary<A:ExactScalarAdmission & ~Copyable>(_ u:ExactRationalCoefficient,depth:Int,
         using a:inout A) throws -> (sine:I,cosine:I) {
-        let u=try q.binary64(exactly:value,using:&a)
         let result=try OriginalPhysicalAngleRationalEnclosures.normalizedLabelSineCosine(lower:u,upper:u,labelPeriod:period,
             refinementDepth:depth,using:&a)
         return (I(lower:result.sine.lower,upper:result.sine.upper),I(lower:result.cosine.lower,upper:result.cosine.upper))

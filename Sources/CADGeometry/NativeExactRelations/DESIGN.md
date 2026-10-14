@@ -1001,8 +1001,12 @@ solution/image dimension1 and fiber dimension0 are distinguished.
 
 Finite relations reject the half-angle entry explicitly until the source
 supports exact inverse membership. The finite raw cone-U member entry requires
-the receipt-selected branch and exact zero cone/sphere cycles, readmits the
-retained proof and delegates position/UV expressions to the source owner.
+the receipt-selected branch and the source-issued exact cone/sphere cycles,
+readmits the retained proof and delegates cycle acceptance and position/UV
+expressions to the source owner. Each caller cycle keeps its arbitrary-precision
+original integer; DI does not normalize phase or convert cycles to Double or a
+fixed-width integer. The position retains raw cone U separately from its source
+principal phase, and sphere inverse U retains its own independent cycle offset.
 Nondegenerate finite arcs have image/solution dimension1 and are not closed;
 a singleton cone-U interval has dimension0. Empty publication keeps the original
 request/support exclusion owner. Source/value/coefficient/transport/chart/family

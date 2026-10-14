@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-lifted-finite-20261014/native/Public",
+    "bounded-terminal"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.8480309169972315,
+  "peakRSSBytes": 12894208,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "22f3dfee27544ea43ec67cd68f13e91cdaecfca88d650a7f436e6bb7297225b9"
+}

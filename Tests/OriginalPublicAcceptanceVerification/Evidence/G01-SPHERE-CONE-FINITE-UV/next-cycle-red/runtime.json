@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-FINITE-UV/next-cycle-red/ShiftedCycleRed"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 8.120144999935292,
+  "peakRSSBytes": 13402112,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "953dfd9ee83e5bce1d17cf77d02792746b80e6e034c4a37fcae7d465657e0d73"
+}

@@ -1,0 +1,7 @@
+(node:523) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS lifted prepared coneCycle 1 sphereCycle 0 reversed false prepareWork 2668998 queryWork 5658834 callerWork 8327832 callerBytes 5930068
+PASS lifted prepared coneCycle 1 sphereCycle 0 reversed true prepareWork 2668998 queryWork 5658834 callerWork 8327832 callerBytes 5930068
+PASS lifted prepared coneCycle -2 sphereCycle 3 reversed false prepareWork 2668998 queryWork 5659426 callerWork 8328424 callerBytes 5930900
+PASS lifted prepared coneCycle -2 sphereCycle 3 reversed true prepareWork 2668998 queryWork 5659426 callerWork 8328424 callerBytes 5930900
+PASS prepared lifted nonempty SSI, independent cycles, both orders and raw endpoint members after session/input release

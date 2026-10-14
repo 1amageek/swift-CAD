@@ -1,7 +1,8 @@
 /// Original cone Cartesian law at the retained exact ordered slant.
 public struct OriginalBoundedSphereConeSurfaceFiniteArcCoordinate: Sendable {
     public typealias Field = OriginalBoundedSphereConeSurfaceSnapshot.Field
-    /// X=A.x-s*lambda*sin(theta), Y=A.y+s*lambda*cos(theta), Z=A.z+c*lambda.
+    /// X=A.x-s*lambda*sin(theta), Y=A.y+s*lambda*cos(theta), Z=A.z+c*lambda;
+    /// theta=2*pi*slant.principalConeU/slant.labelPeriod.
     public let axis: Int
     public let apex: Field.Value
     public let sourceSine: Field.Value

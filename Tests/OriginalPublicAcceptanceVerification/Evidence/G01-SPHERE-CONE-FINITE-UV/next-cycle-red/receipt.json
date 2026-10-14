@@ -1,0 +1,8 @@
+{
+  "mainCommit": "cc861b8a",
+  "integrationReceiptSHA256": "a0d2151e4782045b0d76570ebc62f8d1124e767e7d7091dd86576c17afbcd647",
+  "probeSHA256": "3ab18cf7551567ad27d6dd29d5664542a6cf4531f42eff5dbfcd835137d5fc60",
+  "executableSHA256": "a067286dbfa449b33826837a08dce31406f69b90931b6ff0a26289a02ba7bcf6",
+  "runtimeReceiptSHA256": "66d6f83522c3eb0be5d764db505be2c1de5460d9e99a1317c149cef523325476",
+  "scope": "Constructive nonempty shifted cone cycle1 witness; current actual public query rejects both source orders with unsupportedCapability. This is a required-coverage red, not acceptance."
+}

@@ -5,6 +5,10 @@ public struct OriginalBoundedSphereConeSurfaceFiniteArcPosition: Sendable {
     public typealias Field = OriginalBoundedSphereConeSurfaceSnapshot.Field
     public let source: OriginalSourceBinding<OriginalBoundedSphereConeSurfaceSnapshot>
     public let coneU: Field.Value
+    /// Exact raw coneU minus coneCycle times the independently issued cone period.
+    public let principalConeU: Field.Value
+    public let coneCycle: ExactRationalCoefficient
+    public let sphereCycle: ExactRationalCoefficient
     public let branch: Int
     public let slant: OriginalBoundedSphereConeSurfaceFiniteArcSlant
     public let x: OriginalBoundedSphereConeSurfaceFiniteArcCoordinate

@@ -108,6 +108,13 @@ import WASILibc
         if group=="finite-controls" { try GeneralBoundedFiniteSphereConeSSIAcceptance.controls();return }
         if group=="finite-singleton" { try GeneralBoundedFiniteSphereConeSSIAcceptance.singleton();return }
 #endif
+#if G01_LIFTED_ACCEPTANCE
+        for index in 0..<2 {
+            if group=="lifted-general-"+String(index) { try GeneralLiftedFiniteSphereConeSSIAcceptance.success(selected:index);return }
+            if group=="lifted-huge-"+String(index) { try GeneralLiftedFiniteSphereConeSSIAcceptance.huge(selected:index);return }
+        }
+        if group=="lifted-controls" { try GeneralLiftedFiniteSphereConeSSIAcceptance.controls();return }
+#endif
         if group=="general-all" { try success();try controls();return }
         for index in 0..<3 where group=="general-"+String(index) { try success(selected:index);return }
         if group=="controls" { try controls();return }

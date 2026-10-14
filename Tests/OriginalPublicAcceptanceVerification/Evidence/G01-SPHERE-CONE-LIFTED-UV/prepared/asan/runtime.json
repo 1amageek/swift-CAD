@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-LIFTED-UV/prepared/asan/PreparedLiftedProbe",
+    "lifted-prepared"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 32.14774308295455,
+  "peakRSSBytes": 514703360,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "9bd0eab8a8c074989f9f7e44fdeed6c0ca2cc9178a84914c2b457808be8dd491"
+}

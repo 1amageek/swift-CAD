@@ -126,9 +126,7 @@ public final class OriginalBoundedSphereConeSurfaceRelation: Sendable {
             guard !isEmpty, let finiteArc, branch == finiteArc.branch else {
                 throw OriginalDomainIdentityFailure.outsideSupport
             }
-            let f = source.original.field
-            guard try f.sign(of: coneCycle.scalar(in: f, using: &a), using: &a) == .zero,
-                try f.sign(of: sphereCycle.scalar(in: f, using: &a), using: &a) == .zero else {
+            guard try finiteArc.accepts(coneCycle: coneCycle.original, sphereCycle: sphereCycle.original, using: &a) else {
                 throw OriginalDomainIdentityFailure.outsideSupport
             }
             let position = try finiteArc.position(coneU: coneU, using: &a)

@@ -1,0 +1,3 @@
+(node:17242) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS independent wrong-cycle refusal, lifted query N/N-1 work/storage, cancellation and retained member admission

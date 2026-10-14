@@ -1,0 +1,3 @@
+(node:10775) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS general bounded public N/N-1 work/storage, depth, entry/mid/final/query cancel and detached/COW ownership

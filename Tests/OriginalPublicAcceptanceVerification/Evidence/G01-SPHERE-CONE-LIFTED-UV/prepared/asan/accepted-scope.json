@@ -1,0 +1,21 @@
+{
+  "lane": "asan",
+  "inputs": 2,
+  "parentOrders": 2,
+  "independentCycles": [
+    [
+      1,
+      0
+    ],
+    [
+      -2,
+      3
+    ]
+  ],
+  "preparedNonemptyFinite": true,
+  "detachedIndependentAdmission": true,
+  "counterWorkCap": 8388608,
+  "counterStorageByteCap": 268435456,
+  "productionRecompiled": false,
+  "embeddedCoverage": false
+}

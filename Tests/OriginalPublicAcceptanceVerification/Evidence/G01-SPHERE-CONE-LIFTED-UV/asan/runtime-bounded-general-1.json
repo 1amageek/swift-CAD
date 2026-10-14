@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-lifted-finite-20261014/asan/Public",
+    "bounded-general-1"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 40.50184454198461,
+  "peakRSSBytes": 559333376,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "c90dfcdd0078aa80c406817e11c534bbd014f2fb04dd83e8c83fe7dab1245341"
+}

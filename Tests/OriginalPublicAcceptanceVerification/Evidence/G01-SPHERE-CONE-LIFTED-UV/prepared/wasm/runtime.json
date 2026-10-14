@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-LIFTED-UV/prepared/wasm/PreparedLiftedProbe.wasm",
+    "lifted-prepared"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 27.944741875049658,
+  "peakRSSBytes": 431570944,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "ae97b494dde36f09d8cda923228f89d38c3218ae5120addbeb009acfdd171a7b"
+}

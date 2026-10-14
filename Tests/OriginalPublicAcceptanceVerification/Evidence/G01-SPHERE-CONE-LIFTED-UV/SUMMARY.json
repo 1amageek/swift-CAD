@@ -1,0 +1,22 @@
+{
+  "native": {
+    "groups": 31,
+    "compilerInputs": 2186,
+    "retainedProducts": 9
+  },
+  "asan": {
+    "groups": 31,
+    "compilerInputs": 2186,
+    "retainedProducts": 9
+  },
+  "wasm": {
+    "groups": 31,
+    "compilerInputs": 2186,
+    "retainedProducts": 9
+  },
+  "embedded": {
+    "groups": 31,
+    "compilerInputs": 2186,
+    "retainedProducts": 7
+  }
+}

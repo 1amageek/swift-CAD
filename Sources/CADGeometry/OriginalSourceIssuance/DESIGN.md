@@ -3263,8 +3263,8 @@ after full member generation with the changed radical representation.
 ### G01 finite original-UV arc source
 
 `OriginalBoundedSphereConeSurfaceFiniteArcReceipt` owns a complete closed raw
-cone-U interval within the aligned bounded parent's principal positive-angle
-chart. Its immutable parent binding retains the same physical coefficient owner,
+cone-U interval whose exact periodic reduction lies within the aligned bounded
+parent's principal positive-angle chart. Its immutable parent binding retains the same physical coefficient owner,
 primitive laws and original source values. A caller admission charges every
 rational enclosure, subdivision, coefficient depth and retained descriptor.
 Each query retains one immutable coefficient-depth memo for physical sine/cosine
@@ -3287,9 +3287,17 @@ Original bounded pair + finite original UV requests
             -> sealed finite arc and original symbolic XYZ/UV descriptors
 ```
 
-The capability requires cone U in `(0,B/2)`, positive cone V, sphere U in
-`(-B/2,0)` and sphere V in `[-B/4,0]`. With exact physical phase
-`theta=2*pi*U/B`, source-owned coefficients give `b=m+r*sin(theta)`,
+Before reducing either U interval, the source verifies each independent primitive
+law's period anchor ownership, axis zero, intrinsic angular meaning and exact
+equality of its issued period with B. Exact rational floor determines cone cycle
+`floor(rawConeLower/B)` and sphere cycle `floor(rawSphereUpper/B)+1`. Subtracting
+each independent integer multiple of B retains exact rational principal bounds;
+these bounds are never rounded into a binary64 surface box. Arbitrary signed
+integer cycles use the existing canonical rational representation and import.
+
+The capability requires principal cone U in `(0,B/2)`, positive cone V, principal
+sphere U in `(-B/2,0)` and sphere V in `[-B/4,0]`. With exact physical phase
+`theta=2*pi*principalConeU/B`, source-owned coefficients give `b=m+r*sin(theta)`,
 `D=b*b-C>0` and ordered slants `b+sqrt(D)`, `b-sqrt(D)`. Rational enclosures
 prove one unchanged root is inside cone V throughout every closed cover cell,
 while the other root is outside throughout. Relative X is strictly positive;
@@ -3304,8 +3312,11 @@ dimension one because its positive slant gives an injective cone U chart.
 Source positions expose the actual authored apex, physical coefficients,
 quadratic coefficient/ordered root, intrinsic phase and sphere inverse relations.
 Their symbolic XYZ follows the original cone law and their sphere membership
-follows the original retained quadratic. Independent original parameter cycles
-are zero in this principal capability. Exact binary64 endpoints remain original
+follows the original retained quadratic. Positions preserve raw cone U separately
+from its exact principal phase label. Sphere inverse U retains its independently
+issued cycle and exact azimuth offset. The sealed receipt checks both requested
+integer cycles against these independent authorities; zero-cycle callers keep
+their original meaning. Exact binary64 endpoints remain original
 labels; mathematical pi belongs only to the physical phase conversion. The
 retained field raw-U member must pass exact closed endpoint comparisons.
 

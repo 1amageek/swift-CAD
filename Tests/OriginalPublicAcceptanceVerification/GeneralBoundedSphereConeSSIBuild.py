@@ -4,11 +4,12 @@ import ast, hashlib, json, os, shutil, signal, subprocess, sys, time
 r = Path.cwd()
 lane = sys.argv[1]
 assert lane in ('native', 'asan', 'wasm', 'embedded')
-finite = '--finite' in sys.argv[2:]
+lifted = '--lifted' in sys.argv[2:]
+finite = '--finite' in sys.argv[2:] or lifted
 reuse_geometry = '--reuse-geometry' in sys.argv[2:]
 assert not reuse_geometry or (finite and lane != 'embedded')
-requested_groups = [arg for arg in sys.argv[2:] if arg not in ('--finite', '--reuse-geometry')]
-base = r / ('.build/g01-finite-bounded-20261014' if finite else '.build/g01-bounded-family-20261014')
+requested_groups = [arg for arg in sys.argv[2:] if arg not in ('--finite', '--lifted', '--reuse-geometry')]
+base = r / ('.build/g01-lifted-finite-20261014' if lifted else '.build/g01-finite-bounded-20261014' if finite else '.build/g01-bounded-family-20261014')
 out = base / lane
 out.mkdir(parents=True, exist_ok=True)
 lane_evidence = r / ('Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-ROOTFREE/' + lane)
@@ -46,6 +47,8 @@ fixture_names = ['GeneralFullSphereConeSSIAcceptance', 'FullSphereConeSSIAccepta
                  'GeneralBoundedSphereConeSSIControls', 'PureSquareRootAdmissionAcceptance']
 if finite:
     fixture_names += ['GeneralBoundedFiniteSphereConeSSIAcceptance', 'PhysicalAngleRationalEnclosureAcceptance']
+if lifted:
+    fixture_names += ['GeneralLiftedFiniteSphereConeSSIAcceptance']
 fixtures = []
 for name in fixture_names:
     source = r / ('Tests/OriginalPublicAcceptanceVerification/' + name + '.swift')
@@ -65,7 +68,7 @@ command = [v for v in command if not v.endswith('.swift')]
 command[next(i for i, v in enumerate(command) if v.startswith('@'))] = '@' + str(response)
 executable = out / ('Public.wasm' if lane in ('wasm', 'embedded') else 'Public')
 if lane == 'embedded':
-    command += ['-DG01_BOUNDED_ACCEPTANCE'] + (['-DG01_FINITE_ACCEPTANCE'] if finite else []) + fixtures
+    command += ['-DG01_BOUNDED_ACCEPTANCE'] + (['-DG01_FINITE_ACCEPTANCE'] if finite else []) + (['-DG01_LIFTED_ACCEPTANCE'] if lifted else []) + fixtures
     for i, value in enumerate(command):
         if value in json.loads((lane_evidence / 'products.json').read_text()):
             if Path(value).stem in ('CADCore', 'HashTreeCollections', 'InternalCollectionsUtilities'):
@@ -97,7 +100,7 @@ else:
         if value.endswith('.o') and Path(value).stem in ('CADGeometry', 'CADCore', 'HashTreeCollections', 'InternalCollectionsUtilities'):
             public[i] = str(out / Path(value).name)
     public[public.index('-o') + 1] = str(executable)
-    command = public + ['-DG01_BOUNDED_ACCEPTANCE'] + (['-DG01_FINITE_ACCEPTANCE'] if finite else []) + fixtures
+    command = public + ['-DG01_BOUNDED_ACCEPTANCE'] + (['-DG01_FINITE_ACCEPTANCE'] if finite else []) + (['-DG01_LIFTED_ACCEPTANCE'] if lifted else []) + fixtures
 
 run(command, 'public-compile', 1200 if lane == 'embedded' else 180)
 for path, digest in sources.items(): assert sha(path) == digest, path
@@ -111,6 +114,8 @@ groups = requested_groups or ['bounded-success', 'bounded-endpoints', 'pure-squa
                          'bounded-publication', 'bounded-prepared', 'bounded-terminal']
 if finite and not requested_groups:
     groups += ['finite-bounds', 'finite-oracle', 'finite-general-0', 'finite-general-1', 'finite-general-2', 'finite-controls', 'finite-singleton']
+if lifted and not requested_groups:
+    groups += ['lifted-general-0', 'lifted-general-1', 'lifted-huge-0', 'lifted-huge-1', 'lifted-controls']
 for group in groups:
     call = ['/usr/local/bin/node', str(wrapper), str(executable), group] if lane in ('wasm', 'embedded') else [str(executable), group]
     run(call, 'runtime-' + group, 180)
