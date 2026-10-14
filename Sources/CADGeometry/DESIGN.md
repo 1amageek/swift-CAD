@@ -238,6 +238,71 @@ an optimization proof. Source/toolchain/product/log receipts bind each result.
 Existing acceptance cells and G01-G22 remain authoritative; this target and its
 documentation close no runtime cell or whole requirement.
 
+#### Implementation Policy
+
+The canonical resource contract is the existing `ExactScalarAdmission`, not a
+new execution wrapper. Concrete algorithms borrow the same admission through
+`inout`; required generic constraints admit noncopyable callers. Existing numeric
+algorithms and exact source laws are retained. `RationalAlgebraAdmitting` callers
+migrate to this contract, with byte sizing at allocation owners and causal depth
+mapping at the root/proof owner. The detailed
+[numeric migration](RationalBivariateAlgebra/ExactScalar/DESIGN.md#concrete-admission-migration)
+owns those changes. The target is one semantic contract, not a mandatory single
+concrete ledger type: an actual synchronized caller owner may implement it
+directly, but cannot wrap another allowance and keep duplicate cumulative state.
+
+| Implementation responsibility | Concrete change | Removal/completion gate |
+|---|---|---|
+| Scalar and numeric owners | Pass the canonical admission directly; retain actual value/coefficient depth evidence | Remove `ExactScalarRationalAdmission` from migrated call graphs; delete the legacy protocol when every consumer is migrated |
+| CS/SSI invocation and publication owners | Pass work amounts, bytes and mapped depths directly; keep geometric option ceilings as distinct structural limits | Remove callback accounting and private work/storage counters from `CurveSurfaceQueryInvocation`, `SurfaceSurfaceQueryAdmission` and Native point allowances; remove `NativeExactPublicAdmission` |
+| Source/coefficient owners | Continue one query-local refinement and issue reusable immutable bounds | Replace separate trig preparation and restart-at-each-precision in the actual source callers; preserve exact angle and branch semantics |
+| Proof/DI owners | Return checked scoped decisions or unresolved obligations with concrete reasons | Replace the finite certifier's undifferentiated nil path with complete exclusion, continuation or event processing; no Boolean proof approval |
+| Boundary and self-contact owners | Compile only their new conditions over the retained relation | Reuse checked refinement/pullback evidence; remove `OriginalRelationUsage`/`OriginalBoundaryAdmission` accounting closures from migrated paths |
+| Projected contact and drawing owners | Consume the same admission through screen equality, section lifting, depth and publication | Remove nested work/storage accounting; preserve independent cell limits and complete continuous/exceptional coverage |
+
+Prepared objects retain immutable sources, fields and receipts rather than
+borrowed ledger pointers. A higher-level operation supplies the same admission
+to preparation and all its queries; a genuinely independent later query receives
+an explicit admission from its caller. Existing shared-budget session entry points
+are migrated with their callers before removal; no old method silently obtains a
+fresh budget. Existential readers expose non-generic protocol requirements;
+generic numeric operations execute where their concrete types are known. Actual
+Embedded compile/link/runtime is required before any new witness is accepted.
+
+Implementation proceeds in this order:
+
+1. Migrate admission and failure propagation through actual Native CS/SSI
+   callers, then source-owner coefficient reuse and reason-directed decisions.
+   These changes form one initial public unit, not independent foundation-only
+   completion claims. Existing positive CS/SSI cases are its regression controls.
+2. Close the recorded G01 finite-cut stopping pair: cone U=[0.5,0.5] must publish
+   proved complete exclusion, while U=[0.5,2] must publish the complete nonempty
+   clipped relation, including critical cuts, endpoints and both original UVs.
+   The other parameters and independent oracle are fixed in
+   `G01.B.remaining.critical.finite.remaining.cuts` of
+   [PROGRESS.md](../../PROGRESS.md). Both source orders and the existing caller
+   work/storage caps are mandatory. Empty-only success does not close this unit.
+3. Apply the same contracts to remaining CS/SSI and overlap inputs in the existing
+   acceptance order; source-specific missing capabilities stay with their owners.
+4. Migrate retained material and identity refinement through actual face clipping,
+   embedding and offset-validator callers; then migrate projected contact/depth
+   through the actual drawing caller. Each received capability is consumed without
+   waiting for all M4 source families.
+5. Remove remaining obsolete admission/bridge paths and perform cumulative
+   verification. Every vertical unit includes review, coherent commit and latest
+   main delivery; these stages do not replace the G01-G22 progress authority.
+
+Completion requires all targeted production callers to use the direct contract,
+all mandatory acceptance outputs to be complete, and every listed legacy path to
+be removed. Any remaining legacy path keeps its affected unit explicitly incomplete;
+marking that path does not satisfy the removal gate. An isolated protocol change, a new
+adapter, cheaper metering, an empty result or unsupported response cannot satisfy
+that gate. Measure arithmetic, refinement and metering separately under identical
+accounting and source conditions; require the stopping inputs to complete within
+unchanged caller caps and record wall-time/allocation regressions before delivery.
+No blanket speedup is inferred from reduced work alone. Publication failure codes,
+causes and source/scope context are checked at the real public boundary.
+
 ### Near-Parallel Plane Pair Classification
 
 The existing public SSI dispatcher forwards its selected options to

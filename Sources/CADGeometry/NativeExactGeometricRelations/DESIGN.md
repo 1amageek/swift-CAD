@@ -156,6 +156,31 @@ once and recheck only concrete findings. Source/domain expansion has its own tes
 
 ## Public Migration Boundary
 
+### Direct Caller Implementation Policy
+
+The module's [implementation order](../DESIGN.md#implementation-policy) applies
+to ordinary, rich, admitted, boxed and prepared CS/SSI callers and subsequent
+member queries. The public entry accepts its caller admission or owns one at the
+top-level convenience boundary, then passes it directly to source/DI, coefficient
+proof, relation refinement and publication. A nested convenience overload cannot
+start another budget or prepare the same source again.
+
+Remove `NativeExactPublicAdmission` and route-specific allowance accounting from
+each migrated caller closure. Prepared results retain the existing immutable
+source/field/domain/relation owners, not an admission pointer. A composed caller
+uses its same admission for preparation and queries; independent later queries
+require explicit caller admission. Migrate old session callers before deleting
+their shared-callback methods; do not change their resource semantics silently.
+
+Normalize failure once at `NativeExactGeometryPublicationFailure`, retaining the
+cause and bounded source/scope/stage context and verifying the actual public
+error code. Internal unresolved decisions are never published as complete results.
+The initial public gate includes both recorded finite-cut inputs, both parent
+orders, nonempty and complete-empty results and ordinary/admitted/prepared/member
+execution. Its acceptance must include unchanged-cap resource, cancel, lifetime
+and fixed-target checks; the empty case alone does not close the unit. Migration
+and source-family completion remain distinct gates in the existing cell catalog.
+
 The prepared retained-lift/plane public overload consumes the sealed complete
 relation from [NativeExactRelations](../NativeExactRelations/DESIGN.md#retained-lift-against-the-whole-original-plane).
 It reuses L6 and the existing exact public point/image/fiber representation.

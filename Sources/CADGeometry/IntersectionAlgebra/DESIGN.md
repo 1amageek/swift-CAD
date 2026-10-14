@@ -84,6 +84,29 @@ the whole request for an empty result. Implementation verification must reject
 false proofs, misclassified scheduling hints, lost boundaries and budget resets;
 this target section is not runtime acceptance.
 
+#### Decision Control Implementation
+
+Replace undifferentiated optional/Boolean completion paths with checked selected
+or excluded evidence, or an unresolved obligation carrying the predicate, scope,
+attained depths and reason. The original scalar sign/compare API remains exact;
+this internal control result does not replace it or add an unchecked certificate.
+
+For the recorded finite-cut stopping input, a proved negative discriminant first
+excludes the whole requested cell, including a singleton. A cell crossing a root,
+source guard or active UV boundary instead consumes the existing original event
+relation. Its complete event cuts, open sectors, endpoint singletons and incident
+sides must be assembled before publication. Detecting one interior witness or
+excluding only one branch cannot complete the selected set.
+
+Refine the coefficient state when its certified uncertainty prevents the required
+predicate decision; subdivide a non-singleton domain when domain variation is the
+unresolved cause. Scheduling heuristics affect order only. Equality and singular
+events require their checked source/root capability rather than a distance floor
+or unbounded strict-sign loop. Missing capability remains explicit unfinished
+coverage, not a hint to retry or a successful empty relation. Reuse the same
+retained relation and checked predicate-equivalence/pullback witnesses in boundary
+and self-contact consumers; do not solve the source equations again.
+
 ### Admitted Original Coordinate Rings
 
 The original polynomial ring has a positive caller-selected coordinate count.

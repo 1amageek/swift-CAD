@@ -299,6 +299,30 @@ admission may not. Scheduling reasons are owned by
 not by a second scalar solver. These are implementation obligations, not new
 verified scalar capabilities.
 
+#### Concrete Admission Migration
+
+Change the actual `RationalAlgebraAdmitting` algorithm signatures and consumers
+to borrow `A: ExactScalarAdmission & ~Copyable` directly. Map work amounts to
+`consumeWork`, allocation payloads to `retainStorage(bytes:)`, and real visits to
+`visitCell(axis:depth:)`. Convert UInt32 counts to checked bytes at the allocation
+site, not by converting bytes to words and back across an execution bridge.
+Retain operation-owned structural cell ceilings and their current rejection;
+they do not create another cumulative work/storage budget.
+
+Move the current inherited/original/maximum depth calculation to the concrete
+root or proof state. Preserve checked inherited + max(0, local - original) mapping
+on each corresponding axis and return the attained causal depth with that proof.
+The ledger's unrelated historical maximum is not the result's proof depth.
+Replace the pointer-based `ExactScalarRationalAdmission` and source/public reverse
+bridges only after their actual caller closure uses direct borrows. Do not retain
+the old protocol behind a new conformance or type-erased forwarding object.
+
+Keep the existing sign/compare successful-result contract exact. Internal enclosure
+queries may report unresolved obligations, but must not weaken `ExactSign` or
+`ExactOrder` into guesses. Verify public positive/empty controls, independent axes,
+exact N/N-1 limits, cancellation and lifetime before removing each legacy path.
+This is an interface/ownership migration; it does not replace numeric algorithms.
+
 ## Runtime Flows
 
 Entry checkpoint, inherited-depth admission and explicit domain validation precede

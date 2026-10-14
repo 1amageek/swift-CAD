@@ -98,6 +98,32 @@ Polynomial failures retain their cause. Final cancellation prevents publication.
 Refinement visits the coefficient axis independently of the value axis. Checked
 integer arithmetic protects all iteration/depth/storage counts.
 
+### Paired Refinement Implementation Target
+
+Under the module's
+[implementation policy](../../DESIGN.md#implementation-policy),
+`OriginalPhysicalAngleRefinement` continues its existing query-local paired
+series and supplies one certified T=tan(a/2) enclosure for the expressions needed
+by that source. Add an owner operation that evaluates multiple retained values
+against this prepared refinement state; source consumers use it instead of
+separately restarting `OriginalPhysicalAngleScalarDomain.enclosing` for sin(a)
+and cos(a). Their original rational expressions in T remain authoritative;
+internal series values for a/2 are not substituted for physical sin(a)/cos(a).
+Advancing precision computes subsequent terms, not all preceding terms again.
+For required radical/pi bounds, consume the owning domain's continuation
+capability rather than moving its algorithm into this component.
+
+The original angle owner, reduced argument, doubling/sign law, selected branch,
+coefficient depth and denominator guards remain unchanged. Immutable published
+bounds may be retained by prepared sources; mutable series state and caller
+admission stay invocation-local. Reuse requires the same exact coefficient owner,
+not rounded angle equality. Source consumers choose needed certified precision;
+they do not approve bounds through callbacks or reconstruct trig laws in DI.
+Verification includes actual angular CS and finite SSI publication, independent
+bound oracles and shared-versus-separate accounting under identical inputs.
+Until these callers are migrated and measured, the current enclosing entry still
+has its documented restart behavior; this section makes no performance claim.
+
 ## Verification and Change Impact
 
 ### Checked source rational enclosures
