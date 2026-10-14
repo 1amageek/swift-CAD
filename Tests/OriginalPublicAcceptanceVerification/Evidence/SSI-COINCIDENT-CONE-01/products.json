@@ -1,0 +1,16 @@
+{
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/native/CADGeometry.swiftmodule": "b775488e168b341eeb3369c6138df109bb0bec9859c7658d8fa5dc10b33508d6",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/native/libCADGeometry.a": "7e8ddfff76ba7f11d36e01657fa0a41dad63e180cd8de930a8f096a7a7c6af8c",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/native/Public": "692a5e4be2354f6d6aa0198a742d558dd99d97c91b5b6a318f2901a344fa47bf",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/asan-recovery/CADGeometry.swiftmodule": "b775488e168b341eeb3369c6138df109bb0bec9859c7658d8fa5dc10b33508d6",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/asan-recovery/libCADGeometry.a": "1a3c267834db4c6412662a9eb7e737a0f0696abab597a85b72c935cb48471834",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/asan-recovery/Public": "74bf8a063f2df223ae11766860f53da0c92099cd036f6ee6e2174557a1583601",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/wasm/CADGeometry.swiftmodule": "7d965b2dc4144aa987e05265bbf4b5feb2511c6a3b616e9c9227b0190e12827d",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/wasm/libCADGeometry.a": "4f7acf74a66018f67d963127b3a26fcc995c4994f40b130a87d581fe28b69f4b",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/wasm/Public.wasm": "c67c9629e4605606979f8fd6a35383637afab72fa630597c926a25b4f40ef44a",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/embedded-recovery/Public.wasm": "f73115a3bc6ec13a625a8c98a5f61308cc95ae782e84fd831d349c926f94a768",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/embedded-recovery/CADGeometry.swiftmodule": "88e65121c491335ecc865f46b7beaa3c912583b5f91dd8e8bb6c72d0a68a1b12",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/compatibility-native/CommonApexConeFamilyAcceptance": "ec5257d229507e25db1663ca2f00d68be8de342674394c81ba13de2bf2206bce",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/compatibility-native/ApexSphereConeSSIAcceptance": "3d1685873228d3fd64b80db2a41a0d38b9834ca2190b0678b4e1e7a9cfd5072a",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/compatibility-native/KernelGraph": "ae4940c4665b01ca2aa05b13a042588c9f771edd1909b80845d1483d6422058f"
+}

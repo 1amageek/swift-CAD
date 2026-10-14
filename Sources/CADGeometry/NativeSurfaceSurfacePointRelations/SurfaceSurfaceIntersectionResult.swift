@@ -19,6 +19,8 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
 
     public let originalFullSphereConeRelation: (any OriginalFullSphereConeSurfaceRelationReading)?
 
+    public let originalCoincidentConeRelation: (any OriginalCoincidentConeRelationReading)?
+
     public let originalCommonApexConeRelation: (any OriginalCommonApexConeRelationReading)?
 
     public let originalApexSphereConeRelation: (any OriginalApexSphereConeSurfaceRelationReading)?
@@ -27,7 +29,7 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
 
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
-        originalIssuedGeometricRelation == nil && originalCoaxialSurfaceRelation == nil && originalBoundedSphereConeRelation == nil && originalFullSphereConeRelation == nil && originalFullConeConeRelation == nil && originalApexSphereConeRelation == nil && originalCommonApexConeRelation == nil ? .numericalRepresentatives : .exactRelation
+        originalIssuedGeometricRelation == nil && originalCoaxialSurfaceRelation == nil && originalBoundedSphereConeRelation == nil && originalFullSphereConeRelation == nil && originalFullConeConeRelation == nil && originalApexSphereConeRelation == nil && originalCommonApexConeRelation == nil && originalCoincidentConeRelation == nil ? .numericalRepresentatives : .exactRelation
     }
 
 
@@ -41,7 +43,8 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
         originalFullSphereConeRelation: (any OriginalFullSphereConeSurfaceRelationReading)? = nil,
         originalFullConeConeRelation: (any OriginalFullConeConeSurfaceRelationReading)? = nil,
         originalApexSphereConeRelation: (any OriginalApexSphereConeSurfaceRelationReading)? = nil,
-        originalCommonApexConeRelation: (any OriginalCommonApexConeRelationReading)? = nil) {
+        originalCommonApexConeRelation: (any OriginalCommonApexConeRelationReading)? = nil,
+        originalCoincidentConeRelation: (any OriginalCoincidentConeRelationReading)? = nil) {
         self.intersections = intersections
         self.originalNativePoints = originalNativePoints
         self.originalNativeRelations = originalNativeRelations
@@ -53,6 +56,7 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
         self.originalFullConeConeRelation = originalFullConeConeRelation
         self.originalApexSphereConeRelation = originalApexSphereConeRelation
         self.originalCommonApexConeRelation = originalCommonApexConeRelation
+        self.originalCoincidentConeRelation = originalCoincidentConeRelation
     }
 
 }

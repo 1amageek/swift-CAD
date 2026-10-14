@@ -4,6 +4,7 @@ import CADCore
 public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairIntersecting {
     private let first: PreparedSurfaceDifferentialEncloser
     private let second: PreparedSurfaceDifferentialEncloser
+    private let coincidentCone: OriginalCoincidentConeRelation?
     private let commonApexCone: OriginalCommonApexConeRelation?
     private let apexSphereCone: OriginalApexSphereConeSurfaceRelation?
     private let fullConeCone: OriginalFullConeConeSurfaceRelation?
@@ -20,6 +21,7 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
         try tolerance.validate(); try admission.step()
         self.first = try admission.prepare(first, tolerance: tolerance)
         self.second = try admission.prepare(second, tolerance: tolerance)
+        self.coincidentCone = try OriginalCoincidentConePublicProducer().prepare(first:first,second:second,options:.init(),tolerance:tolerance,admission:admission)
         self.commonApexCone = try OriginalCommonApexConePublicProducer().prepare(first: first, second: second, options: .init(), tolerance: tolerance, admission: admission)
         self.apexSphereCone = try OriginalApexSphereConeSurfacePublicProducer().prepare(first: first, second: second, options: .init(), tolerance: tolerance, admission: admission)
         self.fullConeCone = try OriginalFullConeConeSurfacePublicProducer().prepare(first: first, second: second, options: .init(), tolerance: tolerance, admission: admission)
@@ -36,6 +38,7 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
         let prepared = try admission.prepare(surface, tolerance: tolerance)
         self.first = prepared
         self.second = prepared
+        self.coincidentCone = nil
         self.commonApexCone = nil
         self.apexSphereCone = nil
         self.fullConeCone = nil
@@ -66,6 +69,10 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
     // the session represents the entire required self-contact domain.
     public func intersections(firstBox: SurfaceParameterBox, secondBox: SurfaceParameterBox,
         options: SurfaceSurfaceIntersectionOptions) throws -> [SurfaceSurfaceIntersection] {
+        if let coincidentCone, let result = try OriginalCoincidentConePublicProducer().resolve(first: firstSurface, second: secondSurface,
+            firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, admission: admission, retained: coincidentCone) {
+            return result.intersections
+        }
         if let commonApexCone, let result = try OriginalCommonApexConePublicProducer().resolve(first: firstSurface, second: secondSurface,
             firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, admission: admission, retained: commonApexCone) {
             return result.intersections
@@ -110,6 +117,10 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
 
     public func intersectionResult(firstBox: SurfaceParameterBox, secondBox: SurfaceParameterBox,
         options: SurfaceSurfaceIntersectionOptions) throws -> SurfaceSurfaceIntersectionResult {
+        if let coincidentCone, let result = try OriginalCoincidentConePublicProducer().resolve(first: firstSurface, second: secondSurface,
+            firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, includeRelations: true, admission: admission, retained: coincidentCone) {
+            return result
+        }
         if let commonApexCone, let result = try OriginalCommonApexConePublicProducer().resolve(first: firstSurface, second: secondSurface,
             firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, includeRelations: true, admission: admission, retained: commonApexCone) {
             return result

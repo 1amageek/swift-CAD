@@ -990,3 +990,13 @@ Each arbitrary real U is checked in its effective source fiber. The output
 retains immutable source owners and the exact authored apex; XYZ-only consumers/codecs
 must explicitly refuse discarding authority. No global equality is inferred
 from the collapsed subset.
+
+### Equal-cone continuous geometric publication
+
+Publish retained connected image pieces with exact regular phase/slant ranges,
+seam incidents, source XYZ definition and all original UV lifts. At V0 retain
+both independent source U fibers and the existing scoped collapse identities;
+position identity implies no differential or topology identity. Prepared reuse
+shares original source/frames and caller admission. Numeric-only Kernel/codec
+consumers explicitly refuse proof loss. General material/self publication is
+not completed by this SSI component.

@@ -1,0 +1,86 @@
+{
+  ".build/coincident-cone-ssi-20261014/v1/native/CADGeometry.swiftmodule": {
+    "originalSHA256": "b775488e168b341eeb3369c6138df109bb0bec9859c7658d8fa5dc10b33508d6",
+    "originalBytes": 10573496,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/coincident-cone-ssi-20261014/v1/native/CADGeometry.swiftmodule.gz",
+    "archiveBytes": 4185096
+  },
+  ".build/coincident-cone-ssi-20261014/v1/native/Public": {
+    "originalSHA256": "e3a5d3e1c3b701c18acfed5236d5fd866d96728dcdb5a920edf7e7407099e363",
+    "originalBytes": 63102072,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/coincident-cone-ssi-20261014/v1/native/Public.gz",
+    "archiveBytes": 25170866
+  },
+  ".build/coincident-cone-ssi-20261014/v1/native/libCADGeometry.a": {
+    "originalSHA256": "aab7ba663ce0c8fc03f54a82fb65185176e78f32e3af11a12e4fe88d907cb019",
+    "originalBytes": 78881392,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/coincident-cone-ssi-20261014/v1/native/libCADGeometry.a.gz",
+    "archiveBytes": 26479998
+  },
+  ".build/coincident-cone-ssi-20261014/red/Public": {
+    "originalSHA256": "4b526b397193c5956ae7533fee9563c6e931d998dc237f6d69f255b62eb3b732",
+    "originalBytes": 62808488,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/coincident-cone-ssi-20261014/red/Public.gz",
+    "archiveBytes": 25044898
+  },
+  ".build/bounded-sphere-cone-ssi-20261014/v1/native/CADGeometry.swiftmodule": {
+    "originalSHA256": "fa665783c409dfcefa0334b4fc2c51b6d6e01eb074a57ed920db6e946b56f96e",
+    "originalBytes": 10294616,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/bounded-sphere-cone-ssi-20261014/v1/native/CADGeometry.swiftmodule.gz",
+    "archiveBytes": 4079151
+  },
+  ".build/bounded-sphere-cone-ssi-20261014/v1/native/Public": {
+    "originalSHA256": "cf93f2bd63d961280dd1581a28f1696ca73eba2ea924c4278f403876694cf2e9",
+    "originalBytes": 61857656,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/bounded-sphere-cone-ssi-20261014/v1/native/Public.gz",
+    "archiveBytes": 24670090
+  },
+  ".build/bounded-sphere-cone-ssi-20261014/v1/native/libCADGeometry.a": {
+    "originalSHA256": "fa152818e84522065040578320fb8c8e021a57104bcb284258126bf1714e2146",
+    "originalBytes": 77189928,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/bounded-sphere-cone-ssi-20261014/v1/native/libCADGeometry.a.gz",
+    "archiveBytes": 25957384
+  },
+  ".build/bounded-sphere-cone-ssi-20261014/v2/native/CADGeometry.swiftmodule": {
+    "originalSHA256": "fa665783c409dfcefa0334b4fc2c51b6d6e01eb074a57ed920db6e946b56f96e",
+    "originalBytes": 10294616,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/bounded-sphere-cone-ssi-20261014/v2/native/CADGeometry.swiftmodule.gz",
+    "archiveBytes": 4079151
+  },
+  ".build/bounded-sphere-cone-ssi-20261014/v2/native/Public": {
+    "originalSHA256": "40a256ec16ebc2efdef1df0d6b67b30776a3f17c5a951774d0322532754daac5",
+    "originalBytes": 61857656,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/bounded-sphere-cone-ssi-20261014/v2/native/Public.gz",
+    "archiveBytes": 24669638
+  },
+  ".build/bounded-sphere-cone-ssi-20261014/v2/native/libCADGeometry.a": {
+    "originalSHA256": "d6554f296881a8c06f8d7781e40d7f8d9b64e45e785086d37583473d8be8371e",
+    "originalBytes": 77190456,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/bounded-sphere-cone-ssi-20261014/v2/native/libCADGeometry.a.gz",
+    "archiveBytes": 25957536
+  },
+  ".build/full-sphere-cone-ssi-20261014/red/Observation": {
+    "originalSHA256": "22943ff667007be288924451f853fa4252e5a390a9a69b6399063339f26bd36e",
+    "originalBytes": 61756408,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/full-sphere-cone-ssi-20261014/red/Observation.gz",
+    "archiveBytes": 24620487
+  },
+  ".build/full-cone-cone-ssi-20261014/red/Observation": {
+    "originalSHA256": "1b544652ca3bf37045effebc3a4d6fbcc040283807f224b7ed8510f6e52ae4dd",
+    "originalBytes": 62033800,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/full-cone-cone-ssi-20261014/red/Observation.gz",
+    "archiveBytes": 24742007
+  },
+  ".build/full-sphere-cone-ssi-20261014/v2/bounded-regression-asan/Public": {
+    "originalSHA256": "f0d8cbfbe959ea3502f042719927a8930191b095b25bfe0125ac32ab24e1c2d6",
+    "originalBytes": 106412392,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/full-sphere-cone-ssi-20261014/v2/bounded-regression-asan/Public.gz",
+    "archiveBytes": 38710945
+  },
+  ".build/full-sphere-cone-ssi-20261014/v2/bounded-regression-wasm/Public.wasm": {
+    "originalSHA256": "f1417d732c7be20df3767b76767d74163175b79fd95130c8ac849f574ac7f685",
+    "originalBytes": 129492745,
+    "archive": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/diagnostic-product-archive-20261014/.build/full-sphere-cone-ssi-20261014/v2/bounded-regression-wasm/Public.wasm.gz",
+    "archiveBytes": 48636927
+  }
+}

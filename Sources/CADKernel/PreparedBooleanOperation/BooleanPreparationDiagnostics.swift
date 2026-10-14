@@ -27,6 +27,9 @@ public struct BooleanPreparationDiagnostics: Sendable, Hashable {
         for intersection in graph.faceIntersections {
             switch intersection.geometry {
             case let .curve(value): curves += 1; residual = max(residual, value.maximumResidual)
+            case .originalCoincidentCone(let value):
+                if value.imageDimension==0 { points += 1 }
+                else if value.imageDimension==1 { curves += 1 } else { coincident += 1 }
             case .originalCommonApexCone: points += 1
             case let .point(value): points += 1; residual = max(residual, value.residual)
             case .originalCoaxial(let value):

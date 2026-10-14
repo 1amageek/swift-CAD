@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/native/Public",
+    "terminal"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.2822263330454007,
+  "peakRSSBytes": 3833856,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "c33d125d61dccd5fbbd7a0444653d68e415402b3cd840b50ba1cf18067032217"
+}

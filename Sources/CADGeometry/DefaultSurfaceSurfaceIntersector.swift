@@ -17,6 +17,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
       let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
         maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
         consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let coincidentCone = try OriginalCoincidentConePublicProducer().resolve(first: first, second: second,
+          options: options, tolerance: tolerance, admission: admission) { return coincidentCone.intersections }
       if let commonApexCone = try OriginalCommonApexConePublicProducer().resolve(first: first, second: second,
           options: options, tolerance: tolerance, admission: admission) { return commonApexCone.intersections }
       if let apexSphereCone = try OriginalApexSphereConeSurfacePublicProducer().resolve(first: first, second: second,
@@ -59,6 +61,9 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
       let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
         maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
         consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let coincidentCone = try OriginalCoincidentConePublicProducer().resolve(first: first, second: second,
+          firstBox: firstBox, secondBox: secondBox,
+          options: options, tolerance: tolerance, admission: admission) { return coincidentCone.intersections }
       if let commonApexCone = try OriginalCommonApexConePublicProducer().resolve(first: first, second: second,
           firstBox: firstBox, secondBox: secondBox,
           options: options, tolerance: tolerance, admission: admission) { return commonApexCone.intersections }
@@ -137,6 +142,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
     tolerance: ModelingTolerance
   ) throws -> [SurfaceSurfaceIntersection] {
     return try GeometryExactScalarFailure.withPublication {
+      if let coincidentCone = try OriginalCoincidentConePublicProducer().resolve(first: first, second: second,
+          options: options, tolerance: tolerance) { return coincidentCone.intersections }
       if let commonApexCone = try OriginalCommonApexConePublicProducer().resolve(first: first, second: second,
           options: options, tolerance: tolerance) { return commonApexCone.intersections }
       if let apexSphereCone = try OriginalApexSphereConeSurfacePublicProducer().resolve(first: first, second: second,

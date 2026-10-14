@@ -9,6 +9,7 @@ public enum SurfaceSurfaceIntersection: Hashable, Sendable {
     case originalFullConeCone(OriginalFullConeConeSurfaceComponent)
     case originalApexSphereCone(OriginalApexSphereConeSurfaceComponent)
     case originalCommonApexCone(OriginalCommonApexConeComponent)
+    case originalCoincidentCone(OriginalCoincidentConeComponent)
 
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
@@ -22,6 +23,7 @@ public enum SurfaceSurfaceIntersection: Hashable, Sendable {
         case originalFullConeCone
         case originalApexSphereCone
         case originalCommonApexCone
+        case originalCoincidentCone
     }
 #endif
 
@@ -36,6 +38,7 @@ public enum SurfaceSurfaceIntersection: Hashable, Sendable {
         case originalFullConeCone
         case originalApexSphereCone
         case originalCommonApexCone
+        case originalCoincidentCone
     }
 #endif
 
@@ -55,7 +58,7 @@ public enum SurfaceSurfaceIntersection: Hashable, Sendable {
                 SurfaceSurfaceIntersectionPoint.self,
                 forKey: .point
             ))
-        case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone, .originalFullConeCone, .originalApexSphereCone, .originalCommonApexCone:
+        case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone, .originalFullConeCone, .originalApexSphereCone, .originalCommonApexCone, .originalCoincidentCone:
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath,
                 debugDescription: "Retained original proof objects require source issuance and cannot be decoded unchecked."))
         case .coincident:
@@ -78,7 +81,7 @@ public enum SurfaceSurfaceIntersection: Hashable, Sendable {
         case let .point(point):
             try container.encode(Kind.point, forKey: .kind)
             try container.encode(point, forKey: .point)
-        case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone, .originalFullConeCone, .originalApexSphereCone, .originalCommonApexCone:
+        case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone, .originalFullConeCone, .originalApexSphereCone, .originalCommonApexCone, .originalCoincidentCone:
             throw EncodingError.invalidValue(self, .init(codingPath: encoder.codingPath,
                 debugDescription: "Retained original proof authority cannot be discarded during serialization."))
         case let .coincident(coincidence):

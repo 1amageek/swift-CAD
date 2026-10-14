@@ -1049,3 +1049,15 @@ both existing scoped collapse identity receipts. The U product is never replaced
 by representative zero angles. Image0 and selected fiber dimension0/1/2 are
 separate. Finite/singleton/empty supports are exact; prepared support reuse and
 all same-admission resource/cancel/lifetime rules remain unchanged.
+
+### Equal-cone complete product
+
+Reuse analytic source frames/support/request/effective and existing modulo-one
+selection. Intersect both angular images and both V sets for regular tuples,
+remove exact V0, and retain independent V0 fibers separately even when angular
+images are disjoint. Every lift has checked original membership. No finite
+integer window or guessed inverse is used. Regular dimensions depend on selected
+phase and V; apex dimension depends on both U axes. Periodic seam intervals are
+joined by the source period theorem. Public box V intersections are connected;
+when V0 is selected, regular closures join at the retained apex. Otherwise each
+cyclic phase component remains separate. All endpoint openness is preserved.

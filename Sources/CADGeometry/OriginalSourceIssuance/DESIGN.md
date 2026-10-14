@@ -3161,3 +3161,12 @@ nonpoint/noncardinal families are separate capabilities. Source owns the exact
 authored apexXYZ and both full angular fibers. The rational parameter-label field
 never represents a physical trigonometric coefficient. Retain independent angle
 proof owners and original primitive collapse theorems.
+
+### Equal-authored cardinal cone source
+
+Exact identical primitive cone inputs retain both independent original owners,
+cardinal basis, authored apex and one physical angle field. Source equality
+proves all nonzero tuples iff V1=V2 and U2-U1 is an arbitrary integer label B;
+V1=V2=0 permits every independent U1/U2. Positive physical sine/cosine establish
+nonzero radial/axial injectivity. Source owns exact intrinsic XYZ definitions,
+not sampled coordinates, and retains existing primitive period/collapse laws.

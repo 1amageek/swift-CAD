@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/coincident-cone-ssi-20261014/v2/compatibility-native/CommonApexConeFamilyAcceptance"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 2.539033000008203,
+  "peakRSSBytes": 12238848,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "d83244d42a638b0e3a213aaeff73f24630b571d128d73e39f66ae801a48c9035"
+}
