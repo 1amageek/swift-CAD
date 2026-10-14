@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-root-free-family-20261014/native/Diagnostic"
+  ],
+  "exitCode": -5,
+  "elapsedSeconds": 1.936089124996215,
+  "peakRSSBytes": 12697600,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "dc15d706a78139adcf347d1d27cdcf38ab28830ce2ccae19cc29b5ee8f4c94ba"
+}

@@ -25,10 +25,10 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
           options: options, tolerance: tolerance, admission: admission) { return apexSphereCone.intersections }
       if let fullConeCone = try OriginalFullConeConeSurfacePublicProducer().resolve(first: first, second: second,
           options: options, tolerance: tolerance, admission: admission) { return fullConeCone.intersections }
-      if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
-          options: options, tolerance: tolerance, admission: admission) { return fullSphereCone.intersections }
       if let boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: first, second: second,
           options: options, tolerance: tolerance, admission: admission) { return boundedSphereCone.intersections }
+      if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
+          options: options, tolerance: tolerance, admission: admission) { return fullSphereCone.intersections }
       if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
           options: options, tolerance: tolerance, admission: admission) { return coaxial.intersections }
       if let issued = try OriginalRetainedRollingPlanePublicProducer().resolve(first: first, second: second,
@@ -73,12 +73,12 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
       if let fullConeCone = try OriginalFullConeConeSurfacePublicProducer().resolve(first: first, second: second,
           firstBox: firstBox, secondBox: secondBox,
           options: options, tolerance: tolerance, admission: admission) { return fullConeCone.intersections }
-      if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
-          firstBox: firstBox, secondBox: secondBox,
-          options: options, tolerance: tolerance, admission: admission) { return fullSphereCone.intersections }
       if let boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: first, second: second,
           firstBox: firstBox, secondBox: secondBox,
           options: options, tolerance: tolerance, admission: admission) { return boundedSphereCone.intersections }
+      if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
+          firstBox: firstBox, secondBox: secondBox,
+          options: options, tolerance: tolerance, admission: admission) { return fullSphereCone.intersections }
       if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
           firstBox: firstBox, secondBox: secondBox,
           options: options, tolerance: tolerance, admission: admission) { return coaxial.intersections }
@@ -150,10 +150,10 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
           options: options, tolerance: tolerance) { return apexSphereCone.intersections }
       if let fullConeCone = try OriginalFullConeConeSurfacePublicProducer().resolve(first: first, second: second,
           options: options, tolerance: tolerance) { return fullConeCone.intersections }
-      if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
-          options: options, tolerance: tolerance) { return fullSphereCone.intersections }
       if let boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: first, second: second,
           options: options, tolerance: tolerance) { return boundedSphereCone.intersections }
+      if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
+          options: options, tolerance: tolerance) { return fullSphereCone.intersections }
       if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
           options: options, tolerance: tolerance) { return coaxial.intersections }
       if let issued = try OriginalRetainedRollingPlanePublicProducer().resolve(first: first, second: second,

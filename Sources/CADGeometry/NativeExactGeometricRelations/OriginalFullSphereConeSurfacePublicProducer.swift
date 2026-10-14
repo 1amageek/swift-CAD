@@ -18,7 +18,7 @@ struct OriginalFullSphereConeSurfacePublicProducer {
         secondBox: SurfaceParameterBox? = nil, options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance, includeRelations: Bool = false, admission: SurfaceSurfaceQueryAdmission = .legacy,
         retained: OriginalFullSphereConeSurfaceRelation? = nil) throws -> SurfaceSurfaceIntersectionResult? {
-        // FIXME(INCOMPLETE_IMPLEMENTATION): This fixed full parent SSI publishes
+        // FIXME(INCOMPLETE_IMPLEMENTATION): This root-free unit-Z parent SSI publishes
         // the complete full pair and selected exclusions. Other parent pairs and
         // nonempty finite UV clipping need their complete source/refinement owner.
         let input = OriginalFullSphereConeSurfaceInput(first: first, second: second)
@@ -57,7 +57,9 @@ struct OriginalFullSphereConeSurfacePublicProducer {
     private func source(_ input: OriginalFullSphereConeSurfaceInput, options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission, using a: inout Admission)
         throws -> OriginalSourceBinding<Source> {
-        let physical = try OriginalPhysicalAngleScalarDomain(originalRadians: Double(bitPattern: 0x3fddac670561bb50), using: &a)
+        guard let pair=OriginalFullSphereConeSurfaceSnapshotProvider.pair(input),
+            case .analytic(.cone(_,_,let angle))=pair.cone else { throw OriginalSourceIssuanceFailure.invalidSource }
+        let physical = try OriginalPhysicalAngleScalarDomain(originalRadians: angle, using: &a)
         return try DefaultOriginalSourceBindingIssuer(provider: OriginalFullSphereConeSurfaceSnapshotProvider(
             physical: physical, maximumExtensionLevel: a.usage.maximumAlgebraicDepth, tolerance: tolerance))
             .bind(input, limits: limits(options: options, admission: admission).source, using: &a)

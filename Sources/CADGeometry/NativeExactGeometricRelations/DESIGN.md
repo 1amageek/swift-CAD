@@ -1015,3 +1015,11 @@ selected contact has parameter/image/fiber dimensions0/0/0 and the CS solution
 set has no positive-dimensional component. Endpoint parent cone U is a separate
 source-correspondence fiber, dimension1. Parent auxiliary nonuniqueness never
 changes original CS dimensions or the public continuous-solution flag.
+
+### G01 root-free sphere-cone family consumption
+
+The full publication consumes the [source-issued root-free family theorem](../OriginalSourceIssuance/DESIGN.md#g01-root-free-sphere-cone-family-consumption) through the existing DI relation.
+XYZ and sphere inverse arguments use the actual retained parent data. A collapsed
+sphere azimuth retains its full angular family. Every ordinary and rich entry
+selects an existing bounded recipe before the broader full candidate. General
+bounded/open/apex and positive finite UV publication remain G01 obligations.

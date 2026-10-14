@@ -1,0 +1,7 @@
+(node:64830) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+prepared source work 6670539
+prepared first query work 6723563
+prepared source work 6670539
+prepared first query work 6723563
+PASS actual prepared reuse, complete selected exclusion and detached authority

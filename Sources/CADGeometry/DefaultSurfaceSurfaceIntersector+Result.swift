@@ -12,10 +12,10 @@ extension DefaultSurfaceSurfaceIntersector {
               options: options, tolerance: tolerance, includeRelations: true) { return apexSphereCone }
           if let fullConeCone = try OriginalFullConeConeSurfacePublicProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true) { return fullConeCone }
-          if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
-              options: options, tolerance: tolerance, includeRelations: true) { return fullSphereCone }
           if let boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true) { return boundedSphereCone }
+          if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
+              options: options, tolerance: tolerance, includeRelations: true) { return fullSphereCone }
           if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true) { return coaxial }
           if let issued = try OriginalRetainedRollingPlanePublicProducer().resolve(first: first, second: second,
@@ -53,10 +53,10 @@ extension DefaultSurfaceSurfaceIntersector {
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return apexSphereCone }
           if let fullConeCone = try OriginalFullConeConeSurfacePublicProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return fullConeCone }
-          if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
-              options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return fullSphereCone }
           if let boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return boundedSphereCone }
+          if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
+              options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return fullSphereCone }
           if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return coaxial }
           if let issued = try OriginalRetainedRollingPlanePublicProducer().resolve(first: first, second: second,
@@ -103,12 +103,12 @@ extension DefaultSurfaceSurfaceIntersector {
           if let fullConeCone = try OriginalFullConeConeSurfacePublicProducer().resolve(first: first, second: second,
               firstBox: firstBox, secondBox: secondBox,
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return fullConeCone }
-          if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
-              firstBox: firstBox, secondBox: secondBox,
-              options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return fullSphereCone }
           if let boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: first, second: second,
               firstBox: firstBox, secondBox: secondBox,
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return boundedSphereCone }
+          if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
+              firstBox: firstBox, secondBox: secondBox,
+              options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return fullSphereCone }
           if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
               firstBox: firstBox, secondBox: secondBox,
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return coaxial }

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-root-free-family-20261014/accepted-asan/Public",
+    "bounded-terminal"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 25.35262162494473,
+  "peakRSSBytes": 516784128,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "22f3dfee27544ea43ec67cd68f13e91cdaecfca88d650a7f436e6bb7297225b9"
+}

@@ -13,10 +13,31 @@ public struct OriginalSphereConeSurfaceSectionValues: Sendable {
     public let proofDepth: ExactScalarDepth
     private let sourceSine: Field.Value
     private let sourceCosine: Field.Value
-    private let apexX: Int
+    private let apex: Point3D
     static func issue<A: ExactScalarAdmission & ~Copyable>(halfAngle t: Field.Value, chart: Int,
         sourceSine: Field.Value, sourceCosine: Field.Value, apexX: Int, constant: Int,
         isDoubleRoot: Bool, using a: inout A) throws -> Self {
+        let f=try Field(retaining:t,using:&a)
+        return try issue(halfAngle:t,chart:chart,sourceSine:sourceSine,sourceCosine:sourceCosine,
+            apex:.init(x:Double(apexX),y:0,z:-4),dx:f.integer(apexX,using:&a),dy:f.integer(0,using:&a),
+            dz:f.integer(-4,using:&a),constant:f.integer(constant,using:&a),isDoubleRoot:isDoubleRoot,using:&a)
+    }
+    static func issue<A:ExactScalarAdmission & ~Copyable>(halfAngle t:Field.Value,chart:Int,
+        sourceSine:Field.Value,sourceCosine:Field.Value,apex:Point3D,center:Point3D,radius:Double,
+        using a:inout A) throws -> Self {
+        let f=try Field(retaining:t,using:&a)
+        let dx=try f.subtracting(f.binary64(exactly:apex.x,using:&a),f.binary64(exactly:center.x,using:&a),using:&a)
+        let dy=try f.subtracting(f.binary64(exactly:apex.y,using:&a),f.binary64(exactly:center.y,using:&a),using:&a)
+        let dz=try f.subtracting(f.binary64(exactly:apex.z,using:&a),f.binary64(exactly:center.z,using:&a),using:&a)
+        let r=try f.binary64(exactly:radius,using:&a)
+        let constant=try f.subtracting(f.adding(f.adding(f.multiplying(dx,dx,using:&a),f.multiplying(dy,dy,using:&a),using:&a),
+            f.multiplying(dz,dz,using:&a),using:&a),f.multiplying(r,r,using:&a),using:&a)
+        return try issue(halfAngle:t,chart:chart,sourceSine:sourceSine,sourceCosine:sourceCosine,
+            apex:apex,dx:dx,dy:dy,dz:dz,constant:constant,isDoubleRoot:false,using:&a)
+    }
+    private static func issue<A:ExactScalarAdmission & ~Copyable>(halfAngle t:Field.Value,chart:Int,
+        sourceSine:Field.Value,sourceCosine:Field.Value,apex:Point3D,dx:Field.Value,dy:Field.Value,dz:Field.Value,
+        constant:Field.Value,isDoubleRoot:Bool,using a:inout A) throws -> Self {
         try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
             let base = try Field(retaining: t, using: &a)
             let s = try base.importing(sourceSine, using: &a), c = try base.importing(sourceCosine, using: &a)
@@ -25,8 +46,10 @@ public struct OriginalSphereConeSurfaceSectionValues: Sendable {
             var sine = try base.dividing(base.multiplying(two, t, using: &a), q, using: &a)
             var cosine = try base.dividing(base.subtracting(one, square, using: &a), q, using: &a)
             if chart == 1 { sine = try base.negated(sine, using: &a); cosine = try base.negated(cosine, using: &a) }
-            let b = try base.adding(base.multiplying(base.multiplying(base.integer(apexX, using: &a), s, using: &a), sine, using: &a),
-                base.multiplying(base.integer(4, using: &a), c, using: &a), using: &a)
+            let xOffset=try base.importing(dx,using:&a),yOffset=try base.importing(dy,using:&a),zOffset=try base.importing(dz,using:&a)
+            let coefficient=try base.importing(constant,using:&a)
+            let b = try base.subtracting(base.subtracting(base.multiplying(base.multiplying(xOffset,s,using:&a),sine,using:&a),
+                base.multiplying(base.multiplying(yOffset,s,using:&a),cosine,using:&a),using:&a),base.multiplying(zOffset,c,using:&a),using:&a)
             let field: Field, plus: Field.Value, minus: Field.Value
             if isDoubleRoot { field = base; plus = b; minus = b }
             else {
@@ -36,9 +59,14 @@ public struct OriginalSphereConeSurfaceSectionValues: Sendable {
                 let polynomial = try roots.polynomials.polynomial(terms: [
                     .init(powers: [2], coefficient: one),
                     .init(powers: [1], coefficient: try base.multiplying(base.integer(-2, using: &a), b, using: &a)),
-                    .init(powers: [0], coefficient: try base.integer(constant, using: &a))], using: &a)
-                let scope = try roots.domain(lower: .finite(base.integer(4, using: &a)), upper: .finite(base.integer(7, using: &a)),
-                    includesLower: false, includesUpper: false, using: &a)
+                    .init(powers: [0], coefficient: coefficient)], using: &a)
+                let linear=try base.multiplying(two,b,using:&a)
+                let absLinear=try base.sign(of:linear,using:&a) == .negative ? base.negated(linear,using:&a):linear
+                let absConstant=try base.sign(of:coefficient,using:&a) == .negative ? base.negated(coefficient,using:&a):coefficient
+                let bound=try base.adding(one,base.adding(absLinear,absConstant,using:&a),using:&a)
+                // The issued discriminant proof separates the two roots strictly at b.
+                let scope = try roots.domain(lower:.finite(b),upper:.finite(bound),
+                    includesLower:false,includesUpper:false,using:&a)
                 let isolated = try roots.isolate(roots.bind(polynomial, using: &a), in: scope, limits: .init(maximumRoots: 1), using: &a)
                 guard isolated.roots.count == 1 else { throw OriginalSourceIssuanceFailure.invalidSource }
                 let extended = try base.adjoin(isolated.roots[0], using: &a)
@@ -49,7 +77,7 @@ public struct OriginalSphereConeSurfaceSectionValues: Sendable {
             let sourceSine = try field.importing(s, using: &a), sourceCosine = try field.importing(c, using: &a)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Self.self))
             let value = Self(halfAngle: h, field: field, sine: ss, cosine: cc, plusSlant: plus, minusSlant: minus,
-                isDoubleRoot: isDoubleRoot, proofDepth: try a.depth, sourceSine: sourceSine, sourceCosine: sourceCosine, apexX: apexX)
+                isDoubleRoot: isDoubleRoot, proofDepth: try a.depth, sourceSine: sourceSine, sourceCosine: sourceCosine, apex: apex)
             try a.checkpoint(); return value
         }
     }
@@ -59,9 +87,9 @@ public struct OriginalSphereConeSurfaceSectionValues: Sendable {
         guard branch == 0 || branch == 1 else { throw OriginalSourceIssuanceFailure.invalidSource }
         let f = field, slant = branch == 0 ? plusSlant : minusSlant
         let radial = try f.multiplying(sourceSine, slant, using: &a)
-        let x = try f.subtracting(f.integer(apexX, using: &a), f.multiplying(radial, sine, using: &a), using: &a)
-        let y = try f.multiplying(radial, cosine, using: &a)
-        let z = try f.adding(f.integer(-4, using: &a), f.multiplying(sourceCosine, slant, using: &a), using: &a)
+        let x = try f.subtracting(f.binary64(exactly:apex.x,using:&a), f.multiplying(radial, sine, using: &a), using: &a)
+        let y = try f.adding(f.binary64(exactly:apex.y,using:&a),f.multiplying(radial,cosine,using:&a),using:&a)
+        let z = try f.adding(f.binary64(exactly:apex.z,using:&a), f.multiplying(sourceCosine, slant, using: &a), using: &a)
         try a.checkpoint(); return (slant, x, y, z)
     }
 }

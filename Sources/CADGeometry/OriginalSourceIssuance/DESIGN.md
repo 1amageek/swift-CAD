@@ -3191,3 +3191,30 @@ physical phase pi*(branch+T). Candidate binary pi bounds are rendering metadata;
 they are not coefficient authority. The curve snapshot retains the same original
 pair/physical field and critical source positions. Source generation computes no
 new surface intersection. Curve codecs refuse to discard the source traversal.
+
+### G01 root-free sphere-cone family consumption
+
+The existing full-pair owner accepts authored sphere center/radius and cone apex,
+unit-Z axis and actual physical half-angle, rather than an equality check against
+one numeric recipe. Source authority computes delta=A-O, C=dot(delta,delta)-R^2
+and b(theta)=s*(-deltaX*sin(theta)+deltaY*cos(theta))+c*deltaZ. Its original
+quadratic is lambda^2+2*b*lambda+C=0. A source proof admits two distinct full
+branches exactly when C!=0 and min_theta(b^2-C)>0. C<0 suffices; for C>0,
+m=c*deltaZ, h2=s^2*(deltaX^2+deltaY^2) give the exact strict criterion
+m^2>h2, m^2+h2-C>0 and (m^2+h2-C)^2>4*m^2*h2. No residual establishes that proof.
+
+Existing two circle charts, DI support and independent original UV families are
+retained. Ordered roots use an admitted exact Cauchy bound derived from actual
+coefficients, with the strict source-proved quadratic midpoint separating one
+upper root; the lower root is retained by Vieta without a second decomposition. XYZ uses the authored apex and sphere inverse arguments use the
+authored center/radius. A sphere pole retains an unrestricted angular family;
+no atan2(0,0), sampled pole or arbitrary finite root window is published.
+The existing bounded numeric recipe is selected before this full source route;
+required general bounded/open/apex and nonempty finite UV refinement remain open
+until their own source/selection receipts arrive. This family extension is partial
+G01, not completion of the goal or any whole intersection requirement.
+
+Verification must exercise the actual source/DI/public path on independent
+radius/center/apex/angle inputs, both signs/orders and exact metric/UV, with
+resource/depth/cancel/lifetime controls. Existing scoped full/bounded consumers
+are regression assumptions; no lower solver or coefficient field is redesigned.

@@ -11,6 +11,8 @@ public struct OriginalFullSphereConeSurfaceUV: Sendable {
         case sphereAzimuthLabel(sineArgument: Value, cosineArgument: Value, period: Value, offset: Value)
         /// B/(2*pi)*asin(sine), on the original closed canonical latitude range.
         case sphereLatitudeLabel(sine: Value, period: Value)
+        /// The source's exact pole admits every real U, with the original period theorem.
+        case collapsedAngularFamily(period:Value)
         case authoredScalar(Value)
     }
     public let member: OriginalFullSphereConeSurfaceMember

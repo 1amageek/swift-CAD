@@ -1,5 +1,118 @@
 # Progress
 
+- [ ] G01 Sphere-cone SSI: full/bounded/open/apex, both orders and every original UV. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:none` `parallel:none`
+  - [x] G01.A Existing AcceptanceCells.json binds15 CERT-SPHERECONE/ENDPOINT SSI cells plus SSI-CERTIFIED-SPHERE-CONE-NODE-01 to the source-pair quadratic, exact endpoint equations, both orders and all UV in OriginalDomainCoverage/DESIGN.md. Strict acceptance remains0/16. Concrete stops are missing general bounded/open/apex source receipts and nonempty finite-UV refinement; the original full query work exhaustion is reproduced at chart0/t-1 and repaired by midpoint root separation. Mapping alone closes no implementation goal. `depends:none` `parallel:none`
+  - [ ] G01.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G01.A` `parallel:none`
+    - [ ] G01.B.rootFree Generalize the existing root-free unit-Z full source, exact ordered section roots, XYZ/UV and ordinary/rich/prepared dispatch; verify the new interior/negative-slant input groups plus full/bounded regressions on required targets, review, coherent commit and latest-main delivery. This is partial G01 and accepts no whole cell that still lacks finite UV. Final same-snapshot Native/ASAN/WASM/Embedded each14 runtime groups PASS, including new interior/negative-slant families and full/bounded controls. One scoped review confirms midpoint root separation, all ordinary/rich priorities and selected prepared receipts. Evidence: Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-ROOTFREE/VERIFICATION.md. Coherent source commit and main delivery are pending. `depends:G01.A` `parallel:none`
+    - [ ] G01.B.remaining Complete all remaining bounded/open/apex/endpoint source-pair families, both orders, exact incidents and nonempty finite-UV refinement through the existing public owners. `depends:G01.B.rootFree` `parallel:none`
+  - [ ] G01.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G01.B` `parallel:none`
+  - [ ] G01.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G01.C` `parallel:none`
+- [ ] G02 Cone-cone SSI: all full/bounded/common-apex branches, common rulings and collapsed fibers. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G01` `parallel:none`
+  - [ ] G02.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G01` `parallel:none`
+  - [ ] G02.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G02.A` `parallel:none`
+  - [ ] G02.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G02.B` `parallel:none`
+  - [ ] G02.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G02.C` `parallel:none`
+- [ ] G03 Cone-cylinder SSI: full/bounded/node/linear and source-correct branch selection. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G02` `parallel:none`
+  - [ ] G03.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G02` `parallel:none`
+  - [ ] G03.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G03.A` `parallel:none`
+  - [ ] G03.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G03.B` `parallel:none`
+  - [ ] G03.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G03.C` `parallel:none`
+- [ ] G04 Cone-torus SSI: every registered variant/component and original UV. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G03` `parallel:none`
+  - [ ] G04.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G03` `parallel:none`
+  - [ ] G04.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G04.A` `parallel:none`
+  - [ ] G04.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G04.B` `parallel:none`
+  - [ ] G04.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G04.C` `parallel:none`
+- [ ] G05 Parallel torus-torus SSI: every registered variant/continuous component and original UV. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G04` `parallel:none`
+  - [ ] G05.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G04` `parallel:none`
+  - [ ] G05.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G05.A` `parallel:none`
+  - [ ] G05.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G05.B` `parallel:none`
+  - [ ] G05.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G05.C` `parallel:none`
+- [ ] G06 Certified CS: all five source families, complete curve T/host UV/target UV. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G05` `parallel:none`
+  - [ ] G06.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G05` `parallel:none`
+  - [ ] G06.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G06.A` `parallel:none`
+  - [ ] G06.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G06.B` `parallel:none`
+  - [ ] G06.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G06.C` `parallel:none`
+- [ ] G07 Remaining Native/analytic CS and SSI: isolated/tangent/boundary and complete empty. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G06` `parallel:none`
+  - [ ] G07.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G06` `parallel:none`
+  - [ ] G07.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G07.A` `parallel:none`
+  - [ ] G07.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G07.B` `parallel:none`
+  - [ ] G07.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G07.C` `parallel:none`
+- [ ] G08 Rational constructed CS and SSI: ruled/Coons/correction/derivative/join/guide. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G07` `parallel:none`
+  - [ ] G08.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G07` `parallel:none`
+  - [ ] G08.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G08.A` `parallel:none`
+  - [ ] G08.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G08.B` `parallel:none`
+  - [ ] G08.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G08.C` `parallel:none`
+- [ ] G09 Procedural CS and SSI: offset/rolling/revolution/draft/angular transport. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G08` `parallel:none`
+  - [ ] G09.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G08` `parallel:none`
+  - [ ] G09.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G09.A` `parallel:none`
+  - [ ] G09.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G09.B` `parallel:none`
+  - [ ] G09.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G09.C` `parallel:none`
+- [ ] G10 Implicit/lift CS and SSI: all cells/branches, T-UV-XYZ and closed/seam/pole correspondence. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G09` `parallel:none`
+  - [ ] G10.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G09` `parallel:none`
+  - [ ] G10.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G10.A` `parallel:none`
+  - [ ] G10.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G10.B` `parallel:none`
+  - [ ] G10.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G10.C` `parallel:none`
+- [ ] G11 Nonlinear/singular domains: complete preimage, non-Cartesian guards/incidents/periodic families. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:none` `parallel:none`
+  - [ ] G11.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:none` `parallel:none`
+  - [ ] G11.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G11.A` `parallel:none`
+  - [ ] G11.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G11.B` `parallel:none`
+  - [ ] G11.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G11.C` `parallel:none`
+- [ ] G12 Composed structural identity: parent/join/shared boundary/period/collapse/scope/germs. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:none` `parallel:none`
+  - [ ] G12.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:none` `parallel:none`
+  - [ ] G12.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G12.A` `parallel:none`
+  - [ ] G12.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G12.B` `parallel:none`
+  - [ ] G12.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G12.C` `parallel:none`
+- [ ] G13 General pcurve boundary: seventeen registered kinds, transform/reversal/knot/branch/denominators. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:none` `parallel:none`
+  - [ ] G13.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:none` `parallel:none`
+  - [ ] G13.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G13.A` `parallel:none`
+  - [ ] G13.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G13.B` `parallel:none`
+  - [ ] G13.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G13.C` `parallel:none`
+- [ ] G14 Actual face clipping: holes/nonconvex/open/closed/period/pole and nonempty raw-refined splitting. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:none` `parallel:none`
+  - [ ] G14.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:none` `parallel:none`
+  - [ ] G14.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G14.A` `parallel:none`
+  - [ ] G14.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G14.B` `parallel:none`
+  - [ ] G14.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G14.C` `parallel:none`
+- [ ] G15 General self-contact: complete source product minus only proven scoped identity. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:none` `parallel:none`
+  - [ ] G15.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:none` `parallel:none`
+  - [ ] G15.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G15.A` `parallel:none`
+  - [ ] G15.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G15.B` `parallel:none`
+  - [ ] G15.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G15.C` `parallel:none`
+- [ ] G16 Actual self callers: embedding/offset/drafted-sheet with nonempty contacts/material/failures. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:none` `parallel:none`
+  - [ ] G16.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:none` `parallel:none`
+  - [ ] G16.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G16.A` `parallel:none`
+  - [ ] G16.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G16.B` `parallel:none`
+  - [ ] G16.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G16.C` `parallel:none`
+- [ ] G17 Continuous CS overlap: complete intervals/components, T/UV/endpoints/connectivity. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:none` `parallel:none`
+  - [ ] G17.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:none` `parallel:none`
+  - [ ] G17.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G17.A` `parallel:none`
+  - [ ] G17.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G17.B` `parallel:none`
+  - [ ] G17.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G17.C` `parallel:none`
+- [ ] G18 Continuous SSI overlap: complete common curves/regions, all UV/dimensions/incidence. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:none` `parallel:none`
+  - [ ] G18.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:none` `parallel:none`
+  - [ ] G18.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G18.A` `parallel:none`
+  - [ ] G18.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G18.B` `parallel:none`
+  - [ ] G18.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G18.C` `parallel:none`
+- [ ] G19 General geometry publication: XYZ/all UV/image/fiber/infinite families/retained result owner. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:none` `parallel:none`
+  - [ ] G19.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:none` `parallel:none`
+  - [ ] G19.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G19.A` `parallel:none`
+  - [ ] G19.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G19.B` `parallel:none`
+  - [ ] G19.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G19.C` `parallel:none`
+- [ ] G20 Projection contact: original parameters/branches/depth. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G19` `parallel:none`
+  - [ ] G20.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G19` `parallel:none`
+  - [ ] G20.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G20.A` `parallel:none`
+  - [ ] G20.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G20.B` `parallel:none`
+  - [ ] G20.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G20.C` `parallel:none`
+- [ ] G21 Projection exceptional/continuous components and actual drawing caller. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G20` `parallel:none`
+  - [ ] G21.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G20` `parallel:none`
+  - [ ] G21.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G21.A` `parallel:none`
+  - [ ] G21.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G21.B` `parallel:none`
+  - [ ] G21.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G21.C` `parallel:none`
+- [ ] G22 Cumulative final acceptance: required interactions/environments/all seven/latest main. Complete only after all mandatory input groups reach public acceptance and main delivery; numeric-special-case success is partial. `depends:G01,G02,G03,G04,G05,G06,G07,G08,G09,G10,G11,G12,G13,G14,G15,G16,G17,G18,G19,G20,G21` `parallel:none`
+  - [ ] G22.A Bind existing cell IDs to all required inputs, expected sets and concrete stops; mapping alone is not implementation progress. `depends:G01,G02,G03,G04,G05,G06,G07,G08,G09,G10,G11,G12,G13,G14,G15,G16,G17,G18,G19,G20,G21` `parallel:none`
+  - [ ] G22.B Close source -> DI -> required identity/consumer -> public result for the entire input group. `depends:G22.A` `parallel:none`
+  - [ ] G22.C Verify completeness/failures/boundaries/resources/cancel/lifetime and required target environments. `depends:G22.B` `parallel:none`
+  - [ ] G22.D One review, finding correction, coherent commit, independent latest-main integration. `depends:G22.C` `parallel:none`
+
 - [x] MW1 Commitd9714b1: support the normal-WASI public facade and host-addressable classic ZIP defaults. Fixed Swift6.4.0 full graph compile/link, Node24.19.0 real WASI public append/exact-box/source-roundtrip/malformed/oversized refusal and three Native ZIP tests pass; one scoped review has no findings. Existing capability ledger and public inventory failures are identical to committed0465a16 and remain outside this checkpoint. URL atomicity, A2, Embedded and geometry-normal changes remain outside this bounded evidence. `depends:none` `parallel:none`
 - [x] MW.I Commit5f7a4b9: integrated maindfeecbe in isolation and verified combinedtreee21aa8b2 with fixedSDK fullfacade compile/link plus realNode five markers. Main fast-forwarded to the exact verified tree; all five foreign working files retain byte-identical hashes. NativeZIP evidence retains unchanged source assumptions. Existing baseline catalog failures remain outside this bounded checkpoint. `depends:MW1` `parallel:none`
 - [x] MC1 Integrate committeda859522 cancellation protocol/checker and exact two tests into latestmain407446e. Current-main complete Core source/dependency graph actual Native product relink100.49s and2/2 task tests PASS.001s; one integration review PASS and owned5/root/private/PIF/product hashes agree. Incoming407446e changes only Modeling and its tests; all Core/Package proof premises remain identical to verified6c98c51. Existing Core expression/Bezier/domain contracts are retained; full87, EmbeddedCore and consumer routing remain separate. `depends:MW.I` `parallel:none`

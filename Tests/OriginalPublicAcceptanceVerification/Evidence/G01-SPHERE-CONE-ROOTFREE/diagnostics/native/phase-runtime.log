@@ -1,0 +1,1 @@
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: GeneralFullSphereConeSSIAcceptance.GeneralFullSphereConeSSIAcceptance.CellFailure(context: "section center=Point3D(x: 0.0, y: 0.0, z: 0.0) radius=3.0 swapped=false chart=0 t=-1.0", underlying: CADGeometry.ExactRealRootFailure.scalar(CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.work)))

@@ -67,11 +67,11 @@ public final class OriginalFullSphereConeSurfaceRelation: Sendable {
             }
             var empty = firstEffective.isEmpty || secondEffective.isEmpty
             if let coneBox = s.sphereIsFirst ? secondBox : firstBox {
-                // Whole-pair equality implies Z>=-3. This original slant bound
+                // Whole-pair equality implies Z>=center.z-radius. This slant bound
                 // excludes the complete selected domain, independently of UV samples.
                 let upper = try f.binary64(exactly: coneBox.v.upper, using: &a)
-                let maximumZ = try f.adding(f.integer(-4, using: &a), f.multiplying(s.cosine, upper, using: &a), using: &a)
-                if try f.compare(maximumZ, f.integer(-3, using: &a), using: &a) == .less { empty = true }
+                let maximumZ = try f.adding(f.binary64(exactly:s.apex.z,using:&a), f.multiplying(s.cosine, upper, using: &a), using: &a)
+                if try f.compare(maximumZ, f.subtracting(f.binary64(exactly:s.sphereCenter.z,using:&a),f.binary64(exactly:s.sphereRadius,using:&a),using:&a), using: &a) == .less { empty = true }
         }
         // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary/prepared full SSI owns
         // the full pair and proved selected exclusion. Other nonempty finite UV

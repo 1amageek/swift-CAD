@@ -12,10 +12,25 @@ public struct OriginalFullSphereConeSurfaceSnapshot: Sendable {
     public let cosine: Field.Value
     public let labelPeriod: Field.Value
     public let proofDepth: ExactScalarDepth
+    public var apex:Point3D {
+        let value=sphereIsFirst ? original.second:original.first
+        guard case .analytic(.cone(let apex,_,_))=value else { preconditionFailure("Source-issued cone invariant.") }
+        return apex
+    }
+    public var sphereCenter:Point3D {
+        let value=sphereIsFirst ? original.first:original.second
+        guard case .analytic(.sphere(let center,_))=value else { preconditionFailure("Source-issued sphere invariant.") }
+        return center
+    }
+    public var sphereRadius:Double {
+        let value=sphereIsFirst ? original.first:original.second
+        guard case .analytic(.sphere(_,let radius))=value else { preconditionFailure("Source-issued sphere invariant.") }
+        return radius
+    }
     public func sectionValues<A: ExactScalarAdmission & ~Copyable>(chart: Int, halfAngle: Field.Value,
         using a: inout A) throws -> OriginalSphereConeSurfaceSectionValues {
         guard chart == 0 || chart == 1 else { throw OriginalSourceIssuanceFailure.invalidSource }
         return try OriginalSphereConeSurfaceSectionValues.issue(halfAngle: halfAngle, chart: chart,
-            sourceSine: sine, sourceCosine: cosine, apexX: 1, constant: 8, isDoubleRoot: false, using: &a)
+            sourceSine:sine,sourceCosine:cosine,apex:apex,center:sphereCenter,radius:sphereRadius,using:&a)
     }
 }

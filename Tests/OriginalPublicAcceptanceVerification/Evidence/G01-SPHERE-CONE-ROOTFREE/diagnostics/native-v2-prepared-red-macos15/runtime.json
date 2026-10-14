@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-root-free-family-20261014/native/v2/prepared-red-macos15/Public",
+    "bounded-prepared"
+  ],
+  "exitCode": -5,
+  "elapsedSeconds": 1.1149310000473633,
+  "peakRSSBytes": 10534912,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "27bf0a4b49bf7b093bea205307a400a7de794911ad29b6498ee3a933db65dde4"
+}

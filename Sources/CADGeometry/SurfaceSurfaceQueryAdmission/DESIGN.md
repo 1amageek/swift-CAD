@@ -199,3 +199,11 @@ or Sendable contract changes across targets.
 
 ### Bounded Protocol Witness
 The bounded intersector requirement carries optional byte admission and optional independent algebra depth in addition to source and spatial depth. Its concrete implementation has exactly the same optional storage signature. A selected algebra cap is forwarded unchanged to the existing original surface-pair producer. The compatibility admitted overload delegates with no selected algebra cap; an injected legacy conformer without the new admission witness fails explicitly rather than invoking an unmetered method. Nil storage stays nil throughout dispatch. [BoundedSurfaceSurfaceAdmissionWitnessTests](../../../Tests/CADGeometryTests/BoundedSurfaceSurfaceAdmissionWitnessTests.swift) verifies concrete and existential dispatch, separate depth/work/byte refusal and cancellation.
+
+### Root-free sphere-cone preparation selection
+
+Preparation selects the existing apex or bounded receipt before the broader
+[source-issued full family](../OriginalSourceIssuance/DESIGN.md#g01-root-free-sphere-cone-family-consumption).
+It prepares a full sphere-cone receipt only when neither specialized receipt
+was selected. Array and rich session queries preserve that same order and
+retain the chosen immutable owner under the original caller admission.
