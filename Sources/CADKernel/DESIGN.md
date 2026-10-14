@@ -1541,3 +1541,14 @@ existing Foundation-dependent downstream files are not made portable by this
 publication. Whole Kernel portability and standalone generic-client packaging
 remain unclaimed. The graph imports its already-declared HashTreeCollections
 dependency directly on every target.
+
+### Bounded sphere-cone symbolic SSI compatibility
+
+The source-backed component from [Geometry publication](../CADGeometry/NativeExactGeometricRelations/DESIGN.md#bounded-sphere-cone-ssi-publication)
+retains exact common XYZ/UV authority. The existing Boolean material/residual
+consumer gates reject this representation before numerical validation, just
+as for retained coaxial components. Diagnostics count its image1 curve without
+assigning a numerical residual. This compatibility update establishes refusal
+safety; general Boolean/material clipping and whole Kernel portability are not
+completed by the new Geometry family. Verify the affected primary bodies and
+actual graph refusal with real ordered sources/IDs when Geometry is stable.

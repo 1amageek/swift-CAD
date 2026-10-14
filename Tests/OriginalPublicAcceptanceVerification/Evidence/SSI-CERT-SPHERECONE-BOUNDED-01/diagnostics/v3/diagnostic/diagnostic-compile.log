@@ -1,0 +1,119 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:53:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 51 |             var a = try ledger()
+ 52 |             let section = try relation.section(halfAngle: f.integer(1, using: &a), limits: limits(), using: &a)
+ 53 |                 print("checking fixture line", 53, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 54 |             try require(!section.isSharedEndpoint)
+ 55 |             let q = ExactRationalScalarDomain(); var huge = try q.integer(1, using: &a)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:67:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 65 |                 let quadratic = try g.adding(g.subtracting(g.multiplying(point.slant, point.slant, using: &a),
+ 66 |                     g.multiplying(g.multiplying(two, b, using: &a), point.slant, using: &a), using: &a), g.integer(16, using: &a), using: &a)
+ 67 |                 print("checking fixture line", 66, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 68 |                 try require(g.sign(of: quadratic, using: &a) == .zero)
+ 69 |                 print("checking fixture line", 67, "work", a.workUsed); fflush(nil)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:69:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 67 |                 print("checking fixture line", 66, "work", a.workUsed); fflush(nil)
+ 68 |                 try require(g.sign(of: quadratic, using: &a) == .zero)
+ 69 |                 print("checking fixture line", 67, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 70 |                 try require(g.compare(g.adding(point.x, g.multiplying(si, point.slant, using: &a), using: &a), two, using: &a) == .equal)
+ 71 |                 print("checking fixture line", 68, "work", a.workUsed); fflush(nil)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:71:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 69 |                 print("checking fixture line", 67, "work", a.workUsed); fflush(nil)
+ 70 |                 try require(g.compare(g.adding(point.x, g.multiplying(si, point.slant, using: &a), using: &a), two, using: &a) == .equal)
+ 71 |                 print("checking fixture line", 68, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 72 |                 try require(g.sign(of: point.y, using: &a) == .zero)
+ 73 |                 print("checking fixture line", 69, "work", a.workUsed); fflush(nil)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:73:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 71 |                 print("checking fixture line", 68, "work", a.workUsed); fflush(nil)
+ 72 |                 try require(g.sign(of: point.y, using: &a) == .zero)
+ 73 |                 print("checking fixture line", 69, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 74 |                 try require(g.compare(g.subtracting(point.z, g.multiplying(co, point.slant, using: &a), using: &a), g.integer(-4, using: &a), using: &a) == .equal)
+ 75 |                 print("checking fixture line", 70, "work", a.workUsed); fflush(nil)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:75:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 73 |                 print("checking fixture line", 69, "work", a.workUsed); fflush(nil)
+ 74 |                 try require(g.compare(g.subtracting(point.z, g.multiplying(co, point.slant, using: &a), using: &a), g.integer(-4, using: &a), using: &a) == .equal)
+ 75 |                 print("checking fixture line", 70, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 76 |                 try require(g.sign(of: point.x, using: &a) == (branch == 0 ? .negative : .positive))
+ 77 |                 let first = try point.firstUV(limits: limits(), using: &a), second = try point.secondUV(limits: limits(), using: &a)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:78:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 76 |                 try require(g.sign(of: point.x, using: &a) == (branch == 0 ? .negative : .positive))
+ 77 |                 let first = try point.firstUV(limits: limits(), using: &a), second = try point.secondUV(limits: limits(), using: &a)
+ 78 |                 print("checking fixture line", 72, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 79 |                 try require(first.isSphere == !reversed && second.isSphere == reversed)
+ 80 |                 let sphere = reversed ? second : first, cone = reversed ? first : second
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:85:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 83 |                     case .coneAngularLabel(let half, _, let coneOffset) = cone.u,
+ 84 |                     case .authoredScalar(let slant) = cone.v else { throw Failure(line: #line) }
+ 85 |                 print("checking fixture line", 78, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 86 |                 try require(g.compare(ys, g.negated(point.x, using: &a), using: &a) == .equal)
+ 87 |                 print("checking fixture line", 79, "work", a.workUsed); fflush(nil)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:87:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 85 |                 print("checking fixture line", 78, "work", a.workUsed); fflush(nil)
+ 86 |                 try require(g.compare(ys, g.negated(point.x, using: &a), using: &a) == .equal)
+ 87 |                 print("checking fixture line", 79, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 88 |                 try require(g.compare(yc, point.y, using: &a) == .equal)
+ 89 |                 print("checking fixture line", 80, "work", a.workUsed); fflush(nil)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:89:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 87 |                 print("checking fixture line", 79, "work", a.workUsed); fflush(nil)
+ 88 |                 try require(g.compare(yc, point.y, using: &a) == .equal)
+ 89 |                 print("checking fixture line", 80, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 90 |                 try require(g.compare(g.multiplying(two, latitude, using: &a), point.z, using: &a) == .equal)
+ 91 |                 print("checking fixture line", 81, "work", a.workUsed); fflush(nil)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:91:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 89 |                 print("checking fixture line", 80, "work", a.workUsed); fflush(nil)
+ 90 |                 try require(g.compare(g.multiplying(two, latitude, using: &a), point.z, using: &a) == .equal)
+ 91 |                 print("checking fixture line", 81, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 92 |                 try require(g.compare(half, g.integer(1, using: &a), using: &a) == .equal)
+ 93 |                 print("checking fixture line", 82, "work", a.workUsed); fflush(nil)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:93:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 91 |                 print("checking fixture line", 81, "work", a.workUsed); fflush(nil)
+ 92 |                 try require(g.compare(half, g.integer(1, using: &a), using: &a) == .equal)
+ 93 |                 print("checking fixture line", 82, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 94 |                 try require(g.compare(slant, point.slant, using: &a) == .equal)
+ 95 |                 print("checking fixture line", 83, "work", a.workUsed); fflush(nil)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:95:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 93 |                 print("checking fixture line", 82, "work", a.workUsed); fflush(nil)
+ 94 |                 try require(g.compare(slant, point.slant, using: &a) == .equal)
+ 95 |                 print("checking fixture line", 83, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 96 |                 try require(g.sign(of: offset, using: &a) == .negative && g.sign(of: coneOffset, using: &a) == .positive)
+ 97 |                 print("checking fixture line", 84, "work", a.workUsed); fflush(nil)
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:97:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 95 |                 print("checking fixture line", 83, "work", a.workUsed); fflush(nil)
+ 96 |                 try require(g.sign(of: offset, using: &a) == .negative && g.sign(of: coneOffset, using: &a) == .positive)
+ 97 |                 print("checking fixture line", 84, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 98 |                 try require(sphere.member.section.relation === relation)
+ 99 |             }
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/diagnostic/DiagnosedAcceptance.swift:100:62: error: value of type 'ExactScalarLedger' has no member 'workUsed'
+ 98 |                 try require(sphere.member.section.relation === relation)
+ 99 |             }
+100 |                 print("checking fixture line", 86, "work", a.workUsed); fflush(nil)
+    |                                                              `- error: value of type 'ExactScalarLedger' has no member 'workUsed'
+101 |             try require(section.field.compare(section.plusSlant, section.minusSlant, using: &a) == .greater)
+102 |         }

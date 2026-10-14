@@ -3055,3 +3055,43 @@ root is2*b-lambda in the same field, by Vieta. This exact basis avoids the
 near-zero physical constant2-s*b produced by a centered radical basis; no
 zero rounding or ceiling change occurs. The one original root/poly owner is
 shared. The radical remains lambda-b and all original equalities are unchanged.
+
+### Bounded sphere-cone whole-pair source
+
+The fixed R2/A(2,0,-4)/Z/alpha bits3fddac670561bb50 parent SSI source reuses
+the preceding critical-arc receipt and the existing primitive source/law issuers.
+Let t=tan(theta/2), q=1+t*t, S=2*t/q, C=(1-t*t)/q, b=2*s*S+4*c.
+The source owns both roots of lambda^2-2*b*lambda+16=0. Exact c_L is the
+positive root of c_L^2=1-k^2, k=2(1-c)/s. The complete half-angle support
+is [k/(1+c_L),(1+c_L)/k], both endpoints included. Physical coefficient
+bounds already owned here imply b>0 at every angle, so D>=0 iff S>=k; no
+other angular interval or negative slant component exists. Both roots coincide
+only at the two critical endpoints. Each root arc is nonconstant; together
+they form one closed common curve, image1/fiber0.
+
+Original XYZ is (2-s*lambda*S,s*lambda*C,-4+c*lambda). Source equality
+follows from the retained quadratic and unit-circle laws. Bounds on c/s
+exclude1 and3, hence neither sphere pole occurs. Cone angle is2*atan(t) on
+(0,pi); sphere azimuth is atan2(-X,Y), sphere latitude asin(Z/2) on the
+canonical latitude branch. Store these exact inverse relations with the
+intrinsic label scale B/(2*pi) and independent integer B lifts. Binary B
+is the primitive label period, not a mathematical physical period.
+
+The source snapshot retains both primitive laws/supports and the original
+ordered pair. Its source depth is1 over primitive depth0. The existing scalar
+tower isolates c_L; per-member evaluation isolates one plus slant then obtains
+the minus slant by Vieta, sharing its point section. No intersection problem
+is decomposed again. Closed incident sides survive at both endpoints; no
+higher-order continuity is claimed.
+
+For interior point evaluation the retained b bounds4<b<9/2 yield P(4)<0
+and P(7)>2. Use the exact rational(4,7) isolating interval for the plus
+slant, then Vieta for the minus. This removes parameter-dependent root-count
+boundaries without changing the original polynomial/root selection.
+
+The bounded parent snapshot keeps ordinary coefficients/primitive laws in the
+level0 field and retains a separate criticalField for the endpoint extension.
+A point section retains its input scalar context through the checked public
+Field(retaining:) initializer and imports ordinary coefficients upward. The
+critical field owns support/boundary comparisons only; unrelated critical
+extensions do not enter a rational interior point quadratic.

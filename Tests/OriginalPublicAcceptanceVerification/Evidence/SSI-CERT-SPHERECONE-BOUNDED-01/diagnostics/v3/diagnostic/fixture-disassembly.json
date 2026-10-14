@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/usr/bin/lldb",
+    "-b",
+    "-o",
+    "disassemble -n \"$s30BoundedSphereConeSSIAcceptanceAAO7successyyKF\"",
+    "-o",
+    "quit",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/native/Public"
+  ],
+  "exitCode": 1,
+  "elapsedSeconds": 4.544919416075572,
+  "peakRSSBytes": 732053504,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "0857f235807d35b4f4ae15e0d90a050fed64c39733e2bc68e21500e71bf76f2b"
+}

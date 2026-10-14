@@ -1,0 +1,4 @@
+(lldb) target create "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/native/Public"
+Current executable set to '/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v3/native/Public' (arm64).
+(lldb) disassemble -n "$s30BoundedSphereConeSSIAcceptanceAAO7successyyKF"
+error: Unable to find symbol with name '$s30BoundedSphereConeSSIAcceptanceAAO7successyyKF'.

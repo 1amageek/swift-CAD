@@ -45,13 +45,7 @@ public struct OriginalCertifiedSphereConeFullSnapshotProvider: OriginalSourceSna
             // These exact coefficient bounds feed the whole-source theorem.
             // Full branches use sin(theta) in [-1,1]; bounded branches use
             // their retained critical arc, including D=0 at its endpoints.
-            try a.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: (OriginalPhysicalAngleValue, Int, Int).self))
-            for (value, lower, upper) in [(s, 44, 45), (c, 89, 90)] {
-                let lo = try f.dividing(f.integer(lower, using: &a), f.integer(100, using: &a), using: &a)
-                let hi = try f.dividing(f.integer(upper, using: &a), f.integer(100, using: &a), using: &a)
-                guard try f.compare(lo, value, using: &a) == .less,
-                    try f.compare(value, hi, using: &a) == .less else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
-            }
+            try Self.admitPhysicalBounds(field: f, sine: s, cosine: c, using: &a)
             let boundedArc = original.componentKind == .boundedAngularInterval
                 ? try OriginalCertifiedSphereConeBoundedArc.issue(original: original, field: f, using: &a) : nil
             let apexX = boundedArc == nil ? 1 : 2
@@ -138,5 +132,15 @@ public struct OriginalCertifiedSphereConeFullSnapshotProvider: OriginalSourceSna
                 roots: roots, proofDepth: depth, boundedArc: boundedArc)
             try a.checkpoint(); return .init(original: snapshot, sourceDepth: 1)
         } catch { throw .init(preserving: error) }
+    }
+    static func admitPhysicalBounds<A: ExactScalarAdmission & ~Copyable>(field f: OriginalPhysicalAngleScalarDomain,
+        sine: OriginalPhysicalAngleValue, cosine: OriginalPhysicalAngleValue, using a: inout A) throws {
+        try a.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: (OriginalPhysicalAngleValue, Int, Int).self))
+        for (value, lower, upper) in [(sine, 44, 45), (cosine, 89, 90)] {
+            let lo = try f.dividing(f.integer(lower, using: &a), f.integer(100, using: &a), using: &a)
+            let hi = try f.dividing(f.integer(upper, using: &a), f.integer(100, using: &a), using: &a)
+            guard try f.compare(lo, value, using: &a) == .less,
+                try f.compare(value, hi, using: &a) == .less else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
+        }
     }
 }

@@ -936,3 +936,22 @@ retained. Requests act on T and exact target coordinates; whole-source exclusion
 is retained for empty selection. No solver retry or rounded critical law is used.
 The source owns critical normalization and root choice; DI owns selection and
 the geometric producer owns admitted representation/enclosure/terminal cancel.
+
+### Bounded sphere-cone SSI publication
+
+The [source](../OriginalSourceIssuance/DESIGN.md#bounded-sphere-cone-whole-pair-source)
+and [domain relation](../NativeExactRelations/DESIGN.md#bounded-sphere-cone-parent-ssi-domain)
+feed all six existing ordinary SSI entries and prepared closed-box queries.
+A source-backed geometric component retains the one connected two-branch
+common curve, exact source/XYZ/inverse-UV membership and closed incidents.
+The rich result exposes its sealed reader through protocol requirements.
+Prepared sessions retain the same source once; the selected empty query does
+not reconstruct the pair. Other finite nonempty requests fail explicitly.
+
+Add only the required result owner and dispatch. Existing numeric Boolean
+material/residual consumers reject the new symbolic representation under their
+existing incomplete gates; diagnostics count its image dimension without
+pretending a numerical residual is exact authority. Serialization cannot
+construct/discard proof objects. Native/ASAN/normalWASM imported and Embedded
+composed success, whole/quarter scopes, resource/depth/cancel/lifetime and
+existing certified CS regressions are the verification ownership boundary.

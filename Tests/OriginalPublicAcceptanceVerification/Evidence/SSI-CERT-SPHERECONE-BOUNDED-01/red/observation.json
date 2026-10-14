@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-bounded-20261014-v2/parent-ssi-observation/Observe"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.8381694160634652,
+  "peakRSSBytes": 32768,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "bfe5b77b61f1b91aecb53394839cafb9acba1490c60808e2f5c035dde484656e"
+}

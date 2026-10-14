@@ -1,0 +1,7 @@
+checking fixture line 53 work 5821194
+checking fixture line 66 work 6452407
+checking fixture line 67 work 6452410
+checking fixture line 68 work 6499992
+checking fixture line 69 work 6499995
+checking fixture line 70 work 6548130
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.work)

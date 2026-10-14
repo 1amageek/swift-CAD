@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/bounded-sphere-cone-ssi-20261014/v1/native/Public",
+    "success"
+  ],
+  "exitCode": -5,
+  "elapsedSeconds": 3.0836310419254005,
+  "peakRSSBytes": 13041664,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "1a351441ab8e7560950ae33166822cc9aae1bb47a8f4f2bea3cf87ccb5a2006e"
+}

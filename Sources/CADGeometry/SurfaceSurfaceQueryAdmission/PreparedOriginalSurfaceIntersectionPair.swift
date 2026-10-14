@@ -4,6 +4,7 @@ import CADCore
 public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairIntersecting {
     private let first: PreparedSurfaceDifferentialEncloser
     private let second: PreparedSurfaceDifferentialEncloser
+    private let boundedSphereCone: OriginalBoundedSphereConeSurfaceRelation?
     private let coaxial: OriginalSourceBinding<OriginalCoaxialSurfacePairSnapshot>?
     private let admission: SurfaceSurfaceQueryAdmission
     public let tolerance: ModelingTolerance
@@ -15,6 +16,7 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
         try tolerance.validate(); try admission.step()
         self.first = try admission.prepare(first, tolerance: tolerance)
         self.second = try admission.prepare(second, tolerance: tolerance)
+        self.boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().prepare(first: first, second: second, options: .init(), tolerance: tolerance, admission: admission)
         self.coaxial = try OriginalCoaxialSurfacePublicProducer().prepare(first: first, second: second, options: .init(), tolerance: tolerance, admission: admission)
         self.tolerance = tolerance
         self.admission = admission
@@ -26,6 +28,7 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
         let prepared = try admission.prepare(surface, tolerance: tolerance)
         self.first = prepared
         self.second = prepared
+        self.boundedSphereCone = nil
         self.coaxial = nil
         self.tolerance = tolerance
         self.admission = admission
@@ -51,6 +54,10 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
     // the session represents the entire required self-contact domain.
     public func intersections(firstBox: SurfaceParameterBox, secondBox: SurfaceParameterBox,
         options: SurfaceSurfaceIntersectionOptions) throws -> [SurfaceSurfaceIntersection] {
+        if let boundedSphereCone, let result = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: firstSurface, second: secondSurface,
+            firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, admission: admission, retained: boundedSphereCone) {
+            return result.intersections
+        }
         if let coaxial, let result = try OriginalCoaxialSurfacePublicProducer().resolve(first: firstSurface, second: secondSurface,
             firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, admission: admission, retained: coaxial) {
             return result.intersections
@@ -75,6 +82,10 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
 
     public func intersectionResult(firstBox: SurfaceParameterBox, secondBox: SurfaceParameterBox,
         options: SurfaceSurfaceIntersectionOptions) throws -> SurfaceSurfaceIntersectionResult {
+        if let boundedSphereCone, let result = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: firstSurface, second: secondSurface,
+            firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, includeRelations: true, admission: admission, retained: boundedSphereCone) {
+            return result
+        }
         if let coaxial, let result = try OriginalCoaxialSurfacePublicProducer().resolve(first: firstSurface, second: secondSurface,
             firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, includeRelations: true, admission: admission, retained: coaxial) {
             return result

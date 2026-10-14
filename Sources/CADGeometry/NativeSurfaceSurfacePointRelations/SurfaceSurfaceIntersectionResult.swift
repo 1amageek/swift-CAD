@@ -14,9 +14,12 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
     /// Complete coaxial primitive phase/integer families, original UV and symbolic XYZ.
     public let originalCoaxialSurfaceRelation: (any OriginalCoaxialSurfaceRelationReading)?
 
+    /// Complete source-bound bounded sphere-cone curve and independent original UV lifts.
+    public let originalBoundedSphereConeRelation: (any OriginalBoundedSphereConeSurfaceRelationReading)?
+
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
-        originalIssuedGeometricRelation == nil && originalCoaxialSurfaceRelation == nil ? .numericalRepresentatives : .exactRelation
+        originalIssuedGeometricRelation == nil && originalCoaxialSurfaceRelation == nil && originalBoundedSphereConeRelation == nil ? .numericalRepresentatives : .exactRelation
     }
 
 
@@ -25,13 +28,15 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
         originalNativeRelations: OriginalNativeSurfaceSurfaceRelations? = nil,
         originalExactGeometricRelation: NativeExactGeometricRelation? = nil,
         originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)? = nil,
-        originalCoaxialSurfaceRelation: (any OriginalCoaxialSurfaceRelationReading)? = nil) {
+        originalCoaxialSurfaceRelation: (any OriginalCoaxialSurfaceRelationReading)? = nil,
+        originalBoundedSphereConeRelation: (any OriginalBoundedSphereConeSurfaceRelationReading)? = nil) {
         self.intersections = intersections
         self.originalNativePoints = originalNativePoints
         self.originalNativeRelations = originalNativeRelations
         self.originalExactGeometricRelation = originalExactGeometricRelation
         self.originalIssuedGeometricRelation = originalIssuedGeometricRelation
         self.originalCoaxialSurfaceRelation = originalCoaxialSurfaceRelation
+        self.originalBoundedSphereConeRelation = originalBoundedSphereConeRelation
     }
 
 }

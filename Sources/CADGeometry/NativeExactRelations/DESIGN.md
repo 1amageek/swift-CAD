@@ -978,3 +978,30 @@ is only a fundamental cover; period endpoints/left-right incidents remain explic
 meaning and no source UV is merged. Readmission preserves request/source/field/
 transport/family/result-depth and cancellation. No coefficient ordering failure
 can become empty, and no finite-window or bounding-box shortcut is used.
+
+### Bounded sphere-cone parent SSI domain
+
+Consume the [whole-pair source](../OriginalSourceIssuance/DESIGN.md#bounded-sphere-cone-whole-pair-source).
+The existing DI analytic frame/selection issuer defines source support and
+effective original UV requests. A sealed relation retains both ordered
+primitive frames, full half-angle support, source and proof depth. Whole
+requests publish one connected two-branch family. The catalog quarter boxes
+are completely excluded: coneV<=3/4 gives Z<-3, while the source sphere has
+Z>=-2. Other nonempty finite UV restrictions remain explicit incomplete
+coverage until their exact inverse-angle predicates are consumed.
+
+A checked section admits t in the entire closed source interval. It shares
+one selected quadratic root for both signs; boundary sections use the proved
+double root directly. Its members retain exact XYZ and the uniquely scoped
+inverse angular relations plus all independent cycles. Angular arguments are
+not rounded UV values. Original parameter dimension4, solution/image dimension1
+and fiber dimension0 are distinguished. Empty publication keeps the original
+request/support exclusion owner. Source/value/coefficient/transport/chart/family
+limits, cancellation and independent reader admission apply without solver retry.
+
+Prepared bounded-parent sessions retain the validated original DI frames, half-angle
+domain and support set from the first full relation. Selected queries admit the
+same owner/depth and create only new request/effective selections. This removes
+the observed5,447,942 preparation plus1,537,867 repeated-domain work cost while
+preserving the same cumulative caller admission. No source/interval replay or
+new allowance is introduced.

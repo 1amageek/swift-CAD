@@ -4,6 +4,8 @@ extension DefaultSurfaceSurfaceIntersector {
     public func intersectionResult(first: Surface3D, second: Surface3D,
         options: SurfaceSurfaceIntersectionOptions = .init(), tolerance: ModelingTolerance) throws -> SurfaceSurfaceIntersectionResult {
         return try GeometryExactScalarFailure.withPublication {
+          if let boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: first, second: second,
+              options: options, tolerance: tolerance, includeRelations: true) { return boundedSphereCone }
           if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true) { return coaxial }
           if let issued = try OriginalRetainedRollingPlanePublicProducer().resolve(first: first, second: second,
@@ -33,6 +35,8 @@ extension DefaultSurfaceSurfaceIntersector {
           let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
               maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
               consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+          if let boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: first, second: second,
+              options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return boundedSphereCone }
           if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return coaxial }
           if let issued = try OriginalRetainedRollingPlanePublicProducer().resolve(first: first, second: second,
@@ -67,6 +71,9 @@ extension DefaultSurfaceSurfaceIntersector {
           let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
               maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
               consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+          if let boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: first, second: second,
+              firstBox: firstBox, secondBox: secondBox,
+              options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return boundedSphereCone }
           if let coaxial = try OriginalCoaxialSurfacePublicProducer().resolve(first: first, second: second,
               firstBox: firstBox, secondBox: secondBox,
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return coaxial }
