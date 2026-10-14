@@ -1,0 +1,10 @@
+{
+  "matchedInputs": 2337,
+  "sourceCommit": "c9012a76",
+  "executableSHA256": "2a359753f5f29a95f7b990d1f61b6716cd439379826d495f1377e14b6d76e849",
+  "fixtureSHA256": {
+    "GeneralFullSphereConeSSIAcceptance.swift": "068fdab70365eb5e70634789a2f482bcfb86f152480beffd404c8db795dc0141",
+    "FullSphereConeSSIAcceptance.swift": "066459cdf8ee6f40a1b975739814f9ad770bb236e944d28f28ea1a264f083591",
+    "BoundedSphereConeSSIAcceptance.swift": "e133c30f901cba254e9a4505063eaae24c0c8c8933bafc504c507d407d5ab211"
+  }
+}
