@@ -9,18 +9,29 @@ for complete original curve-surface query traversal and certification.
 
 ## Responsibilities and Boundaries
 
-The upper query owns cumulative work and cancellation. Geometry forwards that
-same admission to original preparation, visited cells, root certification and
-refinement. No default solver allowance replaces an injected allowance.
+This component owns CS invocation composition under the
+[direct original-query execution target](../DESIGN.md#direct-original-query-execution).
+Source owners, exact operations and public callers must directly consume the
+common execution contracts rather than preserving per-route allowance wrapping.
+
+The current callback implementation forwards the upper query's cumulative work
+and cancellation to original preparation, visited cells, root certification and
+refinement. No default solver allowance replaces an injected allowance. The
+legacy convenience and callback paths below remain implementation facts until
+their actual owners/callers migrate and duplicate paths are removed.
 
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | original complete intersections | Publishes admission port. | Preserve failure/completeness. |
+| [Direct Original Query Execution](../DESIGN.md#direct-original-query-execution) | parent | Direct cumulative admission and evidence consumption | Owns target architecture and migration gate | Legacy depth callbacks must not be reinterpreted as work units |
 | [Geometry Conversion](../GeometryConversion/DESIGN.md) | depends on | original prepared closed bounds | Supplies real-source values. | Candidate points are not root evidence. |
 
 ## Architecture
+
+The target flow and owner boundaries are defined by the parent contract above.
+The following is the current callback implementation, not the target structure:
 
 ```text
 query cumulative ledger -> immutable invocation admission

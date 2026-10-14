@@ -5,20 +5,31 @@ Child of [CADGeometry](../DESIGN.md), without children. Owns immutable caller
 admission forwarded across one original surface-pair intersection invocation.
 
 ## Responsibilities and Boundaries
-The caller owns cumulative work and retained-storage accounting. This adapter
-borrows distinct work-visit and retained-byte callbacks, source depth and enclosure limits; it never creates or
-resets a private allowance. Search, continuation, atlas and final source proof
-keep their existing local option ceilings in addition to caller admission.
+This component owns SSI invocation composition under the
+[direct original-query execution target](../DESIGN.md#direct-original-query-execution).
+Source owners, exact operations and public callers must directly consume the
+common execution contracts. Per-route allowance wrapping is not its target.
+
+The current implementation retains an immutable value that forwards work-visit
+and retained-byte callbacks, source depth and enclosure limits. It never creates
+or resets a private allowance. Search, continuation, atlas and final source proof
+retain existing local option ceilings in addition to caller admission. The
+callback paths documented below remain current implementation until their
+actual owners/callers migrate; preserving them does not complete the target.
 
 ## Related Designs
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | original intersection publication | Coordinates proof and numerical candidates | Numerical stations do not prove membership |
+| [Direct Original Query Execution](../DESIGN.md#direct-original-query-execution) | parent | Direct cumulative admission and evidence consumption | Owns target architecture and migration gate | No new compatibility layer discharges migration |
 | [Original Geometry Source Validation](../OriginalGeometrySourceValidation/DESIGN.md) | depends on | paid original source traversal | Bounds preparation | Preserve exact source depth |
 
 ## Architecture
+The target flow and owner boundaries are defined by the parent contract above.
+The following is the current callback implementation, not the target structure:
+
 ```text
-caller callback and limits -> immutable invocation adapter
+caller callback and limits -> immutable invocation value
  -> original preparation -> search -> root candidates -> continuation
  -> original graph atlas -> completeness -> original curve publication
 ```

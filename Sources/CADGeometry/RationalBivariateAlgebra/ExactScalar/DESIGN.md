@@ -62,6 +62,7 @@ second resource owner.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [RationalBivariateAlgebra](../DESIGN.md) | parent and used by | RationalAlgebraAdmitting and retained scalar values | Existing higher numeric consumers | Their builds are outside this task |
+| [Direct Original Query Execution](../../DESIGN.md#direct-original-query-execution) | coordinates with | Direct caller admission and source-owner refinement | Module-wide migration target | Historical borrowing bridges are not target completion |
 
 ## Architecture
 
@@ -267,6 +268,37 @@ the same contract on all targets; external callbacks run outside its critical
 section. Values and evidence add no mutable lazy cache.
 
 
+### Direct Admission and Refinement Target
+
+The approved module execution target requires arithmetic owners and their callers
+to use the same explicit admission directly. Existing `ExactScalarAdmission`
+units, bytes and independent value/coefficient depths are the semantic baseline.
+Migrating copyable numeric calling contracts is part of that target; an additional
+wrapper around the current protocols is not its implementation.
+
+Work amounts are admitted before their operations. Batch admission must preserve
+overflow checks, cumulative limits and cancellation during long inner loops;
+work accounting cannot be reinterpreted as a depth callback. Each operation owns
+its actual cost, while forwarding and diagnostic attribution do not charge that
+same operation again. Necessary allocation/copy costs retain their declared
+accounting policy and are admitted before materialization.
+
+Cumulative admitted storage remains distinct from live retained/scratch bytes
+and process RSS. Any added live-byte metric must follow actual allocation owners
+and release boundaries; it cannot redefine or refund cumulative storage. Limits
+and measurement overhead remain explicit, without guessed universal defaults.
+
+Each coefficient domain owns its certified enclosures and exclusive numerical
+refinement state. Shared source terms, including paired trigonometric bounds,
+are prepared once when their concrete owner can prove that reuse. Increased
+precision retains the same exact value and previously completed refinement;
+it does not restart isolation or convert a narrow interval into equality.
+Immutable evidence may outlive the invocation; mutable refinement and borrowed
+admission may not. Scheduling reasons are owned by
+[IntersectionAlgebra](../../IntersectionAlgebra/DESIGN.md#direct-proof-decision-and-refinement-target),
+not by a second scalar solver. These are implementation obligations, not new
+verified scalar capabilities.
+
 ## Runtime Flows
 
 Entry checkpoint, inherited-depth admission and explicit domain validation precede
@@ -293,8 +325,13 @@ verify the borrowed storage and failure paths. No performance claim is made.
 The current bridge remains an internal synchronous compatibility borrow because
 the existing numeric protocol passes copyable handles. Native inout is used at
 public and directly expressible boundaries. Removing this bridge would require
-changing that lower calling contract and its consumers; it is not part of this
-redesign. No new unsafe boundary or shared resource state is introduced.
+changing that lower calling contract and its consumers. That removal was outside
+the earlier L0 redesign, but is included in the approved
+[direct execution migration](../../DESIGN.md#direct-original-query-execution).
+Until its actual callers are migrated and verified, this paragraph describes
+current compatibility, not completion of the target. The historical borrow
+introduces no shared resource state; migration must preserve its safety and
+same-ledger guarantees.
 
 ## Failure, Concurrency, and Constraints
 

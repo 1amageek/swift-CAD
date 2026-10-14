@@ -150,6 +150,94 @@ failure, and migration obligations are specified in the
 [Intersection Algebra foundation contract](IntersectionAlgebra/DESIGN.md#intersection-classification-and-proximity-boundary).
 Legacy tolerance-based coincidence is not evidence of migration completion.
 
+### Direct Original Query Execution
+
+This is the approved target architecture, not a description of completed source
+migration. It supersedes adapter-based unification and any earlier exclusion of
+the corresponding legacy admission migration. The module owns this cross-family
+execution contract; the following child designs own its constituent contracts.
+Existing runtime evidence remains limited to its recorded source and caller path.
+
+Original source owners and callers directly use common execution contracts for
+admission, proved decisions, refinement and retained evidence. Wrapping existing
+per-route allowances, callbacks and duplicate proof preparation does not meet this
+target. There is no new universal solver or shape-formula reconstruction layer.
+
+| Owner | Contract | Boundary |
+|---|---|---|
+| [ExactScalar](RationalBivariateAlgebra/ExactScalar/DESIGN.md#direct-admission-and-refinement-target) | Direct scalar admission and independent resource axes | Existing exact arithmetic remains the numeric authority |
+| [OriginalSourceIssuance](OriginalSourceIssuance/DESIGN.md) | Original construction laws, support, correspondence and guards | Each source owner supplies its own coefficients and reusable evidence |
+| [OriginalDomainIdentity](OriginalDomainIdentity/DESIGN.md) | Complete request coverage, transport and scoped identity | XYZ proximity cannot establish parameter identity |
+| [IntersectionAlgebra](IntersectionAlgebra/DESIGN.md#direct-proof-decision-and-refinement-target) and [NativeExactRelations](NativeExactRelations/DESIGN.md) | Proved decisions, complete retained relations and checked predicate refinement | Consumers add conditions without repeating source equality solving |
+| [CS](CurveSurfaceQueryAdmission/DESIGN.md) and [SSI](SurfaceSurfaceQueryAdmission/DESIGN.md) | Public invocation ownership and direct caller propagation | Entry convenience must not create a second accounting owner |
+| [Boundary](OriginalBoundaryClipping/DESIGN.md), [self-contact](OriginalSurfaceEmbedding/DESIGN.md) and [projected contact](SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md) | Material, structural exclusion and screen/depth conditions | Each consumer retains its complete original correspondence |
+| [Geometric publication](NativeExactGeometricRelations/DESIGN.md) | Atomic public results and failures | Result lifetime retains every source, field, domain and proof owner |
+
+```mermaid
+flowchart TD
+    Q[Public request and caller-owned execution] --> S[Original source and DI owners]
+    S --> P[Retained proof or certified enclosure]
+    P -->|proved| C[Consumer-owned conditions]
+    P -->|unresolved| R[Reason-directed refinement]
+    R -->|coefficient or domain refinement| P
+    R --> L[Existing exact root and component decomposition]
+    L --> C
+    C --> O[Complete original result or explicit failure]
+    A[One cumulative admission and cancellation contract] -.-> S
+    A -.-> P
+    A -.-> R
+    A -.-> L
+    A -.-> C
+    A -.-> O
+```
+
+The target covers Native and analytic, rational constructed, offset, rolling-ball,
+revolution, draft, angular, implicit, certified, lift, join, guide and composed
+sources. It applies to CS/SSI, continuous overlap, material clipping, self-contact
+and projected contact, including ordinary, admitted, prepared and later membership
+entries and actual embedding, offset-validator and drawing callers. Missing
+source capabilities and continuous/singular coverage remain mandatory work;
+execution unification cannot discharge them by returning unsupported.
+
+One caller invocation owns cumulative work and allocation admission through
+preparation, solving, refinement and publication. Work units, bytes, cell visits
+and source/transport/value/coefficient depths have distinct meanings. A child or
+parallel task cannot mint a fresh allowance. Explicit independent later queries
+may borrow immutable evidence with their own caller admission; a retained-session
+contract that shares the original allowance must continue to share it until its
+callers are explicitly migrated. There is no hidden reset or automatic retry.
+
+Caller time policy is distinct from work accounting. Cancellation and any supplied
+deadline are observed at entry, during long operations and after the final callback
+before publication. Polling frequency and its overhead are verified on the actual
+target; work counts alone are not a wall-time or responsiveness guarantee.
+
+Source-bound immutable evidence is shared through retained owners and views.
+Mutable numerical refinement belongs to an exclusive invocation and continues
+from the same original value. Reuse validates owner, field, branch, guards and
+scope; relation reuse uses the existing checked raw-relation/predicate equality
+contract. No global mutable cache or repeated source decomposition is introduced.
+Shared accounting uses the same synchronization and Sendable contract on Native,
+normal WASM and Embedded; external callbacks execute outside its critical section.
+
+Migration changes the actual owners and production callers to these contracts,
+then removes duplicate route allowances, preparation and obsolete calling paths
+after behavioral verification. Remaining compatibility borrows are recorded as
+incomplete migration, with their caller and removal gate; changing their names or
+moving them behind another protocol is not completion. Numerical candidates and
+performance hints never become source equality or complete exclusion evidence.
+
+Each vertical unit reaches a real public caller before review, coherent commit
+and main delivery. Verification checks original classification, all parameters,
+guards, incident boundaries, complete empty results, independent resource axes,
+N/N-1 limits, cancellation, lifetime and target isolation. Performance compares
+the same source/request/accounting conditions, measuring work, wall time,
+cumulative allocations, retained/scratch memory and metering overhead. Budget
+defaults follow representative measurements; changing caps or tolerance is not
+an optimization proof. Source/toolchain/product/log receipts bind each result.
+Existing acceptance cells and G01-G22 remain authoritative; this target and its
+documentation close no runtime cell or whole requirement.
+
 ### Near-Parallel Plane Pair Classification
 
 The existing public SSI dispatcher forwards its selected options to

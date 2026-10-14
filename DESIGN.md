@@ -35,6 +35,12 @@ The [Geometry design](Sources/CADGeometry/DESIGN.md) owns geometric composition;
 the [Intersection Algebra contract](Sources/CADGeometry/IntersectionAlgebra/DESIGN.md)
 owns real relation authority. PROGRESS.md owns execution state only.
 
+The approved cross-family execution target is owned by
+[Direct Original Query Execution](Sources/CADGeometry/DESIGN.md#direct-original-query-execution).
+That module contract governs the migration of original-query execution owners;
+historical callback and bridge descriptions remain current implementation facts,
+not the target architecture or evidence that migration has completed.
+
 Backward compatibility is not an acceptance constraint for this foundation.
 Contradictory legacy tolerance-based identity or incomplete result contracts are
 replaced, with affected callers migrated to the original relation contract.

@@ -32,6 +32,7 @@ this component.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | Original source families | Owns public dispatch | Equations are not intersection results |
+| [Direct Original Query Execution](../DESIGN.md#direct-original-query-execution) | parent | Direct admission, owner refinement and atomic publication | Defines the module-wide target | Current compatibility paths do not establish migration |
 | [Rational Bivariate Algebra](../RationalBivariateAlgebra/DESIGN.md) | depends on | Original rational coefficients, native homogeneous laws, caller ledger | Reuses exact arithmetic | Complex dimension is not real coverage |
 | [Original Field Scalar Root](../RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md) | depends on | Original rational norm with denominator saturation | Supplies coefficient annihilators | Selected coefficient roots retain independent admission |
 | [Surface Surface Query Admission](../SurfaceSurfaceQueryAdmission/DESIGN.md) | coordinates with | Cumulative original invocation | SSI composition | No private allowance |
@@ -48,6 +49,40 @@ original native laws + original selected domains
 ```
 
 ## Contracts and Invariants
+
+### Direct Proof Decision and Refinement Target
+
+The module's direct execution target distinguishes proved predicate decisions,
+unresolved scheduling reasons and typed failures. A proved outcome retains its
+original law, coefficient field, source owner, guards and exact scope. It is
+issued only through checked proof construction. A false local predicate does
+not establish global empty intersection, and an enclosure containing zero does
+not establish equality. Boolean callbacks cannot approve proof authority.
+
+An unresolved result carries the concrete next obligation: coefficient enclosure
+precision, parameter-domain width, dependency-induced enclosure width, or a
+boundary/singular event requiring retained exact relation treatment. These are
+scheduling hints, not certificates that the proposed action will finish. Invalid
+binding, missing required capability, exhausted admission and cancellation remain
+typed failures with their original causes, stage and source/request context.
+
+The execution owner first consumes reusable evidence, then a certified inexpensive
+enclosure, and refines only undecided obligations. Coefficient precision and domain
+subdivision consume their own depth axes; increasing coefficient accuracy for a
+singleton cannot be reported as spatial subdivision. Exact zero, tangent, critical
+and boundary components use the existing root/real-component contracts rather
+than indefinite strict-sign subdivision. An uncertain filter proceeds within the
+same proved source problem and admission; failure cannot trigger another solver.
+
+Material and structural-identity conditions refine retained original relations.
+Reuse follows the checked equality and pullback contracts of
+[NativeExactRelations](../NativeExactRelations/DESIGN.md); hashes, numerical
+samples and equal XYZ do not replace those witnesses. Original guards, auxiliary
+roles, every incident side and raw/refined correspondence survive refinement.
+Publication still requires complete selected coverage, including exclusion over
+the whole request for an empty result. Implementation verification must reject
+false proofs, misclassified scheduling hints, lost boundaries and budget resets;
+this target section is not runtime acceptance.
 
 ### Admitted Original Coordinate Rings
 

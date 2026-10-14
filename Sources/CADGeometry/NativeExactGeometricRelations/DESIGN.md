@@ -16,6 +16,14 @@ Numerical samples do not prove existence, equality, topology or complete exclusi
 Root owns shared contracts, result types, admission and dispatch. CS and SSI helpers
 have separate file owners and do not mutate the other owner's source.
 
+The [direct original-query execution target](../DESIGN.md#direct-original-query-execution)
+requires these publication callers to consume the common admission, retained
+proof and refinement contracts directly. Later sections describing existing
+allowance adapters and compatibility bridges record current implementation;
+they do not authorize adapter-based unification. Migration must change actual
+owners/callers and remove duplicate preparation and obsolete execution paths
+after verification. Documentation or a renamed wrapper is not completion.
+
 ## Related Designs
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
@@ -139,11 +147,11 @@ limits, tolerance-based source equality, hidden exploration window or budget res
 
 ## Verification and Change Impact
 Reuse b26fa47c's identical lower source evidence. Verify full production compilation
-and actual public source-bound geometric queries first, then rich/discrete numerical
-adapters with weighted contact/repeated roots, multiple UV, closed/singleton/empty,
+and actual public source-bound geometric queries first, then rich/discrete public
+paths with weighted contact/repeated roots, multiple UV, closed/singleton/empty,
 continuous/mixed, folded/collapsed, source release, independent limits and terminal
 cancel. Matching Swift6.4.0 Native/normal WASM/Embedded proofs and affected ASAN paths
-are required before adapter completion/main integration. Review each stable snapshot
+are required before public-path completion/main integration. Review each stable snapshot
 once and recheck only concrete findings. Source/domain expansion has its own tests.
 
 ## Public Migration Boundary
@@ -418,7 +426,11 @@ unchanged; public rejection is still `resourceLimitExceeded`.
 ## Planned Composition Consumer Migration
 
 Status: design only; current implementation guarantees above remain unchanged.
-Public family consumers will retain the issued source/domain evidence and solved relation, including the exact compatibility bridge for existing point receipt accessors.
+Public family consumers retain the issued source/domain evidence and solved
+relation through the direct execution contracts. Existing point receipt accessors
+must read that same immutable evidence without duplicate preparation or a new
+compatibility execution layer. Their actual callers and obsolete paths migrate
+under the [module target](../DESIGN.md#direct-original-query-execution).
 The [common consumer handoff](../OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
 owns coefficient transport, complete-cover, publication and migration acceptance.
 
