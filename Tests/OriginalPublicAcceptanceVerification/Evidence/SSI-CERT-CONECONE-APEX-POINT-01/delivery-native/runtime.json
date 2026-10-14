@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-integration-recovered/swift-CAD/.build/common-apex-cone-ssi-20261014/delivery-native/Public"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 8.545334250084125,
+  "peakRSSBytes": 12763136,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "1b8f0b6035af2242be4354d1dbbfe3cb0817977aba1fdc2e66f8146152791eee"
+}
