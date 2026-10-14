@@ -81,4 +81,10 @@ required complete receipt is unavailable. The old half-angle query rejects
 finite scopes; the source-owned raw cone-U query is the accepted public query.
 General open/apex and other bounded topologies remain required.
 
-Latest-main delivery is recorded separately in `delivery-native/receipt.json`.
+Source commit `b1239553` is integrated into latest main. Independent composition
+matches2,353 compiler/dependency inputs,310 task files and8 copied Native
+products. Fresh Native relink and nine public/prepared groups pass, including
+three finite input variants, singleton, controls and nonempty prepared reuse.
+`delivery-native/receipt.json` binds this composition. Delivery metadata changes
+no compiler inputs or accepted source premises. Protected12 foreign files/drafts
+retain their original hashes.
