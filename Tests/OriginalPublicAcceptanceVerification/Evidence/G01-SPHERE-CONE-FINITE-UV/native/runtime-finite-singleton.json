@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-finite-bounded-20261014/native/Public",
+    "finite-singleton"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 2.247927166055888,
+  "peakRSSBytes": 13221888,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "f8c567ea743347e9b87aad4090de978e12850d73a94c57ab85f8eeecb4ec9fb9"
+}

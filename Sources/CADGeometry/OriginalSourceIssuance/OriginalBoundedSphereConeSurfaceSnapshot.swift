@@ -7,6 +7,7 @@ public struct OriginalBoundedSphereConeSurfaceSnapshot: Sendable {
     public let firstLaw: OriginalAnalyticCoordinateLawReceipt<OriginalAnalyticCoordinateSnapshot, Field>
     public let secondLaw: OriginalAnalyticCoordinateLawReceipt<OriginalAnalyticCoordinateSnapshot, Field>
     public let sphereIsFirst: Bool
+    public let physical: OriginalPhysicalAngleScalarDomain
     public let field: Field
     public let criticalField: Field
     public let sine: Field.Value

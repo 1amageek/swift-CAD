@@ -1,0 +1,7 @@
+PASS finite prepared input 0 reversed false prepareWork 2671093 queryWork 5659718 callerWork 8330811 callerBytes 6911952
+PASS finite prepared input 0 reversed true prepareWork 2671093 queryWork 5659718 callerWork 8330811 callerBytes 6911952
+PASS finite prepared input 1 reversed false prepareWork 2669345 queryWork 5457153 callerWork 8126498 callerBytes 6783984
+PASS finite prepared input 1 reversed true prepareWork 2669345 queryWork 5457153 callerWork 8126498 callerBytes 6783984
+PASS finite prepared input 2 reversed false prepareWork 2671580 queryWork 5659943 callerWork 8331523 callerBytes 6916732
+PASS finite prepared input 2 reversed true prepareWork 2671580 queryWork 5659943 callerWork 8331523 callerBytes 6916732
+PASS nonempty finite prepared SSI, 3 inputs x both orders, both raw-U endpoints and detached independent member admission

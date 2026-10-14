@@ -1,0 +1,46 @@
+{
+  "scope": "Nonempty finite prepared sphere-cone SSI, three original inputs and both parent orders; exact raw cone-U endpoint publication and independent member admission after session and input release.",
+  "probeSHA256": "4a9984d3219e967075cbad474475f289cf03196caded8dd21ab221e382aea5d0",
+  "lanes": {
+    "native": {
+      "compileReceipt": "Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-FINITE-UV/prepared/native/compile.json",
+      "compileReceiptSHA256": "3ce1cdb157c7b95997d610da797cb600d52fa57d411d65dc79a89ad3c70d143e",
+      "runtimeReceipt": "Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-FINITE-UV/prepared/native/runtime.json",
+      "runtimeReceiptSHA256": "349648bf05863683cfc111591868d3834f2eb87cbcbc7792743b7948d758c4e6",
+      "sourcePremisesSHA256": "21bcfc21b5adcbc1af76d11b777cf86225a30d02e98b1387c7e45c98ffe6ba81",
+      "productsSHA256": "80fd2f0100599752364d6e284cee2f631f66c51e9910661627e00c8bb8bd0ae9",
+      "compileSeconds": 2.0072375000454485,
+      "runtimeSeconds": 14.697234207997099,
+      "peakRSSBytes": 304660480,
+      "caseCount": 6
+    },
+    "asan": {
+      "compileReceipt": "Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-FINITE-UV/prepared/asan/compile.json",
+      "compileReceiptSHA256": "48f6d3e1ee3ef1063040c894825e94c90094a76e4fe75cb1eb558683a4937ba6",
+      "runtimeReceipt": "Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-FINITE-UV/prepared/asan/runtime.json",
+      "runtimeReceiptSHA256": "c626de0ee908f7fe473e52020a007d6c211546bc8efa100d32c864ea3f725b28",
+      "sourcePremisesSHA256": "cb00acac7b1c6841069b8970f4d91ac95339b1d96fdd1ef8b7b501aeef56a5ef",
+      "productsSHA256": "4d8a016da41aa938805355fbcfbf380c3cbc9900c2085abbeb1efcf66439510e",
+      "compileSeconds": 2.9919333750149235,
+      "runtimeSeconds": 32.15934404102154,
+      "peakRSSBytes": 649625600,
+      "caseCount": 6
+    },
+    "wasm": {
+      "compileReceipt": "Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-FINITE-UV/prepared/wasm/compile.json",
+      "compileReceiptSHA256": "b662c828e3d3c00a12b91e0475523bea0e34940958c9586725c0715f99317040",
+      "runtimeReceipt": "Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-FINITE-UV/prepared/wasm/runtime-prepared.json",
+      "runtimeReceiptSHA256": "540c3c12a29a93c74c8ebbf7c4a1da55b44919cd2f133363537b4d6b385e63df",
+      "sourcePremisesSHA256": "d8305b2bbb24851027135ffb30bd0ac8ac8fb91a032f0ec81d41cba3e8ceceed",
+      "productsSHA256": "d64d409681e3d10ead6a259d66ad64184e4b4c31c3e62c947068e67943737255",
+      "compileSeconds": 3.5711012079846114,
+      "runtimeSeconds": 17.092302542063408,
+      "peakRSSBytes": 798916608,
+      "caseCount": 6
+    }
+  },
+  "excluded": "Embedded supplemental compilation/runtime, general finite clipping, shifted-cycle support, and additional prepared resource/cancellation controls.",
+  "preservedLaunchFailure": "Tests/OriginalPublicAcceptanceVerification/Evidence/G01-SPHERE-CONE-FINITE-UV/prepared/wasm/runtime.json",
+  "launchFailureCause": "Initial ordinary WASM wrapper invocation omitted its required group argument; module execution did not start. ResumeWasm.py used the same compiled module with the required argument.",
+  "binaryArtifacts": "PreparedFiniteProbe and PreparedFiniteProbe.wasm are local verification products and should not be committed."
+}

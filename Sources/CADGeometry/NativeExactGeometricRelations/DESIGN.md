@@ -1034,6 +1034,16 @@ the same caller admission; a different topology declines that capability without
 claiming absence or retrying after a failure. Full/apex dispatch then consumes
 its own proved capability. Prepared creation retains only the selected owner.
 
+Finite publication consumes the [sealed finite-arc source receipt](../OriginalSourceIssuance/DESIGN.md#g01-finite-original-uv-arc-source) through the same relation and SSI component. The component reports its receipt-owned dimension (1 for an arc, 0 for a singleton) and `isClosed=false`. Its raw cone-U member entry retains the relation, delegates exact symbolic XYZ/root/UV to the source receipt, and enforces the selected branch and exact zero independent cycles. The two UV roles follow the retained source order. Existing half-angle sections explicitly reject finite scopes rather than admitting points from the whole curve. Source lifetime, source/proof depth, resource admission and cancellation are checked by every member query. Unproved complete coverage is failure, never empty or partial publication.
+
+```text
+Finite original UV request
+    -> DI request/support/effective selections
+        -> sealed source whole-interval proof
+            -> retained selected component
+                -> checked raw cone-U member / symbolic XYZ and ordered UV
+```
+
 ### Complete sphere azimuth inverse relation
 
 Full and bounded sphere-cone UV publication emits `sphereAngularInverse` with

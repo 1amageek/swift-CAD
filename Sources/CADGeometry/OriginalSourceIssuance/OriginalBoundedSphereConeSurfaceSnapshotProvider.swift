@@ -109,7 +109,7 @@ public struct OriginalBoundedSphereConeSurfaceSnapshotProvider: OriginalSourceSn
                 let period=try base.binary64(exactly:2*Double.pi,using:&a),depth=try a.depth
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalBoundedSphereConeSurfaceSnapshot.self))
                 let result=OriginalBoundedSphereConeSurfaceSnapshot(original:input,firstLaw:firstLaw,secondLaw:secondLaw,
-                    sphereIsFirst:pair.sphereFirst,field:base,criticalField:g,sine:sine,cosine:cosine,
+                    sphereIsFirst:pair.sphereFirst,physical:physical,field:base,criticalField:g,sine:sine,cosine:cosine,
                     lowerHalfAngle:lower,upperHalfAngle:upper,labelPeriod:period,proofDepth:depth,
                     endpointSine:endpointSine,endpointCosine:endpointCosine,endpointSlant:endpointSlant)
                 try a.checkpoint();return .init(original:result,sourceDepth:1)

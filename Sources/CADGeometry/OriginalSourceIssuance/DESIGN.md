@@ -3259,3 +3259,61 @@ This is an explicit construction-owner choice before solving, not a failure
 fallback. It avoids unnecessary migration of the full negative-slant arithmetic;
 its concrete regression is the original sphere-metric oracle exhausting work
 after full member generation with the changed radical representation.
+
+### G01 finite original-UV arc source
+
+`OriginalBoundedSphereConeSurfaceFiniteArcReceipt` owns a complete closed raw
+cone-U interval within the aligned bounded parent's principal positive-angle
+chart. Its immutable parent binding retains the same physical coefficient owner,
+primitive laws and original source values. A caller admission charges every
+rational enclosure, subdivision, coefficient depth and retained descriptor.
+Each query retains one immutable coefficient-depth memo for physical sine/cosine
+and the four fixed sphere UV boundaries. Cells share that memo; a deeper
+coefficient request replaces it with a newly charged, stronger memo. No mutable
+cache survives the query or is shared between callers.
+The first memo uses coefficient depth two. A cell requests the next depth when
+its raw width divided by the exact label period is no greater than the largest
+retained trigonometric enclosure width; an unresolved singleton therefore
+refines coefficients on its next visit. This schedules proof effort from actual
+uncertainty without changing any acceptance guard. The middle coefficient and
+discriminant are rounded outward to dyadic enclosures before the positive-root
+proof, preserving inclusion while limiting irrelevant denominator growth.
+
+```text
+Original bounded pair + finite original UV requests
+    -> exact rational interval cover of every raw cone U
+        -> selected quadratic root inside all requested UV guards
+        -> other quadratic root excluded by the original cone V guard
+            -> sealed finite arc and original symbolic XYZ/UV descriptors
+```
+
+The capability requires cone U in `(0,B/2)`, positive cone V, sphere U in
+`(-B/2,0)` and sphere V in `[-B/4,0]`. With exact physical phase
+`theta=2*pi*U/B`, source-owned coefficients give `b=m+r*sin(theta)`,
+`D=b*b-C>0` and ordered slants `b+sqrt(D)`, `b-sqrt(D)`. Rational enclosures
+prove one unchanged root is inside cone V throughout every closed cover cell,
+while the other root is outside throughout. Relative X is strictly positive;
+sphere azimuth membership follows from oriented boundary determinants on
+`(-pi,0)`, and latitude membership follows from monotonic sine on
+`[-pi/2,0]`. These prove both sphere UV guards without treating numerical
+bounds as source equality. Selected roots retain their exact defining expression.
+The cover uses a shared midpoint and includes both incident sides. A singleton
+raw U is an image-dimension-zero result; every nondegenerate interval has image
+dimension one because its positive slant gives an injective cone U chart.
+
+Source positions expose the actual authored apex, physical coefficients,
+quadratic coefficient/ordered root, intrinsic phase and sphere inverse relations.
+Their symbolic XYZ follows the original cone law and their sphere membership
+follows the original retained quadratic. Independent original parameter cycles
+are zero in this principal capability. Exact binary64 endpoints remain original
+labels; mathematical pi belongs only to the physical phase conversion. The
+retained field raw-U member must pass exact closed endpoint comparisons.
+
+Unsupported charts or boundary clipping are explicit unsupported coverage;
+insufficient refinement, cancellation, work/storage/depth exhaustion propagate
+failure. An unresolved cell never becomes an omitted arc or successful empty
+result. Existing half-angle members require separate finite membership proof and
+must not bypass this receipt. Behavioral verification owns endpoint/interior,
+translated/scaled source, swapped hosts, singleton, outside/cycle/branch and
+resource/cancellation failures through the actual source/DI/public path. This
+strict finite capability leaves general boundary-root clipping unconverted.

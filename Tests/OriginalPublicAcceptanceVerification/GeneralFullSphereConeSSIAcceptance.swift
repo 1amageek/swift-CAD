@@ -99,6 +99,15 @@ import WASILibc
         if group=="bounded-controls" { try GeneralBoundedSphereConeSSIControls.controls();return }
         if group=="pure-square" { try PureSquareRootAdmissionAcceptance.main();return }
 #endif
+#if G01_FINITE_ACCEPTANCE
+        if group=="finite-bounds" { try PhysicalAngleRationalEnclosureAcceptance.run();return }
+        if group=="finite-oracle" { try GeneralBoundedFiniteSphereConeSSIAcceptance.interiorOracle();return }
+        for index in 0..<3 where group=="finite-general-"+String(index) {
+            try GeneralBoundedFiniteSphereConeSSIAcceptance.success(selected:index);return
+        }
+        if group=="finite-controls" { try GeneralBoundedFiniteSphereConeSSIAcceptance.controls();return }
+        if group=="finite-singleton" { try GeneralBoundedFiniteSphereConeSSIAcceptance.singleton();return }
+#endif
         if group=="general-all" { try success();try controls();return }
         for index in 0..<3 where group=="general-"+String(index) { try success(selected:index);return }
         if group=="controls" { try controls();return }

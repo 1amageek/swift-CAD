@@ -100,6 +100,44 @@ integer arithmetic protects all iteration/depth/storage counts.
 
 ## Verification and Change Impact
 
+### Checked source rational enclosures
+
+The source-owned `OriginalPhysicalAngleRationalBounds` validates closed endpoint
+order using the caller admission. `enclosing` evaluates a retained physical-angle
+coefficient over a fixed requested refinement of its original tangent generator;
+an unresolved denominator returns explicit invalid evidence. It does not change
+the exact coefficient or its owner.
+
+`OriginalPhysicalAngleRationalEnclosures.normalizedLabelSineCosine` bounds the
+entire rational label interval under theta = 2*pi*U/B. B is the caller's exact
+positive label period, including the exact binary64 value 2*Double.pi when that
+is the authored label law; B never replaces physical pi. Machin bounds enclose
+pi. Alternating Taylor sums at the rational phase midpoint, exact halving and
+angle doubling enclose its sine/cosine. Widening each result by the complete
+phase interval's radius is justified by the unit Lipschitz bound for sine and
+cosine. This is interval coverage, with no sampling or angle inversion.
+
+`positiveSquareRoot` separately bisects each rational endpoint, maintaining
+lower^2 <= input <= upper^2; its input lower endpoint must be strictly positive.
+Its initial upper bracket starts at integer one and doubles until its square
+encloses the input upper endpoint. Every doubling consumes the same admission's
+work and checkpoint. Integer brackets keep source-radicand fractional bits out
+of the dyadic bisection grid without weakening its squared inclusion proof.
+Requested refinement depth controls the admitted iteration count, without
+claiming that overlapping bounds establish zero, equality, or absence.
+
+| Boundary | Guarantee | Failure |
+|---|---|---|
+| Physical coefficient | Original retained value lies within bounds | Owner mismatch, unresolved denominator |
+| Normalized label interval | All authored labels' sine/cosine lie within bounds | Reversed interval, nonpositive B |
+| Positive radical | All positive roots of enclosed inputs lie within bounds | Nonpositive input lower bound |
+| Every operation | Same work/storage/depth/cancellation admission | Propagated typed failure; no approximate fallback |
+
+Independent rational-inequality fixtures own midpoint/interval coverage, physical
+angle enclosure, radical bracketing, invalid inputs and admission refusal. The
+bounded source issuer separately owns the complete geometric cover and output
+source correspondence; these bounds alone do not certify a geometric result.
+
 Independent tests must prove sin^2+cos^2=1, nonzero transcendental expressions,
 quotient equality, sign on both sides of a rational separator, negative angles,
 angle doubling, original-input lifetime, foreign-owner rejection, zero divisor,

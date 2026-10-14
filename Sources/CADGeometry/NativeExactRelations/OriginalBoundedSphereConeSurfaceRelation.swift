@@ -1,6 +1,6 @@
 import CADCore
 
-/// Complete connected two-branch curve and retained original UV request authority.
+/// Complete original selected curve or point and retained UV request authority.
 public final class OriginalBoundedSphereConeSurfaceRelation: Sendable {
     public typealias Source = OriginalBoundedSphereConeSurfaceSnapshot
     public typealias Field = Source.Field
@@ -15,21 +15,22 @@ public final class OriginalBoundedSphereConeSurfaceRelation: Sendable {
     public let halfAngleDomain: ExactParameterDomain<Field>
     public let halfAngleSupport: ExactParameterSet<Field>
     public let isEmpty: Bool
+    public let finiteArc: OriginalBoundedSphereConeSurfaceFiniteArcReceipt?
     public let proofDepth: ExactScalarDepth
-    public var hasPositiveDimensionalSolutions: Bool { !isEmpty }
-    public var hasPositiveDimensionalImage: Bool { !isEmpty }
-    public var imageDimension: Int? { isEmpty ? nil : 1 }
+    public var hasPositiveDimensionalSolutions: Bool { imageDimension == 1 }
+    public var hasPositiveDimensionalImage: Bool { imageDimension == 1 }
+    public var imageDimension: Int? { isEmpty ? nil : finiteArc?.imageDimension ?? 1 }
     public var fiberDimension: Int? { isEmpty ? nil : 0 }
     public var originalParameterDimension: Int { 4 }
-    public var branchCount: Int { isEmpty ? 0 : 2 }
+    public var branchCount: Int { isEmpty ? 0 : finiteArc == nil ? 2 : 1 }
     private init(source: OriginalSourceBinding<Source>, firstRequest: Selection, secondRequest: Selection,
         firstSupport: Selection, secondSupport: Selection, firstEffective: Selection, secondEffective: Selection, halfAngleDomain: ExactParameterDomain<Field>,
-        halfAngleSupport: ExactParameterSet<Field>, isEmpty: Bool, proofDepth: ExactScalarDepth) {
+        halfAngleSupport: ExactParameterSet<Field>, isEmpty: Bool, finiteArc: OriginalBoundedSphereConeSurfaceFiniteArcReceipt?, proofDepth: ExactScalarDepth) {
         self.source = source; self.firstRequest = firstRequest; self.secondRequest = secondRequest
         self.firstSupport = firstSupport; self.secondSupport = secondSupport
         self.firstEffective = firstEffective; self.secondEffective = secondEffective
         self.halfAngleDomain = halfAngleDomain; self.halfAngleSupport = halfAngleSupport
-        self.isEmpty = isEmpty; self.proofDepth = proofDepth
+        self.isEmpty = isEmpty; self.finiteArc = finiteArc; self.proofDepth = proofDepth
     }
     public static func resolve<A: ExactScalarAdmission & ~Copyable>(source: OriginalSourceBinding<Source>,
         firstBox: SurfaceParameterBox?, secondBox: SurfaceParameterBox?, maximumComponents: Int,
@@ -73,10 +74,11 @@ public final class OriginalBoundedSphereConeSurfaceRelation: Sendable {
                 let maximumZ = try f.adding(f.binary64(exactly:s.apex.z,using:&a), f.multiplying(s.cosine, upper, using: &a), using: &a)
                 if try f.compare(maximumZ,f.subtracting(f.binary64(exactly:s.sphereCenter.z,using:&a),f.binary64(exactly:s.sphereRadius,using:&a),using:&a),using:&a) == .less { empty = true }
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary/prepared bounded SSI owns
-        // the full pair and proved selected exclusion. Other nonempty finite UV
-        // requests require exact inverse-angle refinement before success.
-        guard empty || (firstBox == nil && secondBox == nil) else { throw OriginalDomainIdentityFailure.incompleteCoverage }
+            let finiteArc: OriginalBoundedSphereConeSurfaceFiniteArcReceipt?
+            if !empty && (firstBox != nil || secondBox != nil) {
+                finiteArc = try OriginalBoundedSphereConeSurfaceFiniteArcReceipt.issue(source: source,
+                    firstBox: firstBox, secondBox: secondBox, using: &a)
+            } else { finiteArc = nil }
         guard maximumComponents >= 0 else { throw OriginalDomainIdentityFailure.invalidDomain }
         guard empty || maximumComponents >= 1 else { throw NativeExactRelationFailure.resultLimit }
             let domain: ExactParameterDomain<Field>, support: ExactParameterSet<Field>
@@ -89,9 +91,9 @@ public final class OriginalBoundedSphereConeSurfaceRelation: Sendable {
             }
         let depth = try a.depth
         try a.retainStorage(bytes: MemoryLayout<(OriginalSourceBinding<Source>, Selection, Selection, Selection, Selection, Selection, Selection,
-            ExactParameterDomain<Field>, ExactParameterSet<Field>, Bool, ExactScalarDepth)>.stride + 2 * MemoryLayout<UnsafeRawPointer>.stride)
+            ExactParameterDomain<Field>, ExactParameterSet<Field>, Bool, OriginalBoundedSphereConeSurfaceFiniteArcReceipt?, ExactScalarDepth)>.stride + 2 * MemoryLayout<UnsafeRawPointer>.stride)
         let relation = Self(source: source, firstRequest: fr, secondRequest: sr, firstSupport: firstSupport, secondSupport: secondSupport, firstEffective: firstEffective,
-            secondEffective: secondEffective, halfAngleDomain: domain, halfAngleSupport: support, isEmpty: empty, proofDepth: depth)
+            secondEffective: secondEffective, halfAngleDomain: domain, halfAngleSupport: support, isEmpty: empty, finiteArc: finiteArc, proofDepth: depth)
         try a.checkpoint(); return relation
         }
     }
@@ -101,15 +103,39 @@ public final class OriginalBoundedSphereConeSurfaceRelation: Sendable {
         try source.original.firstLaw.admitProof(limits: limits.source, using: &a)
         try source.original.secondLaw.admitProof(limits: limits.source, using: &a)
         try firstRequest.frame.require(limits, &a); try secondRequest.frame.require(limits, &a)
+        try finiteArc?.admitProof(using: &a)
         try a.checkpoint()
     }
     public func section<A: ExactScalarAdmission & ~Copyable>(halfAngle: Field.Value,
         limits: OriginalDomainIdentityLimits, using a: inout A) throws -> OriginalBoundedSphereConeSurfaceSection {
         try admitProof(limits: limits, using: &a)
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Finite SSI uses source-owned raw cone-U
+        // membership. The legacy half-angle query cannot prove finite UV membership
+        // and must remain failure until that exact inverse query is source-supported.
+        guard finiteArc == nil else { throw OriginalDomainIdentityFailure.incompleteCoverage }
         guard !isEmpty, try halfAngleDomain.contains(halfAngle, in: halfAngleSupport, using: &a) else {
             throw OriginalDomainIdentityFailure.outsideSupport
         }
         return try OriginalBoundedSphereConeSurfaceSection.issue(relation: self, halfAngle: halfAngle, using: &a)
+    }
+    public func member<A: ExactScalarAdmission & ~Copyable>(coneU: Field.Value, branch: Int,
+        coneCycle: OriginalParameterCycle, sphereCycle: OriginalParameterCycle,
+        limits: OriginalDomainIdentityLimits, using a: inout A) throws -> OriginalBoundedSphereConeSurfaceArcMember {
+        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            try admitProof(limits: limits, using: &a)
+            guard !isEmpty, let finiteArc, branch == finiteArc.branch else {
+                throw OriginalDomainIdentityFailure.outsideSupport
+            }
+            let f = source.original.field
+            guard try f.sign(of: coneCycle.scalar(in: f, using: &a), using: &a) == .zero,
+                try f.sign(of: sphereCycle.scalar(in: f, using: &a), using: &a) == .zero else {
+                throw OriginalDomainIdentityFailure.outsideSupport
+            }
+            let position = try finiteArc.position(coneU: coneU, using: &a)
+            try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalBoundedSphereConeSurfaceArcMember.self))
+            let result = OriginalBoundedSphereConeSurfaceArcMember(relation: self, position: position)
+            try a.checkpoint(); return result
+        }
     }
     private static func requireLimits(_ limits: OriginalDomainIdentityLimits) throws {
         guard limits.maximumCharts >= 2 else { throw OriginalDomainIdentityFailure.chartLimit }

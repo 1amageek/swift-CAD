@@ -1,0 +1,15 @@
+{
+  "lane": "native",
+  "inputs": 3,
+  "parentOrders": 2,
+  "endpointConeU": [
+    1,
+    2
+  ],
+  "preparedNonemptyFinite": true,
+  "detachedIndependentAdmission": true,
+  "counterWorkCap": 8388608,
+  "counterStorageByteCap": 268435456,
+  "productionRecompiled": false,
+  "embeddedCoverage": false
+}

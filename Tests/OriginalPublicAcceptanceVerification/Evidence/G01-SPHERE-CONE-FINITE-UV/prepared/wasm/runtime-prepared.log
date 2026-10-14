@@ -1,0 +1,9 @@
+(node:55136) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS finite prepared input 0 reversed false prepareWork 2668998 queryWork 5658068 callerWork 8327066 callerBytes 5928264
+PASS finite prepared input 0 reversed true prepareWork 2668998 queryWork 5658068 callerWork 8327066 callerBytes 5928264
+PASS finite prepared input 1 reversed false prepareWork 2667250 queryWork 5455503 callerWork 8122753 callerBytes 5800296
+PASS finite prepared input 1 reversed true prepareWork 2667250 queryWork 5455503 callerWork 8122753 callerBytes 5800296
+PASS finite prepared input 2 reversed false prepareWork 2669485 queryWork 5658293 callerWork 8327778 callerBytes 5930872
+PASS finite prepared input 2 reversed true prepareWork 2669485 queryWork 5658293 callerWork 8327778 callerBytes 5930872
+PASS nonempty finite prepared SSI, 3 inputs x both orders, both raw-U endpoints and detached independent member admission

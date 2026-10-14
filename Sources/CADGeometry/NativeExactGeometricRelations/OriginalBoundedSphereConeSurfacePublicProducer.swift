@@ -19,8 +19,8 @@ struct OriginalBoundedSphereConeSurfacePublicProducer {
         tolerance: ModelingTolerance, includeRelations: Bool = false, admission: SurfaceSurfaceQueryAdmission = .legacy,
         retained: OriginalBoundedSphereConeSurfaceRelation? = nil) throws -> SurfaceSurfaceIntersectionResult? {
         // FIXME(INCOMPLETE_IMPLEMENTATION): This aligned single-arc parent SSI publishes
-        // the complete full pair and selected exclusions. Other parent pairs and
-        // nonempty finite UV clipping need their complete source/refinement owner.
+        // the complete full pair, selected exclusions and source-proved finite
+        // arcs. Other parent pairs and finite classes require their source owner.
         let input = OriginalBoundedSphereConeSurfaceInput(first: first, second: second)
         guard OriginalBoundedSphereConeSurfaceSnapshotProvider.pair(input) != nil else { return nil }
         do {

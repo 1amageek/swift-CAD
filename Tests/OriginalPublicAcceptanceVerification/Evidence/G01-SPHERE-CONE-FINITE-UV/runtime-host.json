@@ -1,0 +1,7 @@
+{
+  "node": "/usr/local/bin/node",
+  "nodeSHA256": "1f08f0e5b8d9a0136c6219f4cea4d3b4fb8ffa4d96e0ff64869ce0dda6dd6a35",
+  "nodeVersion": "v24.19.0",
+  "wrapper": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs",
+  "wrapperSHA256": "d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257"
+}

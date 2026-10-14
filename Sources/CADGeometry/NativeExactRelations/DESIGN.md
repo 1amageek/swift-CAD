@@ -987,24 +987,32 @@ effective original UV requests. A sealed relation retains both ordered
 primitive frames, full half-angle support, source and proof depth. Whole
 requests publish one connected two-branch family. The catalog quarter boxes
 are completely excluded: coneV<=3/4 gives Z<-3, while the source sphere has
-Z>=-2. Other nonempty finite UV restrictions remain explicit incomplete
-coverage until their exact inverse-angle predicates are consumed.
+Z>=-2. Finite requests consume the [sealed finite-arc source receipt](../OriginalSourceIssuance/DESIGN.md#g01-finite-original-uv-arc-source).
+The receipt owns the complete closed cone-U interval, selected root branch and
+redundant sphere/cone UV inequalities. Requests outside that proved class remain
+explicit failure; a whole curve cannot substitute for the selected scope.
 
-A checked section admits t in the entire closed source interval. It shares
-one selected quadratic root for both signs; boundary sections use the proved
-double root directly. Its members retain exact XYZ and the uniquely scoped
-inverse angular relations plus all independent cycles. Angular arguments are
-not rounded UV values. Original parameter dimension4, solution/image dimension1
-and fiber dimension0 are distinguished. Empty publication keeps the original
+A checked whole-pair section admits t in the entire closed source interval. It
+shares one selected quadratic root for both signs; boundary sections use the
+proved double root directly. Its members retain exact XYZ and the uniquely
+scoped inverse angular relations plus all independent cycles. Angular arguments
+are not rounded UV values. Whole-pair original parameter dimension4,
+solution/image dimension1 and fiber dimension0 are distinguished.
+
+Finite relations reject the half-angle entry explicitly until the source
+supports exact inverse membership. The finite raw cone-U member entry requires
+the receipt-selected branch and exact zero cone/sphere cycles, readmits the
+retained proof and delegates position/UV expressions to the source owner.
+Nondegenerate finite arcs have image/solution dimension1 and are not closed;
+a singleton cone-U interval has dimension0. Empty publication keeps the original
 request/support exclusion owner. Source/value/coefficient/transport/chart/family
 limits, cancellation and independent reader admission apply without solver retry.
 
-Prepared bounded-parent sessions retain the validated original DI frames, half-angle
-domain and support set from the first full relation. Selected queries admit the
-same owner/depth and create only new request/effective selections. This removes
-the observed5,447,942 preparation plus1,537,867 repeated-domain work cost while
-preserving the same cumulative caller admission. No source/interval replay or
-new allowance is introduced.
+Prepared bounded-parent sessions retain the validated original DI frames,
+half-angle domain and support set from the first full relation. Selected queries
+admit the same owner/depth and create new request/effective selections plus any
+required finite-arc proof. Full and selected-empty queries preserve the existing
+preparation reuse. No new allowance is introduced.
 
 ### Full sphere-cone parent SSI
 
@@ -1102,4 +1110,4 @@ The existing bounded relation consumes the [aligned source theorem](../OriginalS
 Its retained lower/upper half-angle support and shared endpoint germs are source
 issued. Full-pair selection, original request/support/effective domains and both
 root owners remain unchanged. Height exclusions use the actual center/radius and
-apex. General finite-UV refinements remain required before G01 completes.
+apex. Finite clipping consumes the sealed source receipt described by the bounded parent SSI domain contract above; unsupported finite classes remain explicit failure. General finite-UV refinements remain required before G01 completes.
