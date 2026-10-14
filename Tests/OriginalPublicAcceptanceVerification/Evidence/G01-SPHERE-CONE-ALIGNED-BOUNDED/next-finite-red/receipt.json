@@ -1,0 +1,11 @@
+{
+  "mainCommit": "3ca53e238d44b37000919d7fc4df183a2c3624f0",
+  "fixtureSHA256": "82029a442ea38b82bce9cc02de3f0ea6033c3b11c05b751f0d0f4381e878d9be",
+  "executableSHA256": "3d242df5c15cce959c76c29bd5a84f864475eee942b8bfd29a066f937d457dce",
+  "expected": "nonempty complete UV-restricted source intersection; constructive exact t1/minus-slant witness",
+  "status": "red: explicit public failure preserves honesty but does not satisfy required positive coverage",
+  "directCause": "OriginalDomainIdentityFailure.incompleteCoverage",
+  "publicCause": "KernelError.intersectionFailure",
+  "acceptedSourcePremises": "../source-premises.json",
+  "acceptedNativeProducts": "../native/products.json"
+}

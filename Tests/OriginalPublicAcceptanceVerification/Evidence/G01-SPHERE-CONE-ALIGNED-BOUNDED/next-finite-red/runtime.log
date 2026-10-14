@@ -1,0 +1,3 @@
+PASS exact source witness inside sphere[-2,-1]x[-1,0] and cone[1,2]x[3,4]
+STOP retained DI: OriginalDomainIdentityFailure.incompleteCoverage
+STOP finite nonempty original UV publication: KernelError.intersectionFailure

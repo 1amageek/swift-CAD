@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-finite-uv-20261014/Red"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 4.555949207977392,
+  "peakRSSBytes": 13107200,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "48844b5a51daaefb98df272eb7e404e44ea16d82e07b0d73dba9cd6ac95ddae4"
+}
