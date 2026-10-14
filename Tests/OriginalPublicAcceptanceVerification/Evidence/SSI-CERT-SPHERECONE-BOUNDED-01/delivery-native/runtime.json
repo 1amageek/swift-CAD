@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-integration-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/SSI-CERT-SPHERECONE-BOUNDED-01/delivery-native/Public",
+    "all"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 47.30362991709262,
+  "peakRSSBytes": 14483456,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "e1e99810c7a8774809d97ec568b693253e1d9ef9756e7fcfd7fec8f074b93ac5"
+}
