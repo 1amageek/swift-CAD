@@ -1320,36 +1320,6 @@ public struct SelectionMeasurementEvaluator: Sendable {
         )
     }
 
-    private func projectedCurveDistance(
-        from first: SelectionReference,
-        to second: SelectionReference,
-        in document: EvaluatedDocument
-    ) throws -> SelectionDistanceMeasurement? {
-        if case .curve(.whole(let curve)) = first,
-           try supportsProjectionDistancePoint(second, in: document) {
-            let secondPoint = try point(for: second, in: document)
-            let projection = try curveQueryEvaluator.closestPoint(
-                to: secondPoint.point,
-                on: curve,
-                in: document
-            )
-            let firstPoint = try measurementPoint(from: projection.queryPoint, selection: first)
-            return try SelectionDistanceMeasurement(first: firstPoint, second: secondPoint)
-        }
-        if case .curve(.whole(let curve)) = second,
-           try supportsProjectionDistancePoint(first, in: document) {
-            let firstPoint = try point(for: first, in: document)
-            let projection = try curveQueryEvaluator.closestPoint(
-                to: firstPoint.point,
-                on: curve,
-                in: document
-            )
-            let secondPoint = try measurementPoint(from: projection.queryPoint, selection: second)
-            return try SelectionDistanceMeasurement(first: firstPoint, second: secondPoint)
-        }
-        return nil
-    }
-
     private func supportsProjectionDistancePoint(
         _ selection: SelectionReference,
         in document: EvaluatedDocument

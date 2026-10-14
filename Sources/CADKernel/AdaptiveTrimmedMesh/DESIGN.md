@@ -166,10 +166,10 @@ path consumes these retained records and never evaluates an off-boundary normal 
 repair a missing pole receipt.
 All nonplanar faces must publish either their retained grid, native owning-grid,
 graph or complete trimmed-facet plan. Emission does not reconstruct a fresh trim
-polygon or revalidate an immutable support outside the invocation owner. The old
-private trim reconstruction implementation is deprecated and has no production
-caller; its incomplete normal fallback remains marked until final verification
-permits removing that obsolete source. Geometric rectangular recognition precedes
+polygon or revalidate an immutable support outside the invocation owner. The
+unreferenced private trim reconstruction and sampling helpers are removed after
+reference and retained-source verification. Production routes and mesh
+capabilities are unchanged. Geometric rectangular recognition precedes
 the specialized U-graph route, so native axis-side pcurves retain the same rectangle
 policy as their equivalent constant-coordinate representation.
 

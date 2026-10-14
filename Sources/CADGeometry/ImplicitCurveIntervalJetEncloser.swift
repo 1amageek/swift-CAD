@@ -706,18 +706,6 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     SurfaceIntersectionParameterBox(firstU:bounds[0],firstV:bounds[1],secondU:bounds[2],secondV:bounds[3])
   }
 
-  private static func isSinglePositiveWeightSpan(_ surface: BSplineSurface3D) -> Bool {
-    let rows = surface.controlPoints.count,columns = surface.controlPoints.first?.count ?? 0
-    guard !surface.isUPeriodic,!surface.isVPeriodic,rows == surface.vDegree+1,columns == surface.uDegree+1,
-          surface.weights.allSatisfy({ $0.allSatisfy { $0.isFinite && $0 > 0 } }) else { return false }
-    func clamped(_ knots: [Double],degree: Int) -> Bool {
-      guard knots.count == 2*(degree+1),let lower = knots.first,let upper = knots.last,lower < upper else { return false }
-      return knots.prefix(degree+1).allSatisfy { $0 == lower }
-        && knots.suffix(degree+1).allSatisfy { $0 == upper }
-    }
-    return clamped(surface.uKnots,degree:surface.uDegree) && clamped(surface.vKnots,degree:surface.vDegree)
-  }
-
   private func checkLocalizationCancellation(_ tolerance: ModelingTolerance) throws {
     if Task.isCancelled {
       throw KernelError(phase:.geometry,code:.cancelled,tolerance:tolerance,message:"Implicit localization was cancelled.")

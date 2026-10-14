@@ -46,62 +46,6 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         )
     }
 
-    // FIXME(INCOMPLETE_IMPLEMENTATION): This retained legacy helper operates on
-    // converted section coefficients and is not selected by production Loft.
-    // The public evaluator rejects Trim profiles until original source-bound
-    // endpoint and whole-trim admission replace this compatibility implementation.
-    @available(*, deprecated, message: "Legacy converted-section helper; production requires original Loft source admission.")
-    private func trimmedToGuides(_ sections: [[ExactBSplineCurveSpan]], guides: [ExactLoftGuideCurve], closed: Bool,
-                                 featureID: FeatureID, tolerance: ModelingTolerance) throws -> [[ExactBSplineCurveSpan]] {
-        guard closed == false, guides.count == 2 else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): closed sections, or other than two guides, have no
-            // single stretch between guides to keep. This deprecated compatibility helper is
-            // not selected by production Loft, whose Trim profiles entry fails before construction.
-            // Complete only when original directed sections admit whole source-bound trimming.
-            throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                              message: "A Loft trims its open sections to the stretch between two guides.")
-        }
-        return try sections.indices.map { index in
-            let spans = sections[index]
-            // Where along the chain each guide crosses the section: its span and parameter there.
-            let crossings = try guides.map { guide -> (span: Int, parameter: Double) in
-                let point = guide.sectionPoints[index]
-                for (spanIndex, span) in spans.enumerated() {
-                    let curve = Curve3D.bSpline(span.curve)
-                    let parameter = try curve.parameterProjection(of: point, tolerance: tolerance).parameter
-                    if try curve.point(at: parameter, tolerance: tolerance).isApproximatelyEqual(to: point, tolerance: tolerance.distance) {
-                        return (spanIndex, parameter)
-                    }
-                }
-                throw KernelError(phase: .geometry, code: .intersectionFailure, featureID: featureID, tolerance: tolerance,
-                                  message: "A Loft guide does not cross its section.")
-            }.sorted { ($0.span, $0.parameter) < ($1.span, $1.parameter) }
-            let (first, last) = (crossings[0], crossings[1])
-            var kept: [ExactBSplineCurveSpan] = []
-            for spanIndex in first.span...last.span {
-                let curve = spans[spanIndex].curve
-                guard case let .closed(lower, upper) = curve.domain else {
-                    throw KernelError(phase: .geometry, code: .invalidInput, featureID: featureID, tolerance: tolerance,
-                                      message: "A Loft section's span is unbounded.")
-                }
-                let from = spanIndex == first.span ? first.parameter : lower
-                let to = spanIndex == last.span ? last.parameter : upper
-                guard to - from > tolerance.distance * 1e-3 else { continue }
-                let piece = from == lower && to == upper ? curve : try curve.trimmed(from: from, to: to, tolerance: tolerance)
-                guard case let .closed(pieceLower, pieceUpper) = piece.domain else { continue }
-                let start = try piece.point(at: pieceLower, tolerance: tolerance)
-                let end = try piece.point(at: pieceUpper, tolerance: tolerance)
-                guard start.isApproximatelyEqual(to: end, tolerance: tolerance.distance) == false else { continue }
-                kept.append(try ExactBSplineCurveSpan(curve: piece, tolerance: tolerance))
-            }
-            guard kept.isEmpty == false else {
-                throw KernelError(phase: .geometry, code: .invalidInput, featureID: featureID, tolerance: tolerance,
-                                  message: "A Loft's guides cross its section at one point.")
-            }
-            return kept
-        }
-    }
-
     /// A Loft from its one section to a vertex of a body, the section's one loop ruled to it.
     private func apexLoft(_ loft: LoftFeature, apex: LoftApex, featureID: FeatureID, context: EvaluationContext,
         allowance: inout LoftCorrespondenceAllowance) throws -> EvaluationResult {
@@ -450,26 +394,6 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             )
         }
         return LoftMatchedLoopSet(loops: matched)
-    }
-
-    // Legacy facade-only resolver is unselected by the original region path.
-    // Remove after deferred original face/region behavioral regression.
-    @available(*, deprecated, message: "Use OriginalLoftRegionSections for original face laws.")
-    private func resolvedProfiles(
-        for loft: LoftFeature,
-        context: EvaluationContext
-    ) throws -> [Profile] {
-        try loft.sections.map { section in
-            switch section.section {
-            case .profile(let reference):
-                return try ResolvedModelingSection.resolveProfile(reference, from: context.profiles[reference.featureID])
-            case .face(let reference):
-                // A planar face lofts as the profile it bounds, read where its body is.
-                return try FaceSectionProfileResolver().profile(for: reference, context: context, featureID: reference.featureID)
-            case .curve:
-                throw FeatureEvaluationError.invalidGraph("Profile Loft dispatch requires closed-region sections.")
-            }
-        }
     }
 
     private func resolvedCorrespondingProfiles(

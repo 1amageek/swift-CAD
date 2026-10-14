@@ -584,40 +584,6 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
       * (.constant(minorRadius) * CanonicalSphereAngularPhase.harmonic(of: parameter, cosine: false, consumeWork: consumeWork))
   }
 
-  private func bSplineJet(
-    _ curve: BSplineCurve3D,
-    parameters: ScalarInterval,
-    tolerance: ModelingTolerance
-  ) throws -> SurfaceIntervalVectorJet {
-    let patches = try BSplineCurveBezierDecomposer().curvePatches(
-      curve: curve,
-      intersecting: parameters,
-      tolerance: tolerance
-    )
-    let encloser = RationalBezierCurveJetEncloser()
-    var result: SurfaceIntervalVectorJet?
-    for patch in patches {
-      let lower = max(parameters.lower, patch.lower)
-      let upper = min(parameters.upper, patch.upper)
-      guard upper > lower else { continue }
-      let patchJet = try encloser.enclosure(
-        of: patch,
-        over: try ScalarInterval(lower: lower, upper: upper),
-        tolerance: tolerance
-      )
-      result = result.map { $0.union(patchJet) } ?? patchJet
-    }
-    guard let result else {
-      throw KernelError(
-        phase: .geometry,
-        code: .invalidInput,
-        tolerance: tolerance,
-        message: "The curve parameter interval did not intersect a B-spline Bezier span."
-      )
-    }
-    return result
-  }
-
   private func proceduralEnclosure(
     _ curve: Curve3D,
     parameters: ScalarInterval,
