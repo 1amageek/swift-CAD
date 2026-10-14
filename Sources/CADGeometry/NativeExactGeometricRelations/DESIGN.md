@@ -981,3 +981,12 @@ Public SSI/prepared owner retains one connected common image, apex stratum
 image0/fiber1 and two regular arcs image1/fiber0, all original UV/cycles and
 four apex incidents. Geometric publication keeps these source receipts and
 caller limits/cancel; it never reports a sampled point as the full apex fibre.
+
+### Common-apex cone point publication
+
+Publish one retained geometric point component with all selected original UV
+pairs and both collapse receipts through ordinary/callback/prepared SSI.
+Each arbitrary real U is checked in its effective source fiber. The output
+retains immutable source owners and exact origin; XYZ-only consumers/codecs
+must explicitly refuse discarding authority. No global equality is inferred
+from the collapsed subset.

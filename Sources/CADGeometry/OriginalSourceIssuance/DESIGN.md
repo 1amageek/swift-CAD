@@ -3147,3 +3147,14 @@ apex image0/fiber1 and regular image1/fiber0. Two closed circle charts retain
 all four incident sides at S0. Primitive signed coneV and independent U lifts
 are preserved. Earlier candidate curve regenerated binary64 coefficients are
 not the authoritative exact parent law. Reuse original primitive/bounds issuers.
+
+### Common-apex orthogonal cone pair source
+
+Original cone0/Z/alpha and cone0/Y/beta retain independent physical owners.
+Existing certified coefficient bounds ca>.89 and cb>.93 yield ca^2+cb^2>1.
+Any nonzero common point would have z^2>=ca^2*norm^2 and y^2>=cb^2*norm^2,
+contradicting y^2+z^2<=norm^2. The complete image is exactly the common apex,
+with original parameters(U1,0,U2,0) for all real U1/U2. Primitive angular
+laws and source collapse theorems remain authoritative; no physical constants
+are coerced into a fabricated common field. Rational coordinate labels suffice
+for the apex parameter/product view and retain both physical proof owners.

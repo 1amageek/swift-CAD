@@ -4,6 +4,8 @@ extension DefaultSurfaceSurfaceIntersector {
     public func intersectionResult(first: Surface3D, second: Surface3D,
         options: SurfaceSurfaceIntersectionOptions = .init(), tolerance: ModelingTolerance) throws -> SurfaceSurfaceIntersectionResult {
         return try GeometryExactScalarFailure.withPublication {
+          if let commonApexCone = try OriginalCommonApexConePublicProducer().resolve(first: first, second: second,
+              options: options, tolerance: tolerance, includeRelations: true) { return commonApexCone }
           if let apexSphereCone = try OriginalApexSphereConeSurfacePublicProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true) { return apexSphereCone }
           if let fullConeCone = try OriginalFullConeConeSurfacePublicProducer().resolve(first: first, second: second,
@@ -41,6 +43,8 @@ extension DefaultSurfaceSurfaceIntersector {
           let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
               maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
               consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+          if let commonApexCone = try OriginalCommonApexConePublicProducer().resolve(first: first, second: second,
+              options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return commonApexCone }
           if let apexSphereCone = try OriginalApexSphereConeSurfacePublicProducer().resolve(first: first, second: second,
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return apexSphereCone }
           if let fullConeCone = try OriginalFullConeConeSurfacePublicProducer().resolve(first: first, second: second,
@@ -83,6 +87,9 @@ extension DefaultSurfaceSurfaceIntersector {
           let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
               maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
               consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+          if let commonApexCone = try OriginalCommonApexConePublicProducer().resolve(first: first, second: second,
+              firstBox: firstBox, secondBox: secondBox,
+              options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return commonApexCone }
           if let apexSphereCone = try OriginalApexSphereConeSurfacePublicProducer().resolve(first: first, second: second,
               firstBox: firstBox, secondBox: secondBox,
               options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return apexSphereCone }

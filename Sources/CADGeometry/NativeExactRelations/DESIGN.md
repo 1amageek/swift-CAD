@@ -1040,3 +1040,12 @@ selection fails explicit incomplete coverage. Source X>=1-2*(45/100)^2>0 exclude
 [0,B/2], including the catalog quarter box. Outside authored latitude support
 is independently empty. No XYZ bound is treated as an affine UV bound. Prepared frames/support reuse
 continues under one caller ledger. Public image/fiber dimensions are stratified.
+
+### Common-apex cone point product
+
+Consume the source complete exclusion theorem and intersect both requested
+primitive covers with their exact V0 fibers. Retain full/request/effective and
+both existing scoped collapse identity receipts. The U product is never replaced
+by representative zero angles. Image0 and selected fiber dimension0/1/2 are
+separate. Finite/singleton/empty supports are exact; prepared support reuse and
+all same-admission resource/cancel/lifetime rules remain unchanged.

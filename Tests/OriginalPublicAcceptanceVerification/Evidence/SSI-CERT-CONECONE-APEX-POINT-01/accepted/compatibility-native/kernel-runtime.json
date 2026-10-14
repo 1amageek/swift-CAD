@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/common-apex-cone-ssi-20261014/v2/compatibility-native/KernelGraph"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.8367050000233576,
+  "peakRSSBytes": 32768,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "7b02610a0345dd9c78f56accca047a48eeff508b55cf78ea81f15ee466a8a63c"
+}
