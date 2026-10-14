@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-integration-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-SPHERE-CONE-NODE-01/delivery-native/SphereConeNodeCSAcceptance"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 1.405767458025366,
+  "peakRSSBytes": 14565376,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "d2237cb7886fdd7aeeb751ef48910d326a9dbd3e2a0dfcc58e6699fa3fab7d28"
+}

@@ -1,0 +1,1 @@
+PASS actual portable codec refuses generated proof loss; legacy source and Codable preserved

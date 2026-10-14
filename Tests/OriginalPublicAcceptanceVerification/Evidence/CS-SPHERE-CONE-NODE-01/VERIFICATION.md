@@ -80,3 +80,9 @@ full family coverage and M4-M8/87 remain incomplete.
 All final CS gates pass. Source/product receipts, review finding confirmation and
 protected artifacts match. The remaining gate for these cells is coherent commit
 and independent latest-main composition with a fresh external Native client.
+
+Independent latest-mainc4ccdde9 integration of source2a2bdc8d matches2309 source
+premises,23 products,429 reused products and12 protected artifacts before and after
+fresh external Native CS1.406s and actual portable-codec0.844s runs. Normal main
+fast-forward accompanies this delivery record. No broad rebuild or push is used.
+The two named node CS cells close; fullM4-M8/87 and whole-seven1/7 remain unchanged.

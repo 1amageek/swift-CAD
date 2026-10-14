@@ -1,0 +1,5 @@
+PASS public SSI-issued node curves, all3 distinct T/parentUV/germs, original positions and complete empty
+PASS finite/singleton/target clipping, retained/COW ownership, limits and explicit unsupported target
+PASS all4 public CS entries, exact N-N1 work/storage/source/depth and cancellation
+PASS final nonempty/empty publication cancellation
+PASS source-issued sphere-cone node CS group

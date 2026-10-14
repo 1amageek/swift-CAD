@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "2a2bdc8d",
+  "baselineMain": "c4ccdde9",
+  "scope": "Two named node CS cells; separate-module Embedded reader remains open.",
+  "counts": {
+    "source-premises": 2309,
+    "products": 23,
+    "reused-products": 429,
+    "protected-products": 12
+  }
+}
