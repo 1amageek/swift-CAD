@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-integration-recovered/swift-CAD/.build/apex-sphere-cone-ssi-20261014/delivery-native/Public"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 4.981503749964759,
+  "peakRSSBytes": 13631488,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "6a1fa0a1bf30ced2f7aae1a09275d8b3339be6c3a3b44e93e887f78040f39f7b"
+}
