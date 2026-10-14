@@ -3115,3 +3115,24 @@ intrinsic label, not rounded mathematical pi. Sphere inverse arguments retain
 atan2(-X,Y), asin(Z/3) and every independent integer label lift. Neither sphere
 pole occurs because c/s is neither1 nor7. No certified curve endpoint window
 is mistaken for the entire parent angular support.
+
+### Full original cone-cone parent source
+
+For the fixed cone0/Z/alpha and cone4Z/Y/beta, preserve the two independent
+physical-angle owners. Two closed rational circle charts use S,C and their
+negatives, t in[-1,1], with paired tOther=-t. Source coefficients obey the
+existing sa(.44,.45),ca(.89,.90),sb(.35,.36),cb(.93,.94) proofs.
+q=ca^2-sb^2*C^2>0, b=4*sa^2*sb*C, k=-16*sa^2<0. The source law
+q*lambda^2+2*b*lambda+k=0 has two opposite signed nonzero roots everywhere.
+Retain r as the positive beta-field root r^2=1-sb^2*C^2, r>=cb>.93.
+Rationalization gives lambda=sign*4*sa/(ca*r+sign*sa*sb*C). Both denominators
+are strictly positive and |lambda|<4. Original XYZ is
+(-sb*lambda*S,cb*lambda,4-sb*lambda*C); reference slant is Z/ca.
+Coordinate receipts retain this exact expression and both coefficient owners;
+no fictitious common field, rounded coefficient or interval-as-equality is used.
+Cardinal r=cb/1 reuses source unit laws; other r uses existing exact root ports.
+
+Parameterized U is2*atan(t) plus chart*pi in intrinsic labels and arbitrary
+integer lifts. Reference U uses atan2(-X,Y); since referenceZ>2.56 its slant
+is positive and no reference apex occurs. Parameterized signed slant remains
+authored all-real support. B is the saved intrinsic label, not physical2*pi.

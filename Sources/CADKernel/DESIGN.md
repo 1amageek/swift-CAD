@@ -1556,3 +1556,7 @@ actual graph refusal with real ordered sources/IDs when Geometry is stable.
 Full sphere-cone symbolic SSI uses the existing original material-refinement
 refusal in graph validation and finite splitting. This protects its all-UV
 owner; it does not claim completed Boolean clipping.
+
+Full cone-cone original symbolic families join the existing material-refinement
+refusal in Boolean graph validation and finite splitting. Their source and all
+UV remain retained; this gate is not a completed Boolean clipping claim.

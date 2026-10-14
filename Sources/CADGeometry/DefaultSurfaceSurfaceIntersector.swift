@@ -17,6 +17,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
       let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
         maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
         consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let fullConeCone = try OriginalFullConeConeSurfacePublicProducer().resolve(first: first, second: second,
+          options: options, tolerance: tolerance, admission: admission) { return fullConeCone.intersections }
       if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
           options: options, tolerance: tolerance, admission: admission) { return fullSphereCone.intersections }
       if let boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: first, second: second,
@@ -53,6 +55,9 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
       let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
         maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
         consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let fullConeCone = try OriginalFullConeConeSurfacePublicProducer().resolve(first: first, second: second,
+          firstBox: firstBox, secondBox: secondBox,
+          options: options, tolerance: tolerance, admission: admission) { return fullConeCone.intersections }
       if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
           firstBox: firstBox, secondBox: secondBox,
           options: options, tolerance: tolerance, admission: admission) { return fullSphereCone.intersections }
@@ -122,6 +127,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
     tolerance: ModelingTolerance
   ) throws -> [SurfaceSurfaceIntersection] {
     return try GeometryExactScalarFailure.withPublication {
+      if let fullConeCone = try OriginalFullConeConeSurfacePublicProducer().resolve(first: first, second: second,
+          options: options, tolerance: tolerance) { return fullConeCone.intersections }
       if let fullSphereCone = try OriginalFullSphereConeSurfacePublicProducer().resolve(first: first, second: second,
           options: options, tolerance: tolerance) { return fullSphereCone.intersections }
       if let boundedSphereCone = try OriginalBoundedSphereConeSurfacePublicProducer().resolve(first: first, second: second,

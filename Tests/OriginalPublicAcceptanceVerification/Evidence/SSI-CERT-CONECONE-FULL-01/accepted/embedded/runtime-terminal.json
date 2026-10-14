@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-IDENTITY-COMPOSITION-01/cas/d28630d93d8f8d5d14997273d950d78e61189547240e18c6c28f20853c012257.mjs",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/full-cone-cone-ssi-20261014/v1/embedded-portable/Public.wasm",
+    "terminal"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 1.8079678330104798,
+  "peakRSSBytes": 278298624,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "05c11af49d254dcedd474f35e36d408fa8a047fd08eb23e71488fca20d49fd50"
+}

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/full-cone-cone-ssi-20261014/v1/asan/Public",
+    "endpoints"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 1.1338180410675704,
+  "peakRSSBytes": 127713280,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "81b8a4f2c1818a0d35a01ecf94f08143efc57f2d3a05be5dac4fa992431e5c52"
+}

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/full-cone-cone-ssi-20261014/red/Observation"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 1.48669579194393,
+  "peakRSSBytes": 10420224,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "758bacdee8314b4f1e49a349ba21f3fdd8cf65928b75f3bd8fa4a41f31ec7b67"
+}

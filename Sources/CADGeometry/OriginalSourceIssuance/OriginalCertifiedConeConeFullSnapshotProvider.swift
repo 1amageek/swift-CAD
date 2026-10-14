@@ -37,10 +37,8 @@ public struct OriginalCertifiedConeConeFullSnapshotProvider: OriginalSourceSnaps
                 try original.validate(tolerance: tolerance)
                 let sa = try reference.sine(using: &a), ca = try reference.cosine(using: &a)
                 let sb = try parameterized.sine(using: &a), cb = try parameterized.cosine(using: &a)
-                try enclosed(sa, field: reference, lower: 44, upper: 45, using: &a)
-                try enclosed(ca, field: reference, lower: 89, upper: 90, using: &a)
-                try enclosed(sb, field: parameterized, lower: 35, upper: 36, using: &a)
-                try enclosed(cb, field: parameterized, lower: 93, upper: 94, using: &a)
+                try Self.admitPhysicalBounds(reference: reference, referenceSine: sa, referenceCosine: ca,
+                    parameterized: parameterized, parameterizedSine: sb, parameterizedCosine: cb, using: &a)
                 // q >= .89^2-.36^2 > 0, k=-16*sa^2 < 0. Thus D>0,
                 // both selected roots are nonzero and lie strictly between -4/4.
                 // Reference Z=4-sb*lambda*cos(theta) is consequently positive.
@@ -66,7 +64,16 @@ public struct OriginalCertifiedConeConeFullSnapshotProvider: OriginalSourceSnaps
             }
         } catch { throw .init(preserving: error) }
     }
-    private func enclosed<A: ExactScalarAdmission & ~Copyable>(_ value: OriginalPhysicalAngleValue,
+    static func admitPhysicalBounds<A: ExactScalarAdmission & ~Copyable>(reference: OriginalPhysicalAngleScalarDomain,
+        referenceSine: OriginalPhysicalAngleValue, referenceCosine: OriginalPhysicalAngleValue,
+        parameterized: OriginalPhysicalAngleScalarDomain, parameterizedSine: OriginalPhysicalAngleValue,
+        parameterizedCosine: OriginalPhysicalAngleValue, using a: inout A) throws {
+        try enclosed(referenceSine, field: reference, lower: 44, upper: 45, using: &a)
+        try enclosed(referenceCosine, field: reference, lower: 89, upper: 90, using: &a)
+        try enclosed(parameterizedSine, field: parameterized, lower: 35, upper: 36, using: &a)
+        try enclosed(parameterizedCosine, field: parameterized, lower: 93, upper: 94, using: &a)
+    }
+    private static func enclosed<A: ExactScalarAdmission & ~Copyable>(_ value: OriginalPhysicalAngleValue,
         field: OriginalPhysicalAngleScalarDomain, lower: Int, upper: Int, using a: inout A) throws {
         let hundred = try field.integer(100, using: &a)
         let lo = try field.dividing(field.integer(lower, using: &a), hundred, using: &a)

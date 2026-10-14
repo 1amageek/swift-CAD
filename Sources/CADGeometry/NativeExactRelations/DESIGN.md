@@ -1018,3 +1018,14 @@ and fiber0. Quarter coneV<=3/4 requests are entirely excluded by Z<-3 against
 sphereZ>=-3. Other positive finite UV restrictions remain explicit incomplete
 coverage until exact inverse-angle refinement is connected. Prepared queries
 reuse verified frames/support under the same cumulative caller admission.
+
+### Full cone-cone original parent SSI
+
+Consume the whole-circle/opposite-root source theorem and existing analytic
+DI frames/support/request. Exact members retain a beta-field section and the
+source-owned two-angle coordinate expressions. Paired endpoint views share
+the same r/position owner. Complete full output is two disjoint closed curves
+with original parameter dimension4, image1/fiber0 and independent U lifts.
+Quarter referenceV<=3/4 is excluded by referenceZ>2.56 and ca<.90. Other
+positive finite UV restrictions remain explicit incomplete coverage. Prepared
+queries reuse verified source/frames/support without solving the pair again.

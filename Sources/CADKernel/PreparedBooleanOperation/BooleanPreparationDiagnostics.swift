@@ -30,7 +30,7 @@ public struct BooleanPreparationDiagnostics: Sendable, Hashable {
             case let .point(value): points += 1; residual = max(residual, value.residual)
             case .originalCoaxial(let value):
                 if value.imageDimension == 0 { points += 1 } else { curves += 1 }
-            case .originalBoundedSphereCone, .originalFullSphereCone: curves += 1
+            case .originalBoundedSphereCone, .originalFullSphereCone, .originalFullConeCone: curves += 1
             case let .coincident(value): coincident += 1; residual = max(residual, value.residual)
             }
         }

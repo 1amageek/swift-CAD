@@ -965,3 +965,12 @@ Empty publication retains complete source/request exclusion. All output
 storage, counts/depth/work and terminal cancel remain caller-admitted.
 The new full-family representation joins existing original proof-loss codec
 and unconverted Kernel material-refinement refusal gates.
+
+### Full cone-cone symbolic geometric publication
+
+Six public SSI entries/prepared sessions publish both source-bound opposite
+slant families and exact source coordinate/UV expressions. Each receipt
+retains source/r/branch/role and admits the original work/storage/depth/count
+and cancellation. Coordinates from independent alpha/beta owners are not
+relabelled as beta-field scalar values. Existing codec and unconverted Kernel
+material-refinement refusal gates preserve source authority.

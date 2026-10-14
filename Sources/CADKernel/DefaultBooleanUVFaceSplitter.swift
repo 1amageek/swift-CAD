@@ -337,7 +337,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       // FIXME(INCOMPLETE_IMPLEMENTATION): The finite face splitter still needs
       // exact source-relation/material refinement for symbolic SSI; numeric
       // pcurve clipping must not discard the retained all-UV owner.
-      case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone:
+      case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone, .originalFullConeCone:
         throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
           message: "Finite face splitting requires original symbolic material refinement.")
       case .coincident:

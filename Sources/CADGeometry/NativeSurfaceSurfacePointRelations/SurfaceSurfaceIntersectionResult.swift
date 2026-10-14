@@ -19,9 +19,11 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
 
     public let originalFullSphereConeRelation: (any OriginalFullSphereConeSurfaceRelationReading)?
 
+    public let originalFullConeConeRelation: (any OriginalFullConeConeSurfaceRelationReading)?
+
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
-        originalIssuedGeometricRelation == nil && originalCoaxialSurfaceRelation == nil && originalBoundedSphereConeRelation == nil && originalFullSphereConeRelation == nil ? .numericalRepresentatives : .exactRelation
+        originalIssuedGeometricRelation == nil && originalCoaxialSurfaceRelation == nil && originalBoundedSphereConeRelation == nil && originalFullSphereConeRelation == nil && originalFullConeConeRelation == nil ? .numericalRepresentatives : .exactRelation
     }
 
 
@@ -32,7 +34,8 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
         originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)? = nil,
         originalCoaxialSurfaceRelation: (any OriginalCoaxialSurfaceRelationReading)? = nil,
         originalBoundedSphereConeRelation: (any OriginalBoundedSphereConeSurfaceRelationReading)? = nil,
-        originalFullSphereConeRelation: (any OriginalFullSphereConeSurfaceRelationReading)? = nil) {
+        originalFullSphereConeRelation: (any OriginalFullSphereConeSurfaceRelationReading)? = nil,
+        originalFullConeConeRelation: (any OriginalFullConeConeSurfaceRelationReading)? = nil) {
         self.intersections = intersections
         self.originalNativePoints = originalNativePoints
         self.originalNativeRelations = originalNativeRelations
@@ -41,6 +44,7 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
         self.originalCoaxialSurfaceRelation = originalCoaxialSurfaceRelation
         self.originalBoundedSphereConeRelation = originalBoundedSphereConeRelation
         self.originalFullSphereConeRelation = originalFullSphereConeRelation
+        self.originalFullConeConeRelation = originalFullConeConeRelation
     }
 
 }
