@@ -1,5 +1,7 @@
 /// A complete result in the requested domains, separating points from continuous regions.
 public struct CurveSurfaceIntersectionResult: Sendable {
+    public let originalSphereConeNodeRelation:(any OriginalSphereConeNodeRelationReading)?
+
     public let points: [CurveSurfaceIntersection]
     public let overlaps: [CurveSurfaceOverlap]
 
@@ -59,7 +61,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
 
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
-        (originalCertifiedCoaxialRelation?.original.isCylinder == true
+        (originalSphereConeNodeRelation != nil
+            || originalCertifiedCoaxialRelation?.original.isCylinder == true
             || originalContainedLiftPlaneFamily != nil
             || originalImplicitCurveRelation?.hasPositiveDimensionalSolutions == true
             || originalIssuedGeometricRelation != nil && originalIssuedNumericalPoints == nil)
@@ -68,7 +71,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
 
 
     public var hasPositiveDimensionalSolutions: Bool {
-        !overlaps.isEmpty || originalCertifiedCoaxialRelation?.hasPositiveDimensionalSolutions == true
+        !overlaps.isEmpty || originalSphereConeNodeRelation?.hasPositiveDimensionalSolutions == true
+            || originalCertifiedCoaxialRelation?.hasPositiveDimensionalSolutions == true
             || originalNativeRelations?.hasPositiveDimensionalSolutions == true
             || originalExactGeometricRelation?.hasPositiveDimensionalSolutions == true
             || originalIssuedGeometricRelation?.hasPositiveDimensionalSolutions == true
@@ -79,6 +83,7 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     }
 
     init(points: [CurveSurfaceIntersection], overlaps: [CurveSurfaceOverlap],
+        originalSphereConeNodeRelation:(any OriginalSphereConeNodeRelationReading)?=nil,
         originalNativePoints: OriginalNativeCurveSurfacePoints? = nil,
         originalNativeRelations: OriginalNativeCurveSurfaceRelation? = nil,
         originalPolynomialPoints: OriginalPolynomialCurveSurfacePoints? = nil,
@@ -97,6 +102,7 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalCertifiedPairLiftRelation: (any OriginalCertifiedPairLiftRelationReading)? = nil,
         originalImplicitCurveRelation: (any OriginalImplicitCurveRelationReading)? = nil,
         originalImplicitHostPlaneExclusion: (any OriginalImplicitHostPlaneExclusionReading)? = nil) {
+        self.originalSphereConeNodeRelation=originalSphereConeNodeRelation
         self.points = points
         self.overlaps = overlaps
         self.originalNativePoints = originalNativePoints

@@ -11,7 +11,7 @@ public struct OriginalCertifiedSphereConeApexSnapshotProvider: OriginalSourceSna
     /// Representation selection only; this gate never substitutes for scalar proof.
     public static func supports(_ input: borrowing Curve3D) -> Bool {
         guard case let .certifiedIntersection(.sphereCone(curve)) = copy input,
-              curve.componentKind == .apexReducedAngularInterval,
+              curve.componentKind == .apexReducedAngularInterval,curve.originalNodeTraversal == nil,
               curve.lowerAngle.isFinite, curve.upperAngle.isFinite,
               curve.lowerAngle == 0, curve.upperAngle.bitPattern == Double.pi.bitPattern,
               case let .analytic(.sphere(center, radius)) = curve.sphereSurface,

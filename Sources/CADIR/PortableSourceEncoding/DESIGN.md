@@ -39,6 +39,13 @@ DocumentTransaction -> validated immutable CADDocument
 
 ## Contracts and Invariants
 
+A generated sphere-cone node curve retains its source-issued normalized traversal.
+The existing seven-field certified-curve writer cannot encode that authority and
+returns `unsupportedCapability` before writing any curve fields. Existing direct
+physical-endpoint curves retain the seven-field representation. Source-preserving
+serialization of generated node receipts is a separate codec capability; the
+writer never serializes them as a legacy curve with a different position law.
+
 Original 3D polylines retain their authored XYZ points and closure assertion. The
 certification tolerance and exact Euclidean clock are reconstruction policy and
 derived calculation state, respectively, and are excluded from source identity.

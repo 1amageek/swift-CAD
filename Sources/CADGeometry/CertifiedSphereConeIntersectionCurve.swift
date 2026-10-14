@@ -294,6 +294,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
     public let upperAngle: Double
     public let certificationTolerance: ModelingTolerance
     public let maximumResidualUpperBound: Double
+    public let originalNodeTraversal: OriginalSphereConeNodeTraversal?
 
     public init(
         sphereSurface: Surface3D,
@@ -303,6 +304,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         upperAngle: Double,
         tolerance: ModelingTolerance
     ) throws {
+        originalNodeTraversal=nil
         self.sphereSurface = sphereSurface
         self.coneSurface = coneSurface
         self.componentKind = componentKind
@@ -322,6 +324,23 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             tolerance: tolerance
         )
         try validate(tolerance: tolerance)
+    }
+
+    init<A:ExactScalarAdmission & ~Copyable>(node:OriginalSphereConeNodeTraversal,tolerance:ModelingTolerance,
+        using a:inout A) throws {
+        try a.checkpoint();try tolerance.validate();try a.admitDepth(value:node.proofDepth.value,coefficient:node.proofDepth.coefficient)
+        let input=node.source.original
+        sphereSurface=node.source.sphereIsFirst ? input.first:input.second
+        coneSurface=node.source.sphereIsFirst ? input.second:input.first
+        componentKind = .apexReducedAngularInterval
+        lowerAngle=Double(node.branch)*Double.pi;upperAngle=Double(node.branch+1)*Double.pi
+        certificationTolerance=tolerance;originalNodeTraversal=node
+        // Reuse fixed numerical metadata; the retained source theorem owns equality.
+        try a.consumeWork(1)
+        let configuration=try Self.makeConfiguration(sphereSurface:sphereSurface,coneSurface:coneSurface,tolerance:tolerance)
+        maximumResidualUpperBound=try Self.residualUpperBound(componentKind:componentKind,lowerAngle:lowerAngle,
+            upperAngle:upperAngle,configuration:configuration,tolerance:tolerance)
+        try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Self.self));try a.checkpoint()
     }
 
     static func poleSplitNodes(
@@ -389,6 +408,17 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 tolerance: tolerance,
                 message: "A sphere-cone curve cannot satisfy a stricter tolerance than its stored certificate."
             )
+        }
+        if let node=originalNodeTraversal {
+            let input=node.source.original
+            guard sphereSurface==(node.source.sphereIsFirst ? input.first:input.second),
+                coneSurface==(node.source.sphereIsFirst ? input.second:input.first),
+                componentKind == .apexReducedAngularInterval,node.branch==0 || node.branch==1,
+                lowerAngle==Double(node.branch)*Double.pi,upperAngle==Double(node.branch+1)*Double.pi,
+                maximumResidualUpperBound.isFinite,maximumResidualUpperBound<=tolerance.distance else {
+                throw KernelError(phase:.geometry,code:.invalidInput,tolerance:tolerance,message:"A generated node curve must retain its original normalized traversal.")
+            }
+            return
         }
         let configuration = try Self.makeConfiguration(
             sphereSurface: sphereSurface,
@@ -709,7 +739,9 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 * (angle.first * angle.first * angle.first)
             + generatorSecond * (3.0 * angle.first * angle.second)
             + generatorFirst * angle.third
-        let position = configuration.cone.apex + generator * slant.value
+        let position:Point3D
+        if originalNodeTraversal != nil && (normalizedFraction==0 || normalizedFraction==1) { position=configuration.cone.apex }
+        else { position=configuration.cone.apex + generator * slant.value }
         let firstDerivative = composedGeneratorFirst * slant.value
             + generator * slant.first
         let secondDerivative = composedGeneratorSecond * slant.value
@@ -3990,6 +4022,9 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
+        guard originalNodeTraversal == nil else {
+            throw EncodingError.invalidValue(self,.init(codingPath:encoder.codingPath,debugDescription:"Generated node traversal authority cannot be discarded by the legacy curve codec."))
+        }
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(sphereSurface, forKey: .sphereSurface)

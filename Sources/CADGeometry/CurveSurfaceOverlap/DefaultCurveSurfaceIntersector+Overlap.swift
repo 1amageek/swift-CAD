@@ -14,6 +14,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
             options:options,tolerance:tolerance) { return pairLift }
           if let coneCone = try OriginalCertifiedConeConePublicProducer().resolve(curve:curve,surface:surface,
             options:options,tolerance:tolerance) { return coneCone }
+          if let node = try OriginalSphereConeNodePublicProducer().resolve(curve:curve,surface:surface,
+            options:options,tolerance:tolerance) { return node }
           if let sphereCone = try OriginalCertifiedSphereConePublicProducer().resolve(curve:curve,surface:surface,
             options:options,tolerance:tolerance) { return sphereCone }
           if let coaxial = try OriginalCertifiedCoaxialPublicProducer().resolve(curve:curve,surface:surface,
@@ -53,6 +55,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
             options:options,tolerance:tolerance,invocation:invocation) { return pairLift }
           if let coneCone = try OriginalCertifiedConeConePublicProducer().resolve(curve:curve,surface:surface,
             options:options,tolerance:tolerance,invocation:invocation) { return coneCone }
+          if let node = try OriginalSphereConeNodePublicProducer().resolve(curve:curve,surface:surface,
+            options:options,tolerance:tolerance,invocation:invocation) { return node }
           if let sphereCone = try OriginalCertifiedSphereConePublicProducer().resolve(curve:curve,surface:surface,
             options:options,tolerance:tolerance,invocation:invocation) { return sphereCone }
           if let coaxial = try OriginalCertifiedCoaxialPublicProducer().resolve(curve:curve,surface:surface,

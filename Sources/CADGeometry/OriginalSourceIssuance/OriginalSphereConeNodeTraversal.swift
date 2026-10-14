@@ -1,12 +1,18 @@
 import CADCore
 
 /// Sealed root-selected normalized T law. The physical phase is pi*(branch+T).
-public struct OriginalSphereConeNodeTraversal: Sendable {
+public struct OriginalSphereConeNodeTraversal: Hashable, Sendable {
     public let source: OriginalApexSphereConeSurfaceSnapshot
     public let branch: Int
     public let proofDepth: ExactScalarDepth
     init(source:OriginalApexSphereConeSurfaceSnapshot,branch:Int,proofDepth:ExactScalarDepth) {
         self.source=source;self.branch=branch;self.proofDepth=proofDepth
+    }
+    public static func ==(lhs:Self,rhs:Self) -> Bool {
+        lhs.branch==rhs.branch && lhs.source.original.first==rhs.source.original.first && lhs.source.original.second==rhs.source.original.second
+    }
+    public func hash(into hasher:inout Hasher) {
+        hasher.combine(branch);hasher.combine(source.original.first);hasher.combine(source.original.second)
     }
     public func intrinsicLabel<A:ExactScalarAdmission & ~Copyable>(parameter:OriginalApexSphereConeSurfaceSnapshot.Field.Value,
         using a:inout A) throws -> OriginalApexSphereConeSurfaceSnapshot.Field.Value {

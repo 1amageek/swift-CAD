@@ -229,6 +229,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         options:options,tolerance:tolerance,invocation:context) { return pairLift.points }
       if let coneCone = try OriginalCertifiedConeConePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:context) { return coneCone.points }
+      if let node = try OriginalSphereConeNodePublicProducer().resolve(curve:curve,surface:surface,
+        options:options,tolerance:tolerance,invocation:context) { return node.points }
       if let sphereCone = try OriginalCertifiedSphereConePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:context) { return sphereCone.points }
       if let coaxial = try OriginalCertifiedCoaxialPublicProducer().resolve(curve:curve,surface:surface,
@@ -291,6 +293,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         options:options,tolerance:tolerance,invocation:invocation) { return pairLift.points }
       if let coneCone = try OriginalCertifiedConeConePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:invocation) { return coneCone.points }
+      if let node = try OriginalSphereConeNodePublicProducer().resolve(curve:curve,surface:surface,
+        options:options,tolerance:tolerance,invocation:invocation) { return node.points }
       if let sphereCone = try OriginalCertifiedSphereConePublicProducer().resolve(curve:curve,surface:surface,
         options:options,tolerance:tolerance,invocation:invocation) { return sphereCone.points }
       if let coaxial = try OriginalCertifiedCoaxialPublicProducer().resolve(curve:curve,surface:surface,

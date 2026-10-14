@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-cs-20261014/v3/compatibility-native/SphereConeNodeSSIAcceptance",
+    "endpoints"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.3860013750381768,
+  "peakRSSBytes": 9453568,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "1fb8fbc616d5ae8c5bb9232d01e79c67d21c9d2298c5c8f0058312f58cd56901"
+}

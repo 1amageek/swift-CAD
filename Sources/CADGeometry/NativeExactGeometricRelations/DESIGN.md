@@ -1000,3 +1000,18 @@ position identity implies no differential or topology identity. Prepared reuse
 shares original source/frames and caller admission. Numeric-only Kernel/codec
 consumers explicitly refuse proof loss. General material/self publication is
 not completed by this SSI component.
+
+### Node curve public contacts
+
+SSI component nodeCurve emits existing Curve3D with retained source normalization.
+Four ordinary CS entries consume the same source under one caller allowance.
+Publish all distinct T tuples with exact XYZ/target/parentUV relation and numeric
+localization only at the output boundary. Endpoint apex cone U remains arbitrary;
+middle retains independent periodic U lifts. Source identity does not merge T0
+andT1 or one-sided germs. Unsupported generated targets fail before legacy retry.
+
+Node CS original parameters remain `(T,planeU,planeV)`, dimension3. Each
+selected contact has parameter/image/fiber dimensions0/0/0 and the CS solution
+set has no positive-dimensional component. Endpoint parent cone U is a separate
+source-correspondence fiber, dimension1. Parent auxiliary nonuniqueness never
+changes original CS dimensions or the public continuous-solution flag.

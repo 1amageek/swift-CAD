@@ -1,0 +1,4 @@
+(node:32448) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS public SSI-issued node curves, all3 distinct T/parentUV/germs, original positions and complete empty
+PASS source-issued sphere-cone node CS group

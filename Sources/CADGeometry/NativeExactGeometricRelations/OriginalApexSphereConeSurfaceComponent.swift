@@ -28,6 +28,15 @@ public struct OriginalApexSphereConeSurfaceComponent: Hashable, Sendable {
     public var firstSurface: Surface3D { relation.source.original.original.first }
     public var secondSurface: Surface3D { relation.source.original.original.second }
     init(relation: OriginalApexSphereConeSurfaceRelation) { self.relation = relation }
+    public func nodeCurve<A:ExactScalarAdmission & ~Copyable>(branch:Int,tolerance:ModelingTolerance,
+        limits:OriginalDomainIdentityLimits,using a:inout A) throws -> Curve3D {
+        try relation.admitProof(limits:limits,using:&a)
+        guard !relation.isEmpty,!relation.isApexOnly else { throw OriginalDomainIdentityFailure.outsideSupport }
+        let traversal=try relation.source.original.nodeTraversal(branch:branch,using:&a)
+        let curve=try CertifiedSphereConeIntersectionCurve(node:traversal,tolerance:tolerance,using:&a)
+        try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Curve3D.self));try a.checkpoint()
+        return .certifiedIntersection(.sphereCone(curve))
+    }
     public static func == (lhs: Self, rhs: Self) -> Bool { lhs.relation === rhs.relation }
     public func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(relation)) }
 }

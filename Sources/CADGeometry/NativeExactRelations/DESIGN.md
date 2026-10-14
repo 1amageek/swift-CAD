@@ -1072,3 +1072,18 @@ checked in both original UV selections. Regular sections are unavailable in an
 apex-only relation; expose selected strata/dimensions and issue existing analytic
 collapse identity only on the selected V0 cone scope. Nonzero finite selections
 remain explicit incomplete coverage until exact inverse-angle refinement exists.
+
+### Node curve-plane complete relation
+
+Consume the issued normalized node curve and exact explicit plane0/Y/uX.
+The original Y law2*s^2*sin(phi)*cos(phi) has exactly T0,1/2,1 on either branch;
+requests intersect all three source tuples and targetUV=(X,-Z). Every endpoint
+T remains distinct though XYZ agrees. Source/DI support/request/effective and
+point ordinals retain whole-complement exclusion, empty/source owners and the
+complete cone U fiber at each endpoint. No numerical UV projection is proof.
+
+Node CS original parameters remain `(T,planeU,planeV)`, dimension3. Each
+selected contact has parameter/image/fiber dimensions0/0/0 and the CS solution
+set has no positive-dimensional component. Endpoint parent cone U is a separate
+source-correspondence fiber, dimension1. Parent auxiliary nonuniqueness never
+changes original CS dimensions or the public continuous-solution flag.

@@ -1,0 +1,25 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-cs-20261014/v2/codec-inputs/Sources/CADIR/DocumentMetadata.swift:29:29: error: cannot find 'CLOCK_REALTIME' in scope
+ 27 |     public static func current(name: String? = nil) throws -> Self {
+ 28 |         var timestamp = timespec()
+ 29 |         guard clock_gettime(CLOCK_REALTIME, &timestamp) == 0 else {
+    |                             `- error: cannot find 'CLOCK_REALTIME' in scope
+ 30 |             throw SchemaError.invalidMetadata("The platform wall clock could not provide document metadata.")
+ 31 |         }
+
+/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk/include/wasm32-wasip1/__header_time.h:18:9: note: macro 'CLOCK_REALTIME' unavailable: structure not supported
+16 | #define CLOCK_MONOTONIC (&_CLOCK_MONOTONIC)
+17 | extern const struct __clockid _CLOCK_REALTIME;
+18 | #define CLOCK_REALTIME (&_CLOCK_REALTIME)
+   |         `- note: macro 'CLOCK_REALTIME' unavailable: structure not supported
+19 | 
+20 | /*
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-cs-20261014/v2/codec-inputs/Sources/CADIR/IndependentShapeSource/OriginalSTEPPlacement/LengthSource/OriginalSTEPLengthConversion.swift:30:13: warning: variable 'usage' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+28 |     public init(from decoder: Decoder) throws {
+29 |         guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
+30 |         var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+   |             `- warning: variable 'usage' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+31 |         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
+32 |         try usage.visitExactCell(depth: 0)
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>

@@ -3181,3 +3181,13 @@ normalized T[0,1] to intrinsic label B*(branch+T)/2, with exact critical labels
 inherit this root-selected normalization. Retain both original owners and every
 apex cone U. This traversal receipt does not itself manufacture a Curve3D truth
 or accept the still-unconverted upper/lower public CS callers.
+
+### Source-issued node curves for ordinary CS
+
+The public SSI owner issues the existing sphere-cone Curve3D with a sealed
+normalized traversal receipt. Direct authored constructors retain their physical
+endpoint meaning and no receipt. Generated upper/lower curves have T[0,1],
+physical phase pi*(branch+T). Candidate binary pi bounds are rendering metadata;
+they are not coefficient authority. The curve snapshot retains the same original
+pair/physical field and critical source positions. Source generation computes no
+new surface intersection. Curve codecs refuse to discard the source traversal.

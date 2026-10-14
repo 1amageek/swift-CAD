@@ -1,0 +1,17 @@
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-cs-20261014/v4/fixtures/259aaabcb535ea9c57563c81c40fa13767373903d2fb7a0a3ff71fca5cbbebdd/SphereConeNodeCSAcceptance.swift:29:54: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 27 |         try .init(source:.init(remainingSourceDepth:source),maximumTransportDepth:transport,maximumCharts:charts,maximumFamilies:families,maximumIdentityProofs:0)
+ 28 |     }
+ 29 |     static func plane() throws -> Surface3D { .plane(try .init(origin:.origin,normal:.unitY,uDirection:.unitX)) }
+    |                                                      `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 30 |     static func curve(_ branch:Int) throws -> Curve3D {
+ 31 |         let sphere=Surface3D.analytic(.sphere(center:.origin,radius:1))
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-cs-20261014/v4/fixtures/259aaabcb535ea9c57563c81c40fa13767373903d2fb7a0a3ff71fca5cbbebdd/SphereConeNodeCSAcceptance.swift:127:34: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+125 |             try rejects { _=try solver.intersectionResult(curve:c,surface:.plane(.init(origin:.origin,normal:.unitZ,uDirection:.unitX)),options:options(),tolerance:.standard) }
+126 |             guard case .certifiedIntersection(.sphereCone(let original))=c else { throw Failure(line:#line) }
+127 |             let copy=c;c = .line(try .init(origin:.origin,direction:.unitX))
+    |                                  `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+128 |             try require(r.source.original.original==copy && r.source.original.original != c && original.originalNodeTraversal != nil)
+129 |             let root=try r.member(ordinal:0,coneU:f.integer(4,using:&a),coneCycle:zero,sphereCycle:zero,limits:limits(),using:&a)
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
