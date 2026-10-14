@@ -10,12 +10,13 @@ public struct OriginalApexSphereConeSurfaceSnapshotProvider: OriginalSourceSnaps
         self.physical = physical; self.maximumExtensionLevel = maximumExtensionLevel; self.tolerance = tolerance
     }
     public static func pair(_ input: OriginalApexSphereConeSurfaceInput) -> (sphere: Surface3D, cone: Surface3D, sphereFirst: Bool)? {
-        let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 1))
-        let cone = Surface3D.analytic(.cone(apex: .init(x: 1, y: 0, z: 0), axis: .unitZ,
-            halfAngle: Double(bitPattern: 0x3fddac670561bb50)))
-        if input.first == sphere && input.second == cone { return (sphere, cone, true) }
-        if input.first == cone && input.second == sphere { return (sphere, cone, false) }
-        return nil
+        let sphere=Surface3D.analytic(.sphere(center:.origin,radius:1))
+        let cone:Surface3D,sphereFirst:Bool
+        if input.first==sphere { cone=input.second;sphereFirst=true }
+        else if input.second==sphere { cone=input.first;sphereFirst=false } else { return nil }
+        guard case .analytic(.cone(let apex,let axis,let angle))=cone,
+            apex == .init(x:1,y:0,z:0),axis == .unitZ,angle>0,angle<=0.5 else { return nil }
+        return (sphere,cone,sphereFirst)
     }
     public func snapshot<A: ExactScalarAdmission & ~Copyable>(_ input: borrowing OriginalApexSphereConeSurfaceInput,
         limits: OriginalSourceIssuanceLimits, using a: inout A)
@@ -30,7 +31,9 @@ public struct OriginalApexSphereConeSurfaceSnapshotProvider: OriginalSourceSnaps
             }
             guard physical.originalRadians == angle else { throw OriginalSourceIssuanceFailure.foreignBinding }
             let s = try physical.sine(using: &a), c = try physical.cosine(using: &a)
-            try OriginalCertifiedSphereConeFullSnapshotProvider.admitPhysicalBounds(field: physical, sine: s, cosine: c, using: &a)
+            let half=try physical.dividing(physical.integer(1,using:&a),physical.integer(2,using:&a),using:&a)
+            guard try physical.sign(of:s,using:&a) == .positive,try physical.sign(of:c,using:&a) == .positive,
+                try physical.compare(s,half,using:&a) == .less else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
             typealias Field = OriginalApexSphereConeSurfaceSnapshot.Field
             let base = try Field.base(field: physical, maximumExtensionLevel: maximumExtensionLevel, using: &a)
             let primitive = DefaultOriginalSourceBindingIssuer(provider: OriginalAnalyticCoordinateSurfaceSnapshotProvider(tolerance: tolerance))

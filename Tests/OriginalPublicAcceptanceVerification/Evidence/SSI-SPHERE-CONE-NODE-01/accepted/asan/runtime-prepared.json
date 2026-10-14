@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/asan/Public",
+    "prepared"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.2796261670300737,
+  "peakRSSBytes": 327680,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "b639624df1f9fae2dc6256898aca0c097ec99d422a7898c8041a10324b09f0c9"
+}

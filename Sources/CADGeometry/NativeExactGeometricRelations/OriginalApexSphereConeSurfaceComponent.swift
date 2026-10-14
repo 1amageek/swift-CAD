@@ -19,7 +19,10 @@ public struct OriginalApexSphereConeSurfaceComponent: Hashable, Sendable {
         static let secondPositive = Self(chart: 1, parameterSide: 1)
     }
     public let relation: OriginalApexSphereConeSurfaceRelation
-    public var imageDimension: Int { 1 }
+    public var imageDimension: Int { relation.isApexOnly ? 0:1 }
+    public var selectedStratumCount: Int { relation.stratumCount }
+    public var apexFiberDimension: Int? { relation.apexFiberDimension }
+    public func contains(_ stratum:Stratum) -> Bool { !relation.isEmpty && (stratum == .apex || !relation.isApexOnly) }
     public var strata: (Stratum, Stratum, Stratum) { (.apex, .positiveArc, .negativeArc) }
     public var apexIncidents: (ApexIncident, ApexIncident, ApexIncident, ApexIncident) { (.firstNegative, .firstPositive, .secondNegative, .secondPositive) }
     public var firstSurface: Surface3D { relation.source.original.original.first }

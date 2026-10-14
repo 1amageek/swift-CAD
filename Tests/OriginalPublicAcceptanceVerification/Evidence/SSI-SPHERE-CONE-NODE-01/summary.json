@@ -1,0 +1,61 @@
+{
+  "status": "PASS",
+  "lanes": {
+    "native": {
+      "status": "PASS",
+      "runtime": {
+        "runtime-success": 1.1432079169899225,
+        "runtime-endpoints": 0.2880783330183476,
+        "runtime-prepared": 0.3417919999919832,
+        "runtime-apex-resources": 0.30590379203204066,
+        "runtime-publication": 0.2891000419622287,
+        "runtime-terminal": 0.2919576249551028
+      }
+    },
+    "asan": {
+      "status": "PASS",
+      "runtime": {
+        "runtime-success-1": 0.28825562505517155,
+        "runtime-endpoints": 0.28471266699489206,
+        "runtime-prepared": 0.2796261670300737,
+        "runtime-apex-resources": 0.5603458329569548,
+        "runtime-success-0": 1.428668166976422,
+        "runtime-publication": 0.8349567080149427,
+        "runtime-success-3": 0.2801284169545397,
+        "runtime-terminal": 0.27679391601122916,
+        "runtime-success-2": 0.2769887500908226
+      }
+    },
+    "wasm": {
+      "status": "PASS",
+      "runtime": {
+        "runtime-success-1": 0.553084084065631,
+        "runtime-endpoints": 0.5655119169969112,
+        "runtime-prepared": 0.2785829589702189,
+        "runtime-apex-resources": 0.5574831670382991,
+        "runtime-success-0": 0.5685503750573844,
+        "runtime-publication": 0.581688457983546,
+        "runtime-success-3": 0.5655122919706628,
+        "runtime-terminal": 0.27870862500276417,
+        "runtime-success-2": 0.5845370419556275
+      }
+    },
+    "embedded-portable": {
+      "status": "PASS",
+      "runtime": {
+        "runtime-success-1": 0.2749377089785412,
+        "runtime-endpoints": 0.2892407499020919,
+        "runtime-prepared": 0.28894750005565584,
+        "runtime-apex-resources": 0.5756097080884501,
+        "runtime-success-0": 0.27953887509647757,
+        "runtime-publication": 0.5622797079849988,
+        "runtime-success-3": 0.5607136669568717,
+        "runtime-terminal": 0.2842711249832064,
+        "runtime-success-2": 0.28206200001295656
+      }
+    }
+  },
+  "wholeSevenCompleted": 1,
+  "wholeSevenTotal": 7,
+  "full87Complete": false
+}

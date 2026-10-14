@@ -56,7 +56,9 @@ struct OriginalApexSphereConeSurfacePublicProducer {
     private func source(_ input: OriginalApexSphereConeSurfaceInput, options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission, using a: inout Admission)
         throws -> OriginalSourceBinding<Source> {
-        let physical = try OriginalPhysicalAngleScalarDomain(originalRadians: Double(bitPattern: 0x3fddac670561bb50), using: &a)
+        guard let pair=OriginalApexSphereConeSurfaceSnapshotProvider.pair(input),
+            case .analytic(.cone(_,_,let angle))=pair.cone else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
+        let physical = try OriginalPhysicalAngleScalarDomain(originalRadians:angle,using:&a)
         return try DefaultOriginalSourceBindingIssuer(provider: OriginalApexSphereConeSurfaceSnapshotProvider(
             physical: physical, maximumExtensionLevel: a.usage.maximumAlgebraicDepth, tolerance: tolerance))
             .bind(input, limits: limits(options: options, admission: admission).source, using: &a)

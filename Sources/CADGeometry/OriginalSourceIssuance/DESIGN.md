@@ -3170,3 +3170,14 @@ proves all nonzero tuples iff V1=V2 and U2-U1 is an arbitrary integer label B;
 V1=V2=0 permits every independent U1/U2. Positive physical sine/cosine establish
 nonzero radial/axial injectivity. Source owns exact intrinsic XYZ definitions,
 not sampled coordinates, and retains existing primitive period/collapse laws.
+
+### Sphere-cone normalized node capability
+
+For sphere0/R1 and cone1X/Z, source physical angles in(0,1/2] satisfy0<s<1/2,
+c>0, hence X>=1-2*s^2>1/2 and no sphere pole. Reuse the original wave/apex
+factorization and position producer. Source-issued upper/lower traversal maps
+normalized T[0,1] to intrinsic label B*(branch+T)/2, with exact critical labels
+0,B/2,B and physical angles0,pi,2pi. Direct authored physical endpoints never
+inherit this root-selected normalization. Retain both original owners and every
+apex cone U. This traversal receipt does not itself manufacture a Curve3D truth
+or accept the still-unconverted upper/lower public CS callers.

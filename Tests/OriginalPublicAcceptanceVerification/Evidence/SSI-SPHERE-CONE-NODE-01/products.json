@@ -1,0 +1,16 @@
+{
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/native/CADGeometry.swiftmodule": "425304b8b9f884c5e41b93f1c8b0fc311bb944aac3136f05851266e564b197b9",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/native/libCADGeometry.a": "102f8b2e4bb4e0560dd87668ef7512f2d1f0298ee94481b210a4a53c7cdb40f2",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/native/Public": "5509a4f20e80c4f3733f6fcb17b438382a798cc47b6accbe9cfa454464910ad9",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/asan/CADGeometry.swiftmodule": "425304b8b9f884c5e41b93f1c8b0fc311bb944aac3136f05851266e564b197b9",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/asan/libCADGeometry.a": "14c7ca6540f254b708a212f1e55ab259378722a469bdb836873826116e9d4e5d",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/asan/Public": "a46cd19f953706b4dc09f310ee39d6bfe54911a5cbc2fb874b25ac7c928deb6b",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/wasm/CADGeometry.swiftmodule": "0d81e1e02587ef18ca212b86f788489b8fed1d3802ee3bd0af6413cc8bef50af",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/wasm/libCADGeometry.a": "f64c1c6f7ac6843a6c23310cf5fe1d079d570004b197f9ee6d351e53a915f29c",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/wasm/Public.wasm": "a42b5f864116034771ecb135d75e54242277bdd238b4c8d10b695d498b98b24e",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/embedded-portable/Public.wasm": "6d8bdb2f3b95182f7f33c4272f484f06572cbacc9c99901500413c35470a80f8",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/embedded-portable/CADGeometry.swiftmodule": "e43590a4cfb3a8661b153369a2f8ea8a7a4ff0dff4073e5018becb5ab8481153",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/compatibility-native/ApexSphereConeSSIAcceptance": "6aaafafaac5abf7993840029c8f8eabe24d7be0763efa215cf25553444df58df",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/compatibility-native/CoincidentConeSSIAcceptance": "fa3546669a0f7c907b7983c035834523abcf71bd6a2f7935e362f42148966bd0",
+  "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/compatibility-native/KernelGraph": "086a60b19f635677593559fdf4d7de1a3d9724ac7ebc01b5ae979d719767ea6b"
+}

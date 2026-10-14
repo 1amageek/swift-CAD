@@ -1061,3 +1061,14 @@ phase and V; apex dimension depends on both U axes. Periodic seam intervals are
 joined by the source period theorem. Public box V intersections are connected;
 when V0 is selected, regular closures join at the retained apex. Otherwise each
 cyclic phase component remains separate. All endpoint openness is preserved.
+
+### Sphere-cone exact apex selection
+
+When the selected cone V is exactly singleton0, consume existing primitive
+support/request/effective and retain every selected cone U. Sphere V must contain
+0 and sphere U must meet the exact lattice -B/4+kB; arbitrary-precision cycle
+floor/ceil proves nonempty/empty over its entire request. Every apex member is
+checked in both original UV selections. Regular sections are unavailable in an
+apex-only relation; expose selected strata/dimensions and issue existing analytic
+collapse identity only on the selected V0 cone scope. Nonzero finite selections
+remain explicit incomplete coverage until exact inverse-angle refinement exists.

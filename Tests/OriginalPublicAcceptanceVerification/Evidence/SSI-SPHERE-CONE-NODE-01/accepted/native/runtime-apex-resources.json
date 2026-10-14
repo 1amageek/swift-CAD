@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/sphere-cone-node-20261014/v2/native/Public",
+    "apex-resources"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.30590379203204066,
+  "peakRSSBytes": 6209536,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "380181d6c26c404107b2b1ec5dc09a1d2597b628b0c57594e787bd5e546e6fb7"
+}
