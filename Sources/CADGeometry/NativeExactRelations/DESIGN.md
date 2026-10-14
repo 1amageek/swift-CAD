@@ -1029,3 +1029,14 @@ with original parameter dimension4, image1/fiber0 and independent U lifts.
 Quarter referenceV<=3/4 is excluded by referenceZ>2.56 and ca<.90. Other
 positive finite UV restrictions remain explicit incomplete coverage. Prepared
 queries reuse verified source/frames/support without solving the pair again.
+
+### Apex sphere-cone stratified parent domain
+
+Consume the source factorization, full primitive support/request/effective and
+closed circle chart cover. Retain the apex full-U fibre separately from regular
+S>0/S<0 arcs and every S0 incidence. No tuple is removed by close XYZ.
+Nonempty finite UV selection needs exact guard/preimage; an unimplemented
+selection fails explicit incomplete coverage. Source X>=1-2*(45/100)^2>0 excludes every sphere U request inside
+[0,B/2], including the catalog quarter box. Outside authored latitude support
+is independently empty. No XYZ bound is treated as an affine UV bound. Prepared frames/support reuse
+continues under one caller ledger. Public image/fiber dimensions are stratified.

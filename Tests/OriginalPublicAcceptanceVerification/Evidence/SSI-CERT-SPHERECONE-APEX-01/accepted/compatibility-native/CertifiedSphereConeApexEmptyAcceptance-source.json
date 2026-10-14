@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/apex-sphere-cone-ssi-20261014/v2/compatibility-native/CertifiedSphereConeApexEmptyAcceptance",
+    "source"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.6715808749431744,
+  "peakRSSBytes": 6717440,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "d34a42e81cf2ed665cb3439a53bc12736af2735fc06baac64c9bcf84d48939e3"
+}

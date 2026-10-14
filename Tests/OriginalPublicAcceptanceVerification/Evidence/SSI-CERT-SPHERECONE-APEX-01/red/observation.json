@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/apex-sphere-cone-ssi-20261014/red/Observation"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 1.1109139589825645,
+  "peakRSSBytes": 10158080,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "758bacdee8314b4f1e49a349ba21f3fdd8cf65928b75f3bd8fa4a41f31ec7b67"
+}

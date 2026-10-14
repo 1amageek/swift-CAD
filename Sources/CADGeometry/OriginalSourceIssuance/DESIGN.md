@@ -3136,3 +3136,14 @@ Parameterized U is2*atan(t) plus chart*pi in intrinsic labels and arbitrary
 integer lifts. Reference U uses atan2(-X,Y); since referenceZ>2.56 its slant
 is positive and no reference apex occurs. Parameterized signed slant remains
 authored all-real support. B is the saved intrinsic label, not physical2*pi.
+
+### Apex sphere-cone parent source
+
+The original sphere0/R1 and cone(1,0,0)/Z/alpha parent owns
+lambda*(lambda-2*s*S)=0. Lambda0 is the apex with all original cone U.
+The nonzero law is XYZ=(1-2*s*s*S*S,2*s*s*S*C,2*s*c*S).
+Its S>0 and S<0 arcs meet at the apex; image is one connected figure8 with
+apex image0/fiber1 and regular image1/fiber0. Two closed circle charts retain
+all four incident sides at S0. Primitive signed coneV and independent U lifts
+are preserved. Earlier candidate curve regenerated binary64 coefficients are
+not the authoritative exact parent law. Reuse original primitive/bounds issuers.

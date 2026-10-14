@@ -974,3 +974,10 @@ retains source/r/branch/role and admits the original work/storage/depth/count
 and cancellation. Coordinates from independent alpha/beta owners are not
 relabelled as beta-field scalar values. Existing codec and unconverted Kernel
 material-refinement refusal gates preserve source authority.
+
+### Apex sphere-cone symbolic strata
+
+Public SSI/prepared owner retains one connected common image, apex stratum
+image0/fiber1 and two regular arcs image1/fiber0, all original UV/cycles and
+four apex incidents. Geometric publication keeps these source receipts and
+caller limits/cancel; it never reports a sampled point as the full apex fibre.

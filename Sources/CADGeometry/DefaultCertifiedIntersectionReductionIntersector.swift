@@ -119,7 +119,7 @@ struct DefaultCertifiedIntersectionReductionIntersector:
             // FIXME(INCOMPLETE_IMPLEMENTATION): The certified reduction caller
             // still requires source-bound relation composition for symbolic SSI.
             // Numeric section-curve reduction must not discard that authority.
-            case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone, .originalFullConeCone:
+            case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone, .originalFullConeCone, .originalApexSphereCone:
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                     message: "Certified reduction requires the original symbolic source relation.")
             case .coincident:

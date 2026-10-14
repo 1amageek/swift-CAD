@@ -1560,3 +1560,7 @@ owner; it does not claim completed Boolean clipping.
 Full cone-cone original symbolic families join the existing material-refinement
 refusal in Boolean graph validation and finite splitting. Their source and all
 UV remain retained; this gate is not a completed Boolean clipping claim.
+
+Apex sphere-cone stratified symbolic output joins the existing original
+material-refinement refusal gate; unconverted finite splitting cannot discard
+the apex full-U fibre or original regular arc source correspondence.

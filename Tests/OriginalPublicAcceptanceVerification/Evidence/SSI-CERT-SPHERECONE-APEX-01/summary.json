@@ -1,0 +1,58 @@
+{
+  "status": "PASS",
+  "lanes": {
+    "native": {
+      "status": "PASS",
+      "runtime": {
+        "runtime-success": 2.3240468750009313,
+        "runtime-endpoints": 0.6492602920625359,
+        "runtime-prepared": 0.6904611660866067,
+        "runtime-success-0": 0.8466353749390692,
+        "runtime-publication": 8.867569042020477,
+        "runtime-terminal": 1.2746190000325441
+      }
+    },
+    "asan": {
+      "status": "PASS",
+      "runtime": {
+        "runtime-success-1": 1.1357589580584317,
+        "runtime-endpoints": 0.850096832960844,
+        "runtime-prepared": 4.721809457987547,
+        "runtime-success-0": 2.5559868750860915,
+        "runtime-publication": 19.671356166014448,
+        "runtime-success-3": 1.140820916974917,
+        "runtime-terminal": 4.487658250029199,
+        "runtime-success-2": 1.139718500082381
+      }
+    },
+    "wasm": {
+      "status": "PASS",
+      "runtime": {
+        "runtime-success-1": 0.84265816595871,
+        "runtime-endpoints": 1.417016874998808,
+        "runtime-prepared": 2.3698394580278546,
+        "runtime-success-0": 0.8469941249350086,
+        "runtime-publication": 13.263108000042848,
+        "runtime-success-3": 1.6639322909759358,
+        "runtime-terminal": 2.0222527909791097,
+        "runtime-success-2": 1.2870046249590814
+      }
+    },
+    "embedded-portable": {
+      "status": "PASS",
+      "runtime": {
+        "runtime-success-1": 0.5616301670670509,
+        "runtime-endpoints": 0.2853577919304371,
+        "runtime-prepared": 0.5537796670105308,
+        "runtime-success-0": 0.5644882500637323,
+        "runtime-publication": 2.481493083992973,
+        "runtime-success-3": 0.5575883330311626,
+        "runtime-terminal": 0.5648616249673069,
+        "runtime-success-2": 0.5565616249805316
+      }
+    }
+  },
+  "wholeSevenCompleted": 1,
+  "wholeSevenTotal": 7,
+  "full87Complete": false
+}
