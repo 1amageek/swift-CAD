@@ -24,3 +24,5 @@ These are syntax and source-preservation checks, not type-check, link, runtime, 
 | `Sources/CADKernel/SurfaceQueryEvaluator.swift` | `finiteInterval` | `86e67fa271e5898f651016b61a2fe5c936cdeb22a17f80094de70753788368bc` |
 
 Compiler SHA-256: `79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69`.
+
+Delivery: `dc36b2ad` fast-forwarded into `codex/m4-m8-completion`. An independent reverse-patch copy exactly reproduces every pre-integration owned path, including the other work in Boolean error handling and PROGRESS. No foreign work was staged, stashed or committed. Post-integration Native-mode syntax parsing and the committed removal diff check pass. `main` is unchanged. The delivery-record commit only closes this progress/evidence entry.
