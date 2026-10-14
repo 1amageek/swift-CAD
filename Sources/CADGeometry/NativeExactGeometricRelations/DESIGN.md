@@ -987,6 +987,6 @@ caller limits/cancel; it never reports a sampled point as the full apex fibre.
 Publish one retained geometric point component with all selected original UV
 pairs and both collapse receipts through ordinary/callback/prepared SSI.
 Each arbitrary real U is checked in its effective source fiber. The output
-retains immutable source owners and exact origin; XYZ-only consumers/codecs
+retains immutable source owners and the exact authored apex; XYZ-only consumers/codecs
 must explicitly refuse discarding authority. No global equality is inferred
 from the collapsed subset.

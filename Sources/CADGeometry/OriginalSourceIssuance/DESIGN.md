@@ -3148,13 +3148,16 @@ all four incident sides at S0. Primitive signed coneV and independent U lifts
 are preserved. Earlier candidate curve regenerated binary64 coefficients are
 not the authoritative exact parent law. Reuse original primitive/bounds issuers.
 
-### Common-apex orthogonal cone pair source
+### Common-apex point cone pair source
 
-Original cone0/Z/alpha and cone0/Y/beta retain independent physical owners.
-Existing certified coefficient bounds ca>.89 and cb>.93 yield ca^2+cb^2>1.
-Any nonzero common point would have z^2>=ca^2*norm^2 and y^2>=cb^2*norm^2,
-contradicting y^2+z^2<=norm^2. The complete image is exactly the common apex,
-with original parameters(U1,0,U2,0) for all real U1/U2. Primitive angular
-laws and source collapse theorems remain authoritative; no physical constants
-are coerced into a fabricated common field. Rational coordinate labels suffice
-for the apex parameter/product view and retain both physical proof owners.
+Signed cardinal unit axes and exactly equal authored apices are retained. Both
+physical half angles lie in(0,1/2]. Orthogonal axes use independently certified
+cos(angle)>7/8, so the two squared direction constraints exceed the unit norm.
+Parallel or opposite axes with exactly DISTINCT authored angles use strict
+monotonicity of physical cosine on this interval: no nonzero direction can
+satisfy both original cone metrics. A1ULP angle difference is distinct; modeling
+tolerance never turns it into coincident cones. Equal-angle parallel cones and
+nonpoint/noncardinal families are separate capabilities. Source owns the exact
+authored apexXYZ and both full angular fibers. The rational parameter-label field
+never represents a physical trigonometric coefficient. Retain independent angle
+proof owners and original primitive collapse theorems.

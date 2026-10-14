@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/common-apex-cone-family-20261014/v1/asan/Public",
+    "publication-1"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.5708932089619339,
+  "peakRSSBytes": 58769408,
+  "wallLimitSeconds": 180,
+  "rssLimitBytes": 10737418240,
+  "stopReason": null,
+  "logSHA256": "548d590b384ab5f7222dd1f5002bca8090e19632f4ecb567302eaa8dd87a8231"
+}
