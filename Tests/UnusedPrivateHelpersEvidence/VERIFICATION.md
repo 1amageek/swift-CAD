@@ -43,3 +43,9 @@ All five current execution-policy designs from `c6468c45` remain byte-identical.
 The original cleanup worktree's U1 migration is not staged, stashed or committed
 by this delivery. The historical branch-delivery paragraph above predates this
 main integration. No new runtime, feature-completion or broad build claim is made.
+
+Main delivery: integration commit `830d3dbb` was fast-forwarded into clean
+`main` and normally pushed to its configured `origin/main`. A live remote-tip
+check confirmed equality. Both original cleanup commits are ancestors of that
+tip; all seven source hashes still match the accepted table. The ongoing U1
+worktree remains on `2178ba92` with its migration changes outside this delivery.
