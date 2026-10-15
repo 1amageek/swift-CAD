@@ -1014,19 +1014,6 @@ public struct SurfaceQueryEvaluator: Sendable {
         )
     }
 
-    private func finiteInterval(
-        _ domain: ParameterDomain
-    ) throws -> ScalarInterval? {
-        switch domain {
-        case let .closed(lower, upper):
-            return try ScalarInterval(lower: lower, upper: upper)
-        case let .periodic(period):
-            return try ScalarInterval(lower: 0.0, upper: period)
-        case .unbounded:
-            return nil
-        }
-    }
-
     private func analyticSurfaceParameter(
         for point: Point3D,
         on surface: AnalyticSurface3D

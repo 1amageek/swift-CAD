@@ -2201,26 +2201,6 @@ struct BooleanOpenFaceArrangementBuilder {
         return delta
     }
 
-    private func selectedAction(
-        for cycle: [DirectedEdgeID],
-        graph: Graph,
-        tolerance: ModelingTolerance
-    ) throws -> BooleanRegionSelectionAction {
-        guard let action = try optionalSelectedAction(
-            for: cycle,
-            graph: graph,
-            tolerance: tolerance
-        ) else {
-            throw KernelError(
-                phase: .classification,
-                code: .classificationFailure,
-                tolerance: tolerance,
-                message: "A Boolean UV cycle has no intersection boundary from which to resolve its action."
-            )
-        }
-        return action
-    }
-
     private func optionalSelectedAction(
         for cycle: [DirectedEdgeID],
         graph: Graph,
