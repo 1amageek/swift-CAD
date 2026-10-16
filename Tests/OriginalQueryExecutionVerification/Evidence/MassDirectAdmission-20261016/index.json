@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "unit": "U1.NUMERIC.MASS",
-  "status": "candidate-finite-verification-passed-awaiting-root-commit-and-main-integration",
+  "status": "main-integration-passed-awaiting-root-metadata-commit",
   "sourceAuthority": {
     "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-mass-direct-20261016/native-import-final-r3/receipt.json",
     "sha256": "7e240e44aed9806c268c623d23bcfbe293afb092ec8c59ac626e340f6c1c5075",
@@ -191,7 +191,7 @@
     "Synchronous nonempty Box producer stopped on missing original polyline algebra admission before resolver; zero-feature producer stopped with emptyResult. Associated default-resolver positive remains unverified.",
     "PreparedSurface old strict bitwise parity already fails against old accepted products; current observed mismatch pairs are contained in that old result. No oracle weakening.",
     "No whole U1/U2/U3/U4 or all geometry-family completion claim.",
-    "Main integration and coherent commit are Root-owned and pending."
+    "Source commit and actual Main integration completed; the final metadata commit/push is Root-owned."
   ],
   "diagnosticLocality": {
     "macOSIPS": {
@@ -212,7 +212,7 @@
     "nativeEightComposed": true,
     "threePortableTargetsFiveGroupsEach": true,
     "finalSourceImportsBoundEveryTarget": true,
-    "mainIntegration": false
+    "mainIntegration": true
   },
   "sharedLowerEvidence": {
     "relativeIndex": "../RepairDirectAdmission-20261016/index.json",
@@ -1247,6 +1247,69 @@
       "rawSHA256": "8a068895d1c1d8df686582fc25f432a83cf44e793dd41e46af6671066f59ef49",
       "rawBytes": 4189,
       "durableOrigin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-mass-direct-20261016/native-main-replay-plan.json"
+    },
+    "IntegrationRaw/main-authority-r1/receipt.json.gz": {
+      "sha256": "e67fda0d2c2e1022ed574ffa04cb4695242a58f4865a86836f5ca266d2e16057",
+      "bytes": 229008,
+      "rawSHA256": "2f2c8a793521ef5c0ee4a51cfbe084ad28f77d7c811c6e9c88e7b3e86640ec88",
+      "rawBytes": 1395992,
+      "durableOrigin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-mass-direct-20261016/main-authority-r1/receipt.json"
+    },
+    "IntegrationRaw/main-public-r1/receipt.json.gz": {
+      "sha256": "8a79e3400853fe93196392c7cc0b9eb7caf552dde2b5195b9bed09fea8e0a5fd",
+      "bytes": 196099,
+      "rawSHA256": "f903e2a9bc258ca3aa4985bcfec5975e665618450901594321848d352ccd6e1b",
+      "rawBytes": 607527,
+      "durableOrigin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-mass-direct-20261016/main-public-r1/receipt.json"
+    },
+    "IntegrationLogs/main-public-r1/compiler-version.log.gz": {
+      "sha256": "b6524373dc005cdb1fe16a933bd67e4fa44458a0c3b9f6e40aeee5efc52681f9",
+      "bytes": 91,
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "durableOrigin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-mass-direct-20261016/main-public-r1/compiler-version.log"
+    },
+    "IntegrationLogs/main-public-r1/test-build-and-list.log.gz": {
+      "sha256": "bc73fce147ae34c6c0cd958a67070653b68b8b5b0d45820db03f596c1c3a9c39",
+      "bytes": 5751,
+      "rawSHA256": "999021a08e537ac590d012f953bcc72808f789d748689ee50163ab4525059091",
+      "rawBytes": 51741,
+      "durableOrigin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-mass-direct-20261016/main-public-r1/test-build-and-list.log"
+    },
+    "IntegrationLogs/main-public-r1/test-runtime.log.gz": {
+      "sha256": "c00e4e9fbc5bcc69232b67934fc9c16a26ffa8000cec8c03654ecc566d0dac78",
+      "bytes": 497,
+      "rawSHA256": "f0c3edaae1b241f7cf81bc1c799c5bee144ba9bb187abf79cff8b44e5e8f8f63",
+      "rawBytes": 1185,
+      "durableOrigin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-mass-direct-20261016/main-public-r1/test-runtime.log"
+    },
+    "IntegrationResults/main-public-r1/results.xml.gz": {
+      "sha256": "58a54f8668c08607e9f5cb440e6a9623bffacc3b7557906d508cca3232aa31cb",
+      "bytes": 346,
+      "rawSHA256": "6fb6527c9583bbacdc20d4048c44e5d8b12ef8f23e8c07cb1f738a2c7a5fc6c1",
+      "rawBytes": 671,
+      "durableOrigin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-mass-direct-20261016/main-public-r1/results.xml"
+    },
+    "IntegrationRaw/main-public-r1/swift-cad/Package.swift.gz": {
+      "sha256": "0d7a84db9bb655b0ee30eb0de4d1ab7d37d5ab78c4bd08d7af2a45389fce8724",
+      "bytes": 405,
+      "rawSHA256": "05a2ab0c63f797dc10c9989e63fc929aa135644978a7f57c9099da462f825dcb",
+      "rawBytes": 1590,
+      "durableOrigin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-mass-direct-20261016/main-public-r1/swift-cad/Package.swift"
+    },
+    "integration.json": {
+      "sha256": "87ad5f2998ffe3f25e3d3b841b67189086d5cfd0d33fa4332e5931df57b5ed16",
+      "bytes": 7946,
+      "kind": "Main integration metadata"
     }
+  },
+  "integration": {
+    "path": "integration.json",
+    "sha256": "87ad5f2998ffe3f25e3d3b841b67189086d5cfd0d33fa4332e5931df57b5ed16",
+    "sourceCommit": "222961318a9fbbbb32625329fb15cdfe378ccdef",
+    "productionModulesRegenerated": 0,
+    "publicFunctions": 3,
+    "mainAuthoritySHA256": "2f2c8a793521ef5c0ee4a51cfbe084ad28f77d7c811c6e9c88e7b3e86640ec88",
+    "runtimeReceiptSHA256": "f903e2a9bc258ca3aa4985bcfec5975e665618450901594321848d352ccd6e1b"
   }
 }
