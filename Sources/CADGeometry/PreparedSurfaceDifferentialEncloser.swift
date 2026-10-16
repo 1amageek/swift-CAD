@@ -612,6 +612,7 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
   }
 
   /// Bounds on separate original chart cells; this hull does not establish join smoothness.
+  @inline(never)
   package func intervalJet(overClosedBox parameters: SurfaceParameterBox,
     tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
     remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet {
@@ -631,6 +632,40 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
         }
       }
     }
+    switch storage {
+    case .direct(let original):
+      return try closedDirectIntervalJet(of: original, over: parameters,
+        tolerance: tolerance, using: &execution)
+    default:
+      return try closedFamilyIntervalJet(over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+    }
+  }
+
+  @inline(never)
+  private func closedDirectIntervalJet(of original: Surface3D, over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet {
+    if case .procedural(.originalAngularTransport(let image)) = original {
+      return try image.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
+        using: &execution).intervalJet()
+    }
+    if case .procedural(.originalAffineWord(let image)) = original, let coefficients = image.harmonicCoefficients {
+      return try coefficients.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
+        using: &execution).intervalJet()
+    }
+    if case .plane = original, let jet = try DefaultSurfaceDifferentialEncloser().analyticJet(of: original,
+      u: .parameterU(parameters.u), v: .parameterV(parameters.v), tolerance: tolerance, using: &execution) {
+      return jet
+    }
+    return try DefaultSurfaceDifferentialEncloser().intervalJetAssumingSurfaceValidated(
+      of: original, over: parameters, tolerance: tolerance)
+  }
+
+  @inline(never)
+  private func closedFamilyIntervalJet(over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
+    remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet {
     func childDepth() throws -> Int {
       guard remainingSourceDepth > 0 else {
         throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
@@ -699,20 +734,8 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
       return try original.intervalJet(over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
         remainingSourceDepth: childDepth(), using: &execution)
     case .direct(let original):
-      if case .procedural(.originalAngularTransport(let image)) = original {
-        return try image.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          using: &execution).intervalJet()
-      }
-      if case .procedural(.originalAffineWord(let image)) = original, let coefficients = image.harmonicCoefficients {
-        return try coefficients.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          using: &execution).intervalJet()
-      }
-      if case .plane = original, let jet = try DefaultSurfaceDifferentialEncloser().analyticJet(of: original,
-        u: .parameterU(parameters.u), v: .parameterV(parameters.v), tolerance: tolerance, using: &execution) {
-        return jet
-      }
-      return try DefaultSurfaceDifferentialEncloser().intervalJetAssumingSurfaceValidated(
-        of: original, over: parameters, tolerance: tolerance)
+      return try closedDirectIntervalJet(of: original, over: parameters,
+        tolerance: tolerance, using: &execution)
     case .offset(let offset, let source):
       let depth = try childDepth()
       if offset.distance == 0 {

@@ -271,3 +271,46 @@ resettable counter. Existing tensor composition, Jacobi iterations and outward
 formula order are preserved; this does not add a Mass algorithm or performance
 change. Transport validation forwards the same execution at each public/codec
 entry and retains its original failure conditions.
+
+### Direct Mass Execution and Publication
+
+`MassPropertyMeasuring` declares non-generic direct requirements for both the
+document-unit and explicit-unit entries. Ordinary entries create one root and
+delegate. Direct witnesses borrow the caller execution through original raw or
+validated moment integration, density resolution, unit powers, rigid/affine
+placement, tensor composition, candidate Jacobi iterations, interval residual
+proofs, result validation and final publication. Existing formulas, arithmetic
+order, candidate iteration policy and262144/32 ceilings remain unchanged.
+
+Variable component/density scans, retained per-body moments, scratch arrays,
+COW copies and result arrays admit their actual work/storage through that owner.
+Fixed matrix loops retain bounded visits. Allocation-free scalar interval products
+may remove their former four-value temporary while preserving endpoint order.
+No helper or result validator creates a new budget inside the direct operation.
+The existing allocation scope applies the same incoming policy to request setup
+as well as its selected contribution; metadata creation cannot escape the request
+ceiling before attachment. Complete reported work is the same execution delta
+from entry through result validation. Final publication retains the already
+validated immutable array owners while updating only the consumption scalar.
+Repeated body occurrences consume one genuine retained moment result and admit
+only their own placement/density composition. Terminal failures preserve their
+original cause; cancellation is checked before final public success.
+
+The genuine [evaluated snapshot](../EvaluatedDocument/DESIGN.md) preserves all
+stored owners. The fully injected evaluator initializer owns only its real three
+dependencies. Separate default composition preserves all existing call forms and
+the original ProductAttributeResolver/default moment provider; explicit-density
+portable tests use a real injected attribute protocol witness and prove it is not
+called. This split creates no alternate mass algorithm or simplified input type.
+
+The baseline behavioral input is the existing authored unit cube in a real
+meter/radian CADDocument and raw EvaluatedDocument, explicit density2 and inertia
+reference(0.5,0.5,0.5). Independent values are mass2, first moments1, second diagonal
+2/3 and cross1/2, centroid(0.5,0.5,0.5), reference inertia diagonal1/3/cross0 and
+principal moments1/3. The origin-reference diagonal is4/3. Exact rational thirds
+use outward dyadic brackets. Additional controls cover reused occurrences,
+original unit/placement laws, caller prefix/cumulative work/storage/depth,
+entry/interior/publication cancellation and retained-source/result lifetime.
+The test must execute the actual injected Mass protocol and original Topology
+moment producer. General curved-moment families and unrelated query dispatchers
+retain their separate completion gates.

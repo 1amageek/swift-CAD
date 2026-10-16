@@ -1,4 +1,4 @@
-public struct DocumentEvaluationMetrics: Codable, Sendable, Hashable {
+public struct DocumentEvaluationMetrics: Sendable, Hashable {
     public var totalFeatureCount: Int
     public var rebuiltFeatureCount: Int
     public var reusedFeatureCount: Int
@@ -34,3 +34,7 @@ public struct DocumentEvaluationMetrics: Codable, Sendable, Hashable {
         self.topologyMutationCount = topologyMutationCount
     }
 }
+
+#if !hasFeature(Embedded)
+extension DocumentEvaluationMetrics: Codable {}
+#endif

@@ -68,6 +68,18 @@ public struct ProductAttributeResolver: ProductAttributeResolving {
                 throw ProductAttributeError.inconsistentArtifact("Missing or stale producer source/exact B-rep association.")
             }
         }
+        return try resolveAssociatedSource(evaluated, limits: limits, budget: &budget, using: &execution)
+        }
+    }
+
+    @inline(never)
+    private func resolveAssociatedSource(_ evaluated: EvaluatedDocument, limits: ProductAttributeLimits,
+        budget: inout ProductAttributeBudget, using execution: inout OriginalQueryExecution) throws -> ResolvedProductAttributes {
+        let document = evaluated.document, source = document.productAttributes
+        let tolerance = evaluated.configuration.tolerance
+        let local = evaluated.assembly?.local
+        let model = local?.model ?? evaluated.brep, index = local?.subshapes ?? evaluated.subshapes
+        let lineage = local?.lineage ?? evaluated.lineage
         if let assembly = document.assembly {
             guard let artifact = evaluated.assembly else { throw ProductAttributeError.inconsistentArtifact("Missing assembly artifact.") }
             let remaining = limits.maximumWork - budget.consumedWork
@@ -307,9 +319,7 @@ public struct ProductAttributeResolver: ProductAttributeResolving {
             values[target] = ResolvedProductProperties(properties: properties, layers: layers, sourceName: name)
         }
         return ResolvedProductAttributes(documentID: document.id, values: values, localGeometry: localGeometry, consumedWork: budget.consumedWork)
-
-        }
-}
+    }
 
     private func admitStoredSignature(_ signature: SubshapeGeometrySignature,
                                       budget: inout ProductAttributeBudget, using execution: inout OriginalQueryExecution) throws {

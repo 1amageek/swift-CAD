@@ -2418,6 +2418,23 @@ markers remain in the actual providers. Direct primitive/native jet fixtures
 and target stack measurements jointly verify this boundary; successful source
 parsing does not prove stack use.
 
+### Closed prepared surface dispatch stack ownership
+
+The closed prepared surface entry retains receipt re-admission, cancellation,
+its original work debit and all tolerance, support and depth checks before
+storage dispatch. Non-inlined family bodies keep direct surface evaluation from
+reserving unrelated native/procedural branch scratch. Family precedence, jet
+arithmetic, child-depth descent, guards, refusals and storage/work charges remain
+unchanged. The same immutable prepared owner and caller execution cross each
+private helper boundary; no new root, cache or temporary array is introduced.
+
+The actual Mass raw-cube caller reaches this entry through volume moments on a
+normal cooperative worker stack. Its observed 118,000-byte dispatch frame within
+a 540,128-byte active stack is a concrete failure, despite successful synchronous
+raw-moment checks. Compiled frame measurement and the actual caller's complete
+moment/tensor and refusal tests own this correction. Other family tests must
+retain the same dispatch semantics; outlining cannot grant new source coverage.
+
 ### Procedural projection geometric ancestry
 
 Projection retains its existing independent U and V subdivision counters and

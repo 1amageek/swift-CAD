@@ -193,3 +193,22 @@ execution. Signature/source structural readers, source validation, assembly
 consistency and lookup borrow that execution. No callback adapter, copied
 execution or private root replaces the cumulative owner. Existing applicability,
 override winner, density and layer algorithms remain authoritative.
+
+### Source association stack ownership
+
+The direct resolver keeps its original budget scope, source-signature admission,
+source validator call, index/lineage charges and cache/producer-receipt
+association checks in their existing order. Only successfully associated input
+enters a private non-inlined resolution helper containing the original assembly,
+target, applicability and result body. Pure immutable bindings in that helper
+refer to the same EvaluatedDocument; earlier charges are not repeated. The same
+ProductAttributeBudget and OriginalQueryExecution cross the boundary. No record
+validation, source equality, guard, failure or result work is skipped.
+
+The Mass default-resolver control on an uncached raw document must reach its
+original typed association refusal on the normal cooperative worker stack.
+Its monolithic resolution closure reserved 239,984 bytes while calling metadata
+validation, which then exceeded the worker stack. Compiled frame measurement and
+that actual refusal verify the private boundary. Existing successful resolution
+checks must preserve result and admission behavior; outlining grants no new
+source association or general source-reader completion claim.

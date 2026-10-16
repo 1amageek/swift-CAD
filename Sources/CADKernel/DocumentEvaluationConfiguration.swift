@@ -1,7 +1,7 @@
 import CADCore
 import CADIR
 
-public struct DocumentEvaluationConfiguration: Codable, Sendable, Equatable {
+public struct DocumentEvaluationConfiguration: Sendable, Equatable {
     public var tolerance: ModelingTolerance
     public var tessellationOptions: TessellationOptions
     /// The purpose the Mesh artifacts of this evaluation were produced for.
@@ -22,3 +22,7 @@ public struct DocumentEvaluationConfiguration: Codable, Sendable, Equatable {
         self.tessellationLimits = tessellationLimits
     }
 }
+
+#if !hasFeature(Embedded)
+extension DocumentEvaluationConfiguration: Codable {}
+#endif

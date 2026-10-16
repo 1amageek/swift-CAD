@@ -256,6 +256,7 @@ partway fail. `PlanarCurveExtrusionIntersectorTests` own it.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [Evaluated Document](EvaluatedDocument/DESIGN.md) | child | complete evaluated snapshot value and native codec | Retains every source/cache/assembly and exact receipt owner for actual consumers | Source decomposition preserves fields, defaults and native validation; Embedded retains the same value contract. |
 | [Original Boundary Clipping](OriginalBoundaryClipping/DESIGN.md) | child | Immutable original face boundary issuance and parameter clipping | Binds validated face/support and directed coedges to one retained Native raw receipt | Parameter output retains its original model; complete image/fiber clipping and other boundary families remain separate acceptance |
 | [Swift-CAD package](../../DESIGN.md) | parent | immutable exact evaluation | Defines kernel composition and Mesh separation. | Do not re-evaluate during a read. |
 | [Whole Body Boolean](WholeBodyBoolean/DESIGN.md) | child | complete non-crossing operand selection and coincident representative ancestry | Composes original material and complete trim correspondence into one sewing request. | Vertex-only agreement is not whole coincidence. |

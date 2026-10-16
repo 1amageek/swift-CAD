@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 
 struct DictionaryDelta<Key, Value>: Sendable
