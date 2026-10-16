@@ -128,6 +128,14 @@ flowchart LR
 
 ## Contracts and Invariants
 
+The [package deployment contract](../../DESIGN.md#supported-deployment-baseline)
+owns the current-OS-only baseline. Source codecs and the validated-document
+fingerprint memo use their current implementations directly, without earlier
+Apple OS refusal or uncached fallback bodies. Actual Native Codable and target
+capability boundaries remain unchanged. Fingerprint copies share the same
+Mutex-protected completed value on every supported target; fallible computation
+remains outside the critical section.
+
 ### Kernel Sampler and Subshape Validation Execution
 
 The product-resolution validation path also forwards one caller execution from
@@ -172,6 +180,26 @@ changing their source/configuration/failure contract.
 Source value storage is common across Native, WASM and Embedded. Native
 Codable conformances and decoder/encoder witnesses are conditional transport
 adapters; they neither replace common values nor weaken Sendable or isolation.
+`FeatureOperation.bridgeSurface` alone retains its immutable payload indirectly.
+Four complete stable geometry references make this the largest operation value;
+inline storage otherwise expands the operation and its command/document parents
+beyond the WASM engine's function-parameter limit. Compiler-owned ARC storage
+preserves value equality, Hashable, Sendable, case matching and the existing
+explicit source/Codable fields. Construction or rewriting allocates a box;
+plain enum copies and case reads share it. Source authoring has no incoming query
+execution, so this allocation is not reported as paid geometry-query storage.
+Other operation cases keep their existing inline storage.
+
+Persistent-map consumers import their actual HashTreeCollections dependency in
+the files using its operations and conformances. The target declares that same
+existing package product directly. Document cancellation sites use CADCore's
+[current-task checker](../CADCore/CurrentTaskCancellation/DESIGN.md) with identical
+failure and task semantics across targets. Sketch chain ordering uses an
+exhaustive reference-case/ID/index formatter retaining the existing Native
+lexicographic keys; runtime reflection cannot define a portable ordering key.
+Portable collection accessors use direct typed closures where Embedded does not
+provide key-path runtime support; the owning collection, lazy evaluation and
+element order remain unchanged.
 Document metadata timestamps retain finite seconds since the existing reference
 date in common storage. Explicit Native Date adapters retain their wire meaning.
 Portable document authoring obtains wall-clock time through a fallible C clock
@@ -628,6 +656,14 @@ Signature values own copied/value geometry and have no lifetime dependency on
 the evaluated document after construction.
 
 ## Failure, Concurrency, and Constraints
+
+`DocumentMetadata.current` reads one platform UTC wall-clock value, preserves
+nanoseconds and the existing 2001 reference-date conversion, and publishes the
+same timestamp as creation and update. WASILibc uses its C11
+`timespec_get(..., TIME_UTC)` interface; Darwin and Glibc retain their existing
+`clock_gettime` interface. An unavailable clock remains a typed metadata
+failure, without a substitute timestamp. Explicit authored timestamps and
+Native Date/Codable adapters retain their existing contracts.
 
 Validation is pure and deterministic. Codable failures propagate typed
 validation errors; no empty signature or dropped topology entry is returned as

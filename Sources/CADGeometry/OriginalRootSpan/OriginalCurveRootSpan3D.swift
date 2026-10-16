@@ -903,7 +903,6 @@ extension OriginalCurveRootSpan3D: Codable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         try c.validateOnlyExpectedKeys([.source, .start, .end, .nativeSpanIndex, .certificationTolerance], in: decoder)
-        if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
             var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
             let source = try c.decode(Curve3D.self, forKey: .source)
             let tolerance = try c.decode(ModelingTolerance.self, forKey: .certificationTolerance)
@@ -918,7 +917,6 @@ extension OriginalCurveRootSpan3D: Codable {
                 maximumParameterWidth: width, maximumSubdivisionDepth: geometryDepth,
                 tolerance: tolerance, usage: &usage,
                 remainingSourceDepth: sourceDepth, maximumAlgebraicDepth: algebraDepth)
-        } else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
     }
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)

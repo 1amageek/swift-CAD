@@ -192,7 +192,6 @@ extension OriginalCurveRootBoundary: Codable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         try c.validateOnlyExpectedKeys([.source, .spanIndex, .constraint, .isolationLower, .isolationUpper,
             .excludesLowerEndpoint, .excludesUpperEndpoint, .isolationDepth, .certificationTolerance], in: decoder)
-        if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
             var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
             try self.init(source: c.decode(BSplineCurve3D.self, forKey: .source),
                 spanIndex: c.decode(Int.self, forKey: .spanIndex),
@@ -204,9 +203,6 @@ extension OriginalCurveRootBoundary: Codable {
                 isolationDepth: c.decode(Int.self, forKey: .isolationDepth),
                 maximumSubdivisionDepth: usage.limits.maximumValueDepth,
                 tolerance: c.decode(ModelingTolerance.self, forKey: .certificationTolerance), usage: &usage)
-        } else {
-            throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-        }
     }
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)

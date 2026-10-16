@@ -61,7 +61,7 @@ public enum FeatureOperation: Sendable, Hashable {
     case shell(ShellFeature)
     case thicken(ThickenFeature)
     case bridgeCurve(BridgeCurveFeature)
-    case bridgeSurface(BridgeSurfaceFeature)
+    indirect case bridgeSurface(BridgeSurfaceFeature)
     case curveEdit(CurveEditFeature)
     case curveOffset(CurveOffsetFeature)
     case projectCurve(ProjectCurveFeature)

@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 
 public extension CADDocument {
@@ -124,7 +125,7 @@ extension DesignGraph {
             try updatedGraph.validate(tolerance: tolerance)
         }
         self = updatedGraph
-        return features.map(\.id)
+        return features.map { $0.id }
     }
 
     @discardableResult

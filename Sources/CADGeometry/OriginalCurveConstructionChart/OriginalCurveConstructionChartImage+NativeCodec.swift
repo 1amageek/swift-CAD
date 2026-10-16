@@ -4,7 +4,6 @@
   extension OriginalCurveConstructionChartImage: Codable {
     private enum Keys: String, CodingKey { case chart, certificationTolerance }
     public init(from decoder: Decoder) throws {
-      if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
         var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
         let c = try decoder.container(keyedBy: Keys.self)
@@ -32,9 +31,6 @@
             remainingSourceDepth: sourceDepth - decoder.codingPath.count,
             using: &usage)
         }
-      } else {
-        throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-      }
     }
     public func encode(to encoder: Encoder) throws {
       var c = encoder.container(keyedBy: Keys.self)

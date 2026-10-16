@@ -351,15 +351,18 @@ public struct OffsetSurface3D: Hashable, Sendable {
     }
     switch source {
     case .plane(let plane):
-      let normal = try plane.normal.normalized(
-        tolerance: tolerance.distance
-      )
-      return .plane(
-        Plane3D(
-          origin: plane.origin + normal * distance,
-          normal: plane.normal,
-          uDirection: plane.uDirection
-        ))
+      try execution.consumeWork(8)
+      try plane.validate(tolerance: tolerance)
+      guard distance.isFinite else { throw GeometryError.invalidDistance(distance) }
+      let length = plane.normal.length
+      // Candidate availability does not change the original nonzero-normal law.
+      guard length.isFinite, length > tolerance.distance else { return nil }
+      let normal = try plane.normal.normalized(tolerance: tolerance.distance)
+      let candidate = Plane3D(origin: plane.origin + normal * distance,
+        normal: plane.normal, uDirection: plane.uDirection)
+      guard try OriginalPlaneOffsetRelation.proves(source: plane, target: candidate,
+        distance: distance, tolerance: tolerance, using: &execution) else { return nil }
+      return .plane(candidate)
     case .cylinder(let cylinder):
       let radius = cylinder.radius + distance
       guard radius > tolerance.distance else {

@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 
 public struct ValidatedCADDocument: Sendable {

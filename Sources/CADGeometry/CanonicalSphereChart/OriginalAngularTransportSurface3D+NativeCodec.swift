@@ -3,7 +3,6 @@ import CADCore
 extension OriginalAngularTransportSurface3D: Codable {
     private enum Keys: String, CodingKey { case source, uTransport, vTransport }
     public init(from decoder: Decoder) throws {
-        if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
             var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
             try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
             try usage.visitCell(axis: .value, depth: 0)
@@ -13,7 +12,6 @@ extension OriginalAngularTransportSurface3D: Codable {
             let source = try c.decode(Surface3D.self, forKey: .source)
             try self.init(source: source, uTransport: try c.decode(OriginalAngularParameterTransport.self, forKey: .uTransport), vTransport: try c.decode(OriginalAngularParameterTransport.self, forKey: .vTransport),
                 tolerance: OriginalAffineWordDecodingContext.tolerance(from: decoder), usage: &usage)
-        } else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
     }
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: Keys.self)

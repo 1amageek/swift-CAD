@@ -6,7 +6,6 @@ extension OriginalAffineWordPoint3D: Codable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         try c.validateOnlyExpectedKeys([.point, .word], in: decoder)
-        if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
             try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
             var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
             let remaining = try OriginalAffineWordDecodingContext.maximumSourceDepth(from: decoder) - decoder.codingPath.count
@@ -15,7 +14,6 @@ extension OriginalAffineWordPoint3D: Codable {
                 tolerance: OriginalAffineWordDecodingContext.tolerance(from: decoder),
                 remainingSourceDepth: remaining, maximumSubdivisionDepth: 0,
                 maximumAlgebraicDepth: usage.limits.maximumValueDepth, usage: &usage)
-        } else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
     }
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)

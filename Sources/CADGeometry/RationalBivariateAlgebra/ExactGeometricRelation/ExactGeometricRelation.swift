@@ -28,7 +28,6 @@ public struct ExactGeometricRelation<Base: ExactScalarArithmetic & ExactScalarOr
         return original.selection.cells[owner.payload.sourceOrdinals[handle.ordinal]]
     }
 
-    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
     public borrowing func withStrata<Result: ~Copyable, Failure: Error>(
         _ body: (Span<ExactGeometricStratumRecord>) throws(Failure) -> Result
     ) throws(Failure) -> Result {

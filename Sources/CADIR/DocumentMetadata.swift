@@ -26,7 +26,12 @@ public struct DocumentMetadata: Equatable, Sendable {
     /// Reads one wall-clock value for both timestamps and reports platform failure.
     public static func current(name: String? = nil) throws -> Self {
         var timestamp = timespec()
-        guard clock_gettime(CLOCK_REALTIME, &timestamp) == 0 else {
+#if canImport(WASILibc)
+        let clockSucceeded = timespec_get(&timestamp, TIME_UTC) == TIME_UTC
+#else
+        let clockSucceeded = clock_gettime(CLOCK_REALTIME, &timestamp) == 0
+#endif
+        guard clockSucceeded else {
             throw SchemaError.invalidMetadata("The platform wall clock could not provide document metadata.")
         }
         let referenceSeconds = Double(timestamp.tv_sec) + Double(timestamp.tv_nsec) * 1e-9 - 978_307_200

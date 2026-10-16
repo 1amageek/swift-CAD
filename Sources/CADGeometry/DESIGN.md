@@ -770,7 +770,17 @@ the seam with the parameters kept (`BSplineCurve2D.trimmedAcrossSeam`), so an ed
 intersection whose arc crosses the seam keeps its exact pcurve.
 `OffsetSurfaceParameterCurveImage` transports UV correspondence in either
 direction across one known offset relation. Forward transport targets the
-existing exact chart-preserving offset representation. Pullback validates the
+existing exact chart-preserving offset representation. A materialized plane
+must retain the original stored normal and optional U direction and prove the
+whole original UV law: its exact rational origin displacement is parallel to
+the original oriented differential normal, has squared length equal to the
+squared offset distance, and has the distance's orientation. For an authored U
+direction that normal is `U × (N × U)`, rather than an assumed stored unit
+normal. The source-owned predicate is shared by materialization and original
+image validation. A rounded candidate that cannot establish this relation is
+not materialized; the existing retained procedural offset remains the target,
+with its original source and normal guards. Numerical proximity cannot supply
+the relation. Pullback validates the
 input pcurve on `.procedural(.offset(offset))` and targets `offset.source`
 without applying a second geometric offset or changing the UV curve. Position
 and spatial derivatives are evaluated on the destination surface by the
@@ -1717,6 +1727,14 @@ closed operation validates finite domain containment independently of public
 positive-width admission and preserves both owning sides at native joins.
 
 ## Native Codec Boundary
+
+The [package deployment contract](../../DESIGN.md#supported-deployment-baseline)
+owns the current-OS-only baseline. Earlier Apple OS refusal, uncached and
+stateless fallback bodies are removed; the current implementation executes
+directly. Actual target capability boundaries remain in force, including
+Native Codable availability and the same synchronized memo storage on Native,
+normal WASM and Embedded. An OS version cannot select a different owner or
+weaken synchronization.
 
 Foundation imports follow the same capability boundary as the existing codec
 witnesses. Native and normal WASM retain their original Foundation import;

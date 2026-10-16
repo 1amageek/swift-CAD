@@ -12,7 +12,6 @@
           .vMinimumBoundary, .vMaximumBoundary,
           .uMinimumBoundary, .uMaximumBoundary,
         ], in: decoder)
-      if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
         var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         let bottom = try c.decode(OriginalCurveRootSpan3D.self, forKey: .vMinimumBoundary)
         try self.init(
@@ -21,9 +20,6 @@
           uMinimumBoundary: c.decode(OriginalCurveRootSpan3D.self, forKey: .uMinimumBoundary),
           uMaximumBoundary: c.decode(OriginalCurveRootSpan3D.self, forKey: .uMaximumBoundary),
           tolerance: bottom.certificationTolerance, using: &usage)
-      } else {
-        throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-      }
     }
     public func encode(to encoder: Encoder) throws {
       var c = encoder.container(keyedBy: CodingKeys.self)

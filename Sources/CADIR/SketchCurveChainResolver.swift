@@ -42,7 +42,7 @@ public struct SketchCurveChainResolver: Sendable {
         }
         let endpoints = degrees
             .filter { $0.value == 1 }
-            .map(\.key)
+            .map { $0.key }
             .sorted { stableReferenceName($0) < stableReferenceName($1) }
         guard endpoints.isEmpty == false else {
             throw SketchCurveChainResolutionError.closed
@@ -224,8 +224,20 @@ public struct SketchCurveChainResolver: Sendable {
         return SketchCurveChainVertex(reference: reference, connectedEndpointReferences: connected)
     }
 
-    private func stableReferenceName(_ reference: SketchReference) -> String {
-        String(describing: reference)
+    func stableReferenceName(_ reference: SketchReference) -> String {
+        switch reference {
+        case .entity(let id): return "entity(\(id.description))"
+        case .lineStart(let id): return "lineStart(\(id.description))"
+        case .lineEnd(let id): return "lineEnd(\(id.description))"
+        case .circleCenter(let id): return "circleCenter(\(id.description))"
+        case .circleRadius(let id): return "circleRadius(\(id.description))"
+        case .arcCenter(let id): return "arcCenter(\(id.description))"
+        case .arcStart(let id): return "arcStart(\(id.description))"
+        case .arcEnd(let id): return "arcEnd(\(id.description))"
+        case .arcRadius(let id): return "arcRadius(\(id.description))"
+        case .splineControlPoint(let entity, let index):
+            return "splineControlPoint(entity: \(entity.description), index: \(index))"
+        }
     }
 
     private struct CurveEdge: Equatable, Sendable {

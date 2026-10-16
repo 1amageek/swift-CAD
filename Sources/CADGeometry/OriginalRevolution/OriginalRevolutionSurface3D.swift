@@ -167,12 +167,10 @@ extension OriginalRevolutionSurface3D: Codable {
     public init(from decoder:Decoder) throws {
         let c = try decoder.container(keyedBy:CodingKeys.self)
         try c.validateOnlyExpectedKeys([.generator,.axisOrigin,.axisDirection,.uDomain],in:decoder)
-        if #available(macOS 15,iOS 18,visionOS 2,watchOS 11,tvOS 18,*) {
             var usage = try NativeRationalSourceDecodingContext.execution(from:decoder)
             let g = try c.decode(OriginalCurveRootSpan3D.self,forKey:.generator)
             try self.init(generator:g,axisOrigin:c.decode(Point3D.self,forKey:.axisOrigin),axisDirection:c.decode(Vector3D.self,forKey:.axisDirection),
                 uDomain:c.decode(ParameterDomain.self,forKey:.uDomain),tolerance:g.certificationTolerance,using:&usage)
-        } else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
     }
     public func encode(to encoder:Encoder) throws {
         var c = encoder.container(keyedBy:CodingKeys.self)

@@ -13,7 +13,6 @@ public struct IndependentShapeAngularSource: Equatable, Sendable {
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case id, law }
     public init(from decoder: Decoder) throws {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
         var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
         try allowance.visitCell(axis: .value, depth: 0)
@@ -29,7 +28,6 @@ extension IndependentShapeAngularSource: Codable {}
 extension IndependentShapeAngularSource.Law: Codable {
     private enum CodingKeys: String, CodingKey { case kind, prefix, conversion }
     public init(from decoder: Decoder) throws {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
         var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
         try allowance.visitCell(axis: .value, depth: 0)

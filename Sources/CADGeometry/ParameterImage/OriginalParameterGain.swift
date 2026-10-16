@@ -189,9 +189,6 @@ extension OriginalParameterGain: Codable {
             self = .ratio(numerator: try container.decode(Double.self, forKey: .numerator),
                 denominator: try container.decode(Double.self, forKey: .denominator))
         case .difference:
-            guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
-                throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-            }
             var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
             try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
             try usage.visitCell(axis: .value, depth: 0)
@@ -202,9 +199,6 @@ extension OriginalParameterGain: Codable {
             self = try .originalDifference(originalLower: lower, originalUpper: upper,
                 periodicTranslation: translation, usage: &usage)
         case .product:
-            guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
-                throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-            }
             var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
             try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
             try container.validateOnlyExpectedKeys([.kind, .factors], in: decoder)

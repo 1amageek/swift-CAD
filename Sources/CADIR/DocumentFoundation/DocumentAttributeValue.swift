@@ -79,7 +79,7 @@ public enum DocumentAttributeValue: Hashable, Sendable {
             guard value.isFinite else { throw DocumentFoundationError.invalidValue("Real attribute must be finite.") }
         case .reals(let values):
             for value in values {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 guard value.isFinite else { throw DocumentFoundationError.invalidValue("Every real array element must be finite.") }
             }
         case .quantity(let quantity):
@@ -87,7 +87,7 @@ public enum DocumentAttributeValue: Hashable, Sendable {
         case .subshapeReference(let reference): try reference.validate()
         case .subshapeReferences(let references):
             for reference in references {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try reference.validate()
             }
         default: break

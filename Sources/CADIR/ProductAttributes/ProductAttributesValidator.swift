@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -253,7 +254,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             for target in annotation.targets { try validateTarget(target, in: document, budget: &budget, using: &execution) }
             for line in annotation.polylines {
                 try budget.charge(work: line.count, targets: line.count, using: &execution)
-                guard line.count >= 2, line.allSatisfy(\.isFinite) else { throw ProductAttributeError.invalidSource("Invalid annotation polyline.") }
+                guard line.count >= 2, line.allSatisfy({ $0.isFinite }) else { throw ProductAttributeError.invalidSource("Invalid annotation polyline.") }
             }
         }
         func frame(_ origin: Point3D, _ direction: Vector3D, _ up: Vector3D) throws {

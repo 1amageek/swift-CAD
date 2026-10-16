@@ -983,7 +983,6 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Hashable, Sendable {
     // Consumers query differential bounds per subdivision window, and each
     // query revalidates the same immutable curve with certified root
     // isolation; successful validations are memoized per process.
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
     private enum ValidationCache {
         static let storage = Mutex<Set<ValidationCacheKey>>([])
     }
@@ -996,10 +995,6 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Hashable, Sendable {
     public func validate(tolerance: ModelingTolerance,
         using execution: inout OriginalQueryExecution) throws {
         try execution.consumeWork(1)
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else {
-            try validateUncached(tolerance: tolerance, using: &execution)
-            return
-        }
         let key = ValidationCacheKey(curve: self, tolerance: tolerance)
         if let key,
            ValidationCache.storage.withLock({ $0.contains(key) }) {

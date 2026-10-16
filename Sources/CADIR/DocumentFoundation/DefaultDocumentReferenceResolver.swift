@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 
 public struct DefaultDocumentReferenceResolver: DocumentReferenceResolving {
@@ -5,7 +6,7 @@ public struct DefaultDocumentReferenceResolver: DocumentReferenceResolving {
     public func resolve(_ reference: DocumentObjectReference,
                         in snapshots: [DocumentID: CADDocument],
                         tolerance: ModelingTolerance) throws -> ResolvedDocumentObject {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard let document = snapshots[reference.documentID] else { throw DocumentFoundationError.missingDocument(reference.documentID) }
         guard document.id == reference.documentID else {
             throw DocumentFoundationError.snapshotIDMismatch(expected: reference.documentID, actual: document.id)

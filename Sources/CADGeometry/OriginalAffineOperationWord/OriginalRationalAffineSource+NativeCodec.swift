@@ -4,9 +4,6 @@ import CADCore
 extension OriginalRationalAffineSource: Codable {
     private enum Keys: String, CodingKey { case coefficients }
     public init(from decoder: any Decoder) throws {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
-            throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-        }
         try NativeOriginalAffineWordCodec.keys(decoder, allowed: ["coefficients"])
         var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try usage.visitCell(axis: .coefficient, depth: 0)

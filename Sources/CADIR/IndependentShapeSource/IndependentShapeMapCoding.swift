@@ -27,9 +27,6 @@ package enum IndependentShapeMapCoding {
         }
     }
     static func decode<Key: Decodable & Hashable, Value: Decodable>(from decoder: Decoder) throws -> [Key: Value] {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
-            throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-        }
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
         var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try allowance.visitCell(axis: .value, depth: 0)

@@ -102,7 +102,6 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
     // successful proof by its complete operational inputs; the procedural
     // source uses a compact deterministic identity so its large certificate
     // never becomes a cache key payload.
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
     private enum GeneralConeTorusCorrespondenceCache {
         static let storage = Mutex<[GeneralConeTorusCorrespondenceCacheKey: GeneralConeTorusCorrespondenceCacheEntry]>([:])
     }
@@ -655,14 +654,12 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
 
     private func cached(_ key: GeneralConeTorusCorrespondenceCacheKey)
         -> GeneralConeTorusCorrespondenceCacheEntry? {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else { return nil }
         return GeneralConeTorusCorrespondenceCache.storage.withLock { $0[key] }
     }
 
     private func cache(_ key: GeneralConeTorusCorrespondenceCacheKey,
         proof: OriginalQueryPreparationDepth, using execution: inout OriginalQueryExecution) throws {
         try execution.consumeWork(1)
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else { return }
         try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
             of: (GeneralConeTorusCorrespondenceCacheKey, GeneralConeTorusCorrespondenceCacheEntry).self))
         let payloadBytes = try exactScalarCount(MemoryLayout<GeneralConeTorusCorrespondenceCacheKey>.stride,

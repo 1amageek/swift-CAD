@@ -43,7 +43,7 @@ public struct ProductGeometricTolerance: Equatable, Sendable {
         try execution.consumeWork(modifiers.count)
         try execution.retainStorage(count: modifiers.count, stride: MemoryLayout<String>.stride)
         try execution.retainStorage(count: modifiers.count, stride: MemoryLayout<String>.stride)
-        guard Set(modifiers.map(\.rawValue)).count == modifiers.count else {
+        guard Set(modifiers.map { $0.rawValue }).count == modifiers.count else {
             throw ProductAttributeError.invalidSource("Invalid geometric tolerance magnitude, datum order or modifiers.")
         }
     }

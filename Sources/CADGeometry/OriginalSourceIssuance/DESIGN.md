@@ -132,6 +132,36 @@ it does not create another source owner or run the solver.
 
 ## Contracts and Invariants
 
+### Original bare-plane offset relation
+
+`OriginalPlaneOffsetRelation` owns the single exact displacement predicate used
+by both plane materialization and offset-image source validation. Identical
+stored normal and optional authored U preserve the complete UV basis. The
+oriented normal direction is N for the source-owned nil-U chart and
+`U cross (N cross U)` for an authored U. Original binary coordinates are imported
+as exact rationals; the displacement must be parallel to this nonzero direction,
+have squared length equal to the squared signed distance, and have the matching
+dot-product sign. Zero distance requires zero displacement. These identities
+prove the whole affine plane law without a root, sample, or tolerance equality.
+
+The existing floating-point materializer supplies only a candidate. A nonfinite,
+unavailable, or unequal candidate returns nil, preserving the existing procedural
+offset and its original UV law. Invalid authored source and caller admission
+failures propagate. The receiver uses the same predicate; unrelated charts and
+materialized families do not gain authority. Every import and arithmetic action
+uses the caller admission at rational value/coefficient depth zero, with terminal
+cancellation checked before a positive result. No certificate or mutable cache is
+created. Parent offset-image composition remains owned by the
+[Geometry contract](../DESIGN.md).
+
+[Offset plane relation tests](../../../Tests/CADGeometryTests/OffsetPlaneOriginalRelationTests.swift)
+and the portable
+[original offset client](../../../Tests/OriginalQueryExecutionVerification/OffsetPlaneOriginalRelationPortable.swift)
+own nonunit/oblique/signed/authored-U acceptance, rounded candidate retention,
+wrong-source/side/basis refusal, exact work/byte limits and cancellation. The
+[actual offset feature integration](../../../Tests/CADKernelTests/OffsetSurfaceParameterCurveImageIntegrationTests.swift)
+owns the returned four-edge BRep rather than only local relation admission.
+
 ### Native Swift protocol boundaries
 
 Binding, snapshotting, rational-chart and implicit-image operations are protocol

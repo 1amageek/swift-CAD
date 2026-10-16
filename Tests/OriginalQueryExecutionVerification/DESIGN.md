@@ -95,12 +95,20 @@ An unexpected error cannot satisfy a specific refusal oracle.
 | Loop cap and immutable distance domains | [TopologyDistanceAdmissionPortable.swift](TopologyDistanceAdmissionPortable.swift), [loop tests](../CADTopologyTests/SurfaceParameterLoopAlgebraAdmissionTests.swift), [domain tests](../CADTopologyTests/DistanceDomainLifetimeTests.swift) |
 | Feature validation cap and original failures | [FeatureValidationAlgebraAdmissionTests.swift](../CADModelingTests/FeatureValidationAlgebraAdmissionTests.swift) |
 | Complete authored planar sewing under the existing work cap | [PlanarSewingAdmissionTests.swift](../CADKernelTests/PlanarSewingAdmissionTests.swift); Native public `DefaultBRepSewer` execution |
+| Whole original plane-offset relation and retained unequal candidates | [OffsetPlaneOriginalRelationTests.swift](../CADGeometryTests/OffsetPlaneOriginalRelationTests.swift), [OffsetPlaneOriginalRelationPortable.swift](OffsetPlaneOriginalRelationPortable.swift), and the actual [offset feature caller](../CADKernelTests/OffsetSurfaceParameterCurveImageIntegrationTests.swift) |
+| Current-OS source codecs and retained geometry bounds | [OriginalRootSpanOwnershipTests.swift](../CADGeometryTests/OriginalRootSpanOwnershipTests.swift), [CurveDifferentialEncloserTests.swift](../CADGeometryTests/CurveDifferentialEncloserTests.swift), and [OriginalSTEPIdentityCodecTests.swift](../CADIRTests/OriginalSTEPIdentityCodecTests.swift); earlier OS fallback removal retains the current successful bodies |
+| Current-OS fingerprint memo failure, reentry and ownership | [ValidatedCADDocumentMutationTests.swift](../CADIRTests/ValidatedCADDocumentMutationTests.swift) and [ValidatedDocumentFingerprintMemoPortable.swift](ValidatedDocumentFingerprintMemoPortable.swift); Task concurrency is distinct from observed physical thread overlap |
+| Portable IR value layout, source identity, chain order and cancellation | [ValidatedDocumentFingerprintMemoPortable.swift](ValidatedDocumentFingerprintMemoPortable.swift) exercises actual bridge operation copies, independent-box equality and encoding, document fingerprints, every reference key, resolved chain order and cancelled document/resolver callers; real full-module WASM validation owns the function-parameter limit |
 | Kernel point-provider and loop failure boundaries | [SelectionPointDirectExecutionTests.swift](../CADKernelTests/SelectionPointDirectExecutionTests.swift), [FaceContainmentLoopFailureClassificationTests.swift](../CADKernelTests/FaceContainmentLoopFailureClassificationTests.swift); these selected caller executions are Native evidence |
 
 The [direct caller evidence](Evidence/U1CallerCompletion-20261016/direct-callers/VERIFICATION.md)
-binds the accepted snapshots and exact execution scope. The real offset caller's
-materialized target/source relation remains explicitly unsupported and is not
-counted as a successful offset or whole-U1 delivery.
+binds the accepted snapshots and exact execution scope. Whole-plane offset
+relations have the separate verification owners above. Other materialized
+analytic offset families retain their explicit unsupported original relation;
+a plane delivery cannot establish their completion or whole-U1 coverage.
+The [current-OS and plane-offset evidence](Evidence/CurrentOSPlaneOffset-20261016/VERIFICATION.md)
+separates the final caller successes from the earlier aggregate crash and the
+independent prepared/one-shot interval composition regression.
 
 Changed admission paths require actual success/refusal, N/N−1, independent
 depth, cancellation and lifetime controls. Missing mandatory `using:` ports have

@@ -5,9 +5,6 @@ import CADGeometry
 /// Native canonical text adapter for immutable original STEP record identities.
 package enum OriginalSTEPIdentityCoding {
     static func decode(from decoder: Decoder) throws -> PortableIdentity128 {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
-            throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-        }
         var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         let container = try decoder.singleValueContainer()
         let text = try container.decode(String.self)

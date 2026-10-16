@@ -49,7 +49,6 @@ struct OriginalSTEPIdentityCodecTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *)
     func admitsParserCapacityBeforeAllocationAndChecksFinalCancellation() throws {
         let data = try JSONEncoder().encode(identity.canonicalString)
         let exact = try decoder(work: 125, storage: 13)
@@ -86,7 +85,6 @@ struct OriginalSTEPIdentityCodecTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *)
     func oversizedTextRefusesBeforeParserStorage() throws {
         let bounded = try decoder(work: 37, storage: 0)
         let data = try JSONEncoder().encode(identity.canonicalString + String(repeating: "0", count: 4096))
@@ -97,7 +95,6 @@ struct OriginalSTEPIdentityCodecTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *)
     func preservesCanonicalTextBitsAndCompleteLengthChain() throws {
         let source = line()
         let data = try JSONEncoder().encode(source)
@@ -118,7 +115,6 @@ struct OriginalSTEPIdentityCodecTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *)
     func rejectsMalformedUnknownAndUnadmittedRecords() throws {
         let data = try JSONEncoder().encode(line())
         let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])

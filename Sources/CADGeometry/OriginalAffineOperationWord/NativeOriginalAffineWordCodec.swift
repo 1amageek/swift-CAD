@@ -10,9 +10,6 @@ enum NativeOriginalAffineWordCodec {
         init?(intValue: Int) { return nil }
     }
     static func keys(_ decoder: any Decoder, allowed: Set<String>) throws {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
-            throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-        }
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
         var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         let object = try decoder.container(keyedBy: Key.self)

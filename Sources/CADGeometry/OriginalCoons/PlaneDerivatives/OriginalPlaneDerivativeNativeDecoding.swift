@@ -2,7 +2,6 @@
   import CADCore
 
   package struct OriginalPlaneDerivativeNativeDecoding {
-    @available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *)
     package static func constraints(
       from decoder: Decoder, using execution: inout OriginalQueryExecution
     )

@@ -6,7 +6,7 @@ public struct AssemblyOccurrencePath: Hashable, Sendable, Comparable {
     public static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.components.lexicographicallyPrecedes(rhs.components)
     }
-    public var description: String { components.map(\.description).joined(separator: "/") }
+    public var description: String { components.map { $0.description }.joined(separator: "/") }
 #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case components }
 #endif

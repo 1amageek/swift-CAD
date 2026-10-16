@@ -5,9 +5,6 @@ import CADGeometry
 /// Native admission for original placement records and their retained arrays.
 package enum OriginalSTEPPlacementDecoding {
     static func admitRecord(from decoder: Decoder, work: Int) throws {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
-            throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-        }
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
         var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try allowance.visitCell(axis: .value, depth: 0)
@@ -19,9 +16,6 @@ package enum OriginalSTEPPlacementDecoding {
     }
 
     static func retainedArray<Value: Decodable>(_ type: Value.Type, from decoder: Decoder) throws -> [Value] {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
-            throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-        }
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
         var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         var source = try decoder.unkeyedContainer()

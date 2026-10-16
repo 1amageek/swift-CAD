@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 
 public enum FeatureEvaluationState: Sendable, Hashable {

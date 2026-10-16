@@ -7,6 +7,7 @@ import WASILibc
 #else
 #error("CADIR numeric algorithms require the target C math module.")
 #endif
+import HashTreeCollections
 import CADCore
 import CADGeometry
 import CADTopology
@@ -231,7 +232,7 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
                 guard source.geometry.surfaces[id] != nil else { throw missing("Named original surface \(id).") }
                 try IndependentShapeSourceExecutionOwner.text(name, using: &execution)
             }
-            try canonicalIDs(source.geometricSets.lazy.map(\.id), using: &execution)
+            try canonicalIDs(source.geometricSets.lazy.map { $0.id }, using: &execution)
             for set in source.geometricSets {
                 try IndependentShapeSourceExecutionOwner.text(set.name, using: &execution)
                 guard !set.members.isEmpty else { throw invalid("A geometric set must have real selections.") }
@@ -243,7 +244,7 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
                 }
                 sets[set.id] = set
             }
-            try canonicalIDs(source.contexts.lazy.map(\.id), using: &execution)
+            try canonicalIDs(source.contexts.lazy.map({ $0.id }), using: &execution)
             for context in source.contexts {
                 try IndependentShapeSourceExecutionOwner.text(context.identifier, using: &execution); try IndependentShapeSourceExecutionOwner.text(context.type, using: &execution)
                 try execution.consumeWork(2); try context.units.validate()
@@ -298,7 +299,7 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
                     }
                 }
             }
-            try canonicalIDs(source.ambientContexts.lazy.map(\.id), using: &execution)
+            try canonicalIDs(source.ambientContexts.lazy.map({ $0.id }), using: &execution)
             var ambientIDs = Set<IndependentShapeContextID>()
             var ambientUnit: UnitSystem?
             var ambientLaw: IndependentShapeAngularSource? = source.ambientOriginalAngularSource
@@ -345,7 +346,7 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
                 ambientLengthGain = gain
             }
             if !selectedAmbientLength { throw invalid("Actual ambient contexts must own their selected original length authority.") }
-            try canonicalIDs(source.frames.lazy.map(\.id), using: &execution)
+            try canonicalIDs(source.frames.lazy.map({ $0.id }), using: &execution)
             for frame in source.frames {
                 try IndependentShapeSourceExecutionOwner.text(frame.name, using: &execution)
                 try execution.consumeWork(512); try frame.placement.validate()
@@ -448,7 +449,7 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
                     }
                 }
             }
-            try canonicalIDs(source.representations.lazy.map(\.id), using: &execution)
+            try canonicalIDs(source.representations.lazy.map({ $0.id }), using: &execution)
             for representation in source.representations {
                 try IndependentShapeSourceExecutionOwner.text(representation.name, using: &execution)
                 guard let context = contexts[representation.contextID] else { throw missing("Representation context \(representation.contextID).") }
@@ -528,7 +529,7 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
                 guard representations[association.representationID] != nil else { throw missing("Product-associated original representation.") }
                 previousAssociation = association
             }
-            try canonicalIDs(source.definitions.lazy.map(\.id), using: &execution)
+            try canonicalIDs(source.definitions.lazy.map({ $0.id }), using: &execution)
             for definition in source.definitions {
                 try execution.consumeWork(2)
                 guard let representation = representations[definition.representationID] else { throw missing("Definition representation \(definition.representationID).") }

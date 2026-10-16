@@ -10,7 +10,6 @@
       try c.validateOnlyExpectedKeys(
         [.source, .startBoundary, .startAtEnd, .endBoundary, .endAtEnd, .correctionBasis],
         in: decoder)
-      if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
         var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         let source = try c.decode(OriginalCurveRootSpan3D.self, forKey: .source)
@@ -25,9 +24,6 @@
           endBoundary: end, endAtEnd: c.decode(Bool.self, forKey: .endAtEnd),
           correctionBasis: c.decode(OriginalEndpointCorrectionBasis.self, forKey: .correctionBasis),
           remainingSourceDepth: depth, tolerance: source.certificationTolerance, using: &usage)
-      } else {
-        throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-      }
     }
     public func encode(to encoder: Encoder) throws {
       var c = encoder.container(keyedBy: CodingKeys.self)

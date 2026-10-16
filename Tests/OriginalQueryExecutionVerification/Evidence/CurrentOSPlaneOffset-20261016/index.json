@@ -1,0 +1,2021 @@
+{
+  "schemaVersion": 1,
+  "scope": "Current OS-only removals and exact whole-plane offset caller unit. Raw evidence only; no whole-U1, complete-family, or all-package-runtime claim.",
+  "nativeCurrentAuthority": {
+    "run": "native-upper-r4",
+    "receipt": "native/native-upper-r4/receipt.json.gz",
+    "sha256": "3c1de5934a2ab80e3daff5a2da82caea8b78d61d58a4c345aa9bc67170680354",
+    "sourceCount": 3924,
+    "moduleSourceCounts": {
+      "CADCore": 67,
+      "CADGeometry": 2171,
+      "CADTopology": 142,
+      "CADIR": 818,
+      "CADModeling": 333,
+      "CADKernel": 393
+    },
+    "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD"
+  },
+  "results": {
+    "historicalSelectedNative": {
+      "declaredFunctions": 17,
+      "specificFunctionPassesAcrossAggregateAndIsolations": 16,
+      "remainingExistingCompositionGap": {
+        "id": "U1.CONVERSION",
+        "test": "CurveDifferentialEncloserTests.preparedEvaluationIsExactlyEquivalentToOneShotEvaluation",
+        "endpointEqualityIssues": 78,
+        "oracleChanged": false
+      },
+      "aggregateProcessSucceeded": false,
+      "aggregateSIGSEGV": {
+        "reportedSignal": 11,
+        "causeUnidentified": true,
+        "notReproducedByDisjointOwnerFilters": true,
+        "noMatchingFreshIPS": true
+      }
+    },
+    "currentNativeInteraction": {
+      "run": "native-interaction-final-r1",
+      "passedFunctions": 3,
+      "scope": [
+        "Kernel full returned BRep exact validation and all four offset pcurve images",
+        "Validated document cached source fingerprint and Native roundtrip interaction"
+      ]
+    },
+    "portableOffset": {
+      "lanes": [
+        "asan",
+        "wasm",
+        "embedded"
+      ],
+      "exactOutputOraclesPerLane": 3,
+      "actualOracleLinesTotal": 9,
+      "freshGeometrySourcesPerLane": 2171,
+      "verifiedReusedCoreSources": 67,
+      "coreRecompiled": false,
+      "TopologyIRKernelPortableIncluded": false
+    },
+    "currentNativeMemo": {
+      "run": "native-memo-final-r1",
+      "matchedOutputOracles": 10,
+      "taskGroupObservation": {
+        "readers": 8,
+        "computations": 8,
+        "peakComputations": 8
+      },
+      "scope": "Real CADIR memo, platform clock, boundary math, bridge source/value/hash/Native codec, all ten sketch reference keys and real chain order, actual Task cancellation."
+    },
+    "portableMemo": {
+      "lanes": [
+        "asan",
+        "wasm",
+        "embedded"
+      ],
+      "matchedOutputOraclesPerLane": 10,
+      "totalMatchedOutputOracles": 30,
+      "scope": "Actual full CADIR memo and platform clock/boundary math/bridge/key/cancel lifecycle client; reused Core67/Geometry2171/Topology142 products. Native-only JSON codec assertion is not generalized to Embedded.",
+      "NativePhysicalComputeOverlap": {
+        "computations": 8,
+        "peakComputations": 8
+      },
+      "WasmThreadOverlapClaimed": false
+    }
+  },
+  "sourceChangeAuthority": {
+    "geometryOSFreeze": "source/os-geometry-source-freeze.json.gz",
+    "geometryOSPatch": "source/os-geometry-change.patch.gz",
+    "layerScope": "OS removal layer plus final IR composition; native-upper-r4 raw receipt owns final composed source hashes. Earlier Native receipts remain historical/supporting.",
+    "finalIRFreeze": "source/ir-portable-fix-freeze-r3.json.gz",
+    "finalNativeFixture": {
+      "path": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Tests/OriginalQueryExecutionVerification/ValidatedDocumentFingerprintMemoPortable.swift",
+      "sha256": "f0047e0f6c1aaa7eb04840b80d95d773d76ef118a1e6e05b8a28b2841f1b8144",
+      "manifest": "native/native-memo-final-r1/inputs.json.gz",
+      "note": "Final fixture changes only for-await group iteration to explicit group.next(); the earlier production freeze retains its earlier test hash.",
+      "fixtureOnlyDelta": "source/native-memo-fixture-only.patch.gz"
+    }
+  },
+  "coreOnlyReuse": {
+    "files": {
+      "receipt.json": "core-only-reuse/receipt.json.gz",
+      "runner.patch": "core-only-reuse/runner.patch.gz",
+      "mismatch.stderr.log": "core-only-reuse/mismatch.stderr.log.gz",
+      "mismatch.stdout.log": "core-only-reuse/mismatch.stdout.log.gz",
+      "positivePlan": "core-only-reuse/positive-prepare-receipt.json.gz"
+    },
+    "existingLowerAuthority": {
+      "repositoryPath": "Tests/OriginalQueryExecutionVerification/Evidence/U1CallerCompletion-20261016/direct-callers/portable-new-callers-c0-r3/receipt.json.gz",
+      "fileSHA256": "91cda14dc888d642a4ed0d3f5d45732ff219ea99fee425e9f1fe443df69fe780",
+      "rawSHA256": "b959248c322e2b7196078f9094af3115f1884b1285669cf0f76954446060c8fe",
+      "duplicated": false
+    }
+  },
+  "runs": {
+    "native-upper-r2": {
+      "kind": "actual-native-module-and-object",
+      "receipt": "native/native-upper-r2/receipt.json.gz",
+      "receiptSHA256": "ef9496352ce127e63773c85bcd55686f5fe82f683871f9ba2ad03707e481e636",
+      "moduleResults": {
+        "CADCore": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 2.1802386670024134,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/receipt.json",
+          "logReference": {
+            "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/CADCore.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "scope": "Previously accepted unchanged compiler origin; not rerun."
+          }
+        },
+        "CADGeometry": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 94.29992154099455,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-geometry-r1/receipt.json",
+          "log": "native-geometry-r1/CADGeometry.log.gz"
+        },
+        "CADTopology": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 11.731473791005556,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/receipt.json",
+          "log": "native-upper-r1/CADTopology.log.gz"
+        },
+        "CADIR": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 19.68704908300424,
+          "reusedFrom": null,
+          "log": "native-upper-r2/CADIR.log.gz"
+        },
+        "CADModeling": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 28.260754333008663,
+          "reusedFrom": null,
+          "log": "native-upper-r2/CADModeling.log.gz"
+        },
+        "CADKernel": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 29.322583250002936,
+          "reusedFrom": null,
+          "log": "native-upper-r2/CADKernel.log.gz"
+        }
+      }
+    },
+    "native-geometry-r1": {
+      "kind": "actual-native-module-and-object",
+      "receipt": "native/native-geometry-r1/receipt.json.gz",
+      "receiptSHA256": "e767b2d4e67d352c7eab11134e3075d8fb1a8745948dd145945c19b08f9561f8",
+      "moduleResults": {
+        "CADCore": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 2.1802386670024134,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/receipt.json",
+          "logReference": {
+            "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/CADCore.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "scope": "Previously accepted unchanged compiler origin; not rerun."
+          }
+        },
+        "CADGeometry": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 94.29992154099455,
+          "reusedFrom": null,
+          "log": "native-geometry-r1/CADGeometry.log.gz"
+        }
+      }
+    },
+    "native-upper-r1": {
+      "kind": "actual-native-module-and-object",
+      "receipt": "native/historical-native-upper-r1/receipt.json.gz",
+      "receiptSHA256": "455b1696baf1b258bd9067c2ff64acc714d95bf19245b0aac49a6c6c5cd76f0e",
+      "moduleResults": {
+        "CADCore": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 2.1802386670024134,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/receipt.json",
+          "logReference": {
+            "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/CADCore.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "scope": "Previously accepted unchanged compiler origin; not rerun."
+          }
+        },
+        "CADGeometry": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 94.29992154099455,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-geometry-r1/receipt.json",
+          "log": "native-geometry-r1/CADGeometry.log.gz"
+        },
+        "CADTopology": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 11.731473791005556,
+          "reusedFrom": null,
+          "log": "native-upper-r1/CADTopology.log.gz"
+        },
+        "CADIR": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 20.280348708998645,
+          "reusedFrom": null,
+          "log": "native-upper-r1/CADIR.log.gz"
+        },
+        "CADModeling": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 28.827207915994222,
+          "reusedFrom": null,
+          "log": "native-upper-r1/CADModeling.log.gz"
+        },
+        "CADKernel": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 30.21355083299568,
+          "reusedFrom": null,
+          "log": "native-upper-r1/CADKernel.log.gz"
+        }
+      }
+    },
+    "native-focused-r1": {
+      "kind": "actual-swiftpm-focused-tests",
+      "receipt": "native/diagnostics/native-focused-r1/receipt.json.gz",
+      "receiptSHA256": "cf673fd55ecc1022069dca7c396a5b3ec0740c454505464471ac911daf2b9911",
+      "status": "failed",
+      "actualCompletedCases": null,
+      "productionReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/receipt.json",
+      "productionReceiptSHA256": "455b1696baf1b258bd9067c2ff64acc714d95bf19245b0aac49a6c6c5cd76f0e",
+      "phases": {
+        "compiler-version": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.2333456659980584,
+          "log": "native-focused-r1/compiler-version.log.gz",
+          "reusedFrom": null
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 17.18898675001401,
+          "log": "native-focused-r1/test-build-and-list.log.gz",
+          "reusedFrom": null
+        },
+        "test-runtime": {
+          "exitCode": 1,
+          "stopReason": null,
+          "elapsedSeconds": 0.6958957909955643,
+          "log": "native-focused-r1/test-runtime.log.gz",
+          "reusedFrom": null
+        }
+      },
+      "report": "native/diagnostics/native-focused-r1/results.xml.gz"
+    },
+    "native-offset-isolated-r2": {
+      "kind": "actual-swiftpm-focused-tests",
+      "receipt": "native/isolated/native-offset-isolated-r2/receipt.json.gz",
+      "receiptSHA256": "860989cb28ef583cce2e5ada34f281cd110915da3ea2c1c34c5953c347bd5ea3",
+      "status": "passed",
+      "actualCompletedCases": 1,
+      "productionReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/receipt.json",
+      "productionReceiptSHA256": "455b1696baf1b258bd9067c2ff64acc714d95bf19245b0aac49a6c6c5cd76f0e",
+      "phases": {
+        "compiler-version": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.24561358299979474,
+          "log": "native-offset-isolated-r2/compiler-version.log.gz",
+          "reusedFrom": null
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 17.18898675001401,
+          "log": "native-focused-r1/test-build-and-list.log.gz",
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-focused-r1/receipt.json"
+        },
+        "test-runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 1.2783972089964664,
+          "log": "native-offset-isolated-r2/test-runtime.log.gz",
+          "reusedFrom": null
+        }
+      },
+      "report": "native/isolated/native-offset-isolated-r2/results.xml.gz"
+    },
+    "native-offset-geometry-isolated-r2": {
+      "kind": "actual-swiftpm-focused-tests",
+      "receipt": "native/isolated/native-offset-geometry-isolated-r2/receipt.json.gz",
+      "receiptSHA256": "e73622e8dfb86fe1d4701645c550c1a1460419b323d1d677d7a95a6ea62c24ce",
+      "status": "passed",
+      "actualCompletedCases": 3,
+      "productionReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/receipt.json",
+      "productionReceiptSHA256": "455b1696baf1b258bd9067c2ff64acc714d95bf19245b0aac49a6c6c5cd76f0e",
+      "phases": {
+        "compiler-version": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.5247093750076601,
+          "log": "native-offset-geometry-isolated-r2/compiler-version.log.gz",
+          "reusedFrom": null
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 17.18898675001401,
+          "log": "native-focused-r1/test-build-and-list.log.gz",
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-focused-r1/receipt.json"
+        },
+        "test-runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 1.8384157079999568,
+          "log": "native-offset-geometry-isolated-r2/test-runtime.log.gz",
+          "reusedFrom": null
+        }
+      },
+      "report": "native/isolated/native-offset-geometry-isolated-r2/results.xml.gz"
+    },
+    "native-ir-codec-isolated-r2": {
+      "kind": "actual-swiftpm-focused-tests",
+      "receipt": "native/isolated/native-ir-codec-isolated-r2/receipt.json.gz",
+      "receiptSHA256": "9970367ea85afda14afa3aaf720b6e755c059044bdd22c665d72f210d9a1933f",
+      "status": "passed",
+      "actualCompletedCases": 2,
+      "productionReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/receipt.json",
+      "productionReceiptSHA256": "455b1696baf1b258bd9067c2ff64acc714d95bf19245b0aac49a6c6c5cd76f0e",
+      "phases": {
+        "compiler-version": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.23326629199436866,
+          "log": "native-ir-codec-isolated-r2/compiler-version.log.gz",
+          "reusedFrom": null
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 17.18898675001401,
+          "log": "native-focused-r1/test-build-and-list.log.gz",
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-focused-r1/receipt.json"
+        },
+        "test-runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.7134252499963623,
+          "log": "native-ir-codec-isolated-r2/test-runtime.log.gz",
+          "reusedFrom": null
+        }
+      },
+      "report": "native/isolated/native-ir-codec-isolated-r2/results.xml.gz"
+    },
+    "native-ir-fingerprint-isolated-r2": {
+      "kind": "actual-swiftpm-focused-tests",
+      "receipt": "native/isolated/native-ir-fingerprint-isolated-r2/receipt.json.gz",
+      "receiptSHA256": "e0dd052aaecd670bbf7880ba6e0cc567ab365c98774ab87f05d272ae467cb0f0",
+      "status": "passed",
+      "actualCompletedCases": 2,
+      "productionReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/receipt.json",
+      "productionReceiptSHA256": "455b1696baf1b258bd9067c2ff64acc714d95bf19245b0aac49a6c6c5cd76f0e",
+      "phases": {
+        "compiler-version": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.23985574999824166,
+          "log": "native-ir-fingerprint-isolated-r2/compiler-version.log.gz",
+          "reusedFrom": null
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 17.18898675001401,
+          "log": "native-focused-r1/test-build-and-list.log.gz",
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-focused-r1/receipt.json"
+        },
+        "test-runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.7012987089983653,
+          "log": "native-ir-fingerprint-isolated-r2/test-runtime.log.gz",
+          "reusedFrom": null
+        }
+      },
+      "report": "native/isolated/native-ir-fingerprint-isolated-r2/results.xml.gz"
+    },
+    "native-geometry-bounds-isolated-r2": {
+      "kind": "actual-swiftpm-focused-tests",
+      "receipt": "native/diagnostics/native-geometry-bounds-isolated-r2/receipt.json.gz",
+      "receiptSHA256": "8bd2898b69a442662340711d89650dc97e9be39880ff6427fdf2b5054a2c92f2",
+      "status": "failed",
+      "actualCompletedCases": null,
+      "productionReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/receipt.json",
+      "productionReceiptSHA256": "455b1696baf1b258bd9067c2ff64acc714d95bf19245b0aac49a6c6c5cd76f0e",
+      "phases": {
+        "compiler-version": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.46171304100425914,
+          "log": "native-geometry-bounds-isolated-r2/compiler-version.log.gz",
+          "reusedFrom": null
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 17.18898675001401,
+          "log": "native-focused-r1/test-build-and-list.log.gz",
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-focused-r1/receipt.json"
+        },
+        "test-runtime": {
+          "exitCode": 1,
+          "stopReason": null,
+          "elapsedSeconds": 0.9316781670058845,
+          "log": "native-geometry-bounds-isolated-r2/test-runtime.log.gz",
+          "reusedFrom": null
+        }
+      },
+      "report": "native/diagnostics/native-geometry-bounds-isolated-r2/results.xml.gz"
+    },
+    "native-interaction-r2": {
+      "kind": "actual-swiftpm-focused-tests",
+      "receipt": "native/current-interaction-r2/receipt.json.gz",
+      "receiptSHA256": "8b41de9c5a7311470d03436be5e2083ed34cdb95fae7c8195c18d7bbbc5de3fe",
+      "status": "passed",
+      "actualCompletedCases": 3,
+      "productionReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r2/receipt.json",
+      "productionReceiptSHA256": "ef9496352ce127e63773c85bcd55686f5fe82f683871f9ba2ad03707e481e636",
+      "phases": {
+        "compiler-version": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.46673608299170155,
+          "log": "native-interaction-r2/compiler-version.log.gz",
+          "reusedFrom": null
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 13.703884125003242,
+          "log": "native-interaction-r2/test-build-and-list.log.gz",
+          "reusedFrom": null
+        },
+        "test-runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.701501500006998,
+          "log": "native-interaction-r2/test-runtime.log.gz",
+          "reusedFrom": null
+        }
+      },
+      "report": "native/current-interaction-r2/results.xml.gz"
+    },
+    "portable-offset-asan": {
+      "kind": "actual-offset-portable",
+      "receipt": "portable-offset/asan/receipt.json.gz",
+      "receiptSHA256": "6418ff4c306cb19fe6f11e62480bad53b9987e3d54c52f8a450d63ec53fc0ea1",
+      "sourceCount": {
+        "CADCore": 67,
+        "CADGeometry": 2171
+      },
+      "compileCore": false,
+      "phases": {
+        "asan-compile": {
+          "exitCode": 0,
+          "elapsedSeconds": 131.68981279099535,
+          "log": "portable-offset/asan/asan-compile.log.gz"
+        },
+        "asan-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 2.791035832997295,
+          "log": "portable-offset/asan/asan-link.log.gz"
+        },
+        "asan-runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.391547958002775,
+          "log": "portable-offset/asan/asan-runtime.log.gz"
+        }
+      },
+      "actualOracleLines": [
+        "PASS offset-plane: signed/nonunit/oblique/authored-U/zero and retained rounded source",
+        "PASS offset-plane: foreign source/side/basis and source-depth refusal",
+        "PASS offset-plane: exact work/bytes N and N-1, entry/terminal cancellation"
+      ]
+    },
+    "portable-offset-wasm": {
+      "kind": "actual-offset-portable",
+      "receipt": "portable-offset/wasm/receipt.json.gz",
+      "receiptSHA256": "61eb81317d80ae32166cbc4ea0fee1e62f2d0e7085d117b1e8008b2bb2a7fd35",
+      "sourceCount": {
+        "CADCore": 67,
+        "CADGeometry": 2171
+      },
+      "compileCore": false,
+      "phases": {
+        "wasm-compile": {
+          "exitCode": 0,
+          "elapsedSeconds": 195.94979804201284,
+          "log": "portable-offset/wasm/wasm-compile.log.gz"
+        },
+        "wasm-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 1.8836821250006324,
+          "log": "portable-offset/wasm/wasm-link.log.gz"
+        },
+        "wasm-runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.8462233750033192,
+          "log": "portable-offset/wasm/wasm-runtime.log.gz"
+        }
+      },
+      "actualOracleLines": [
+        "PASS offset-plane: signed/nonunit/oblique/authored-U/zero and retained rounded source",
+        "PASS offset-plane: foreign source/side/basis and source-depth refusal",
+        "PASS offset-plane: exact work/bytes N and N-1, entry/terminal cancellation"
+      ]
+    },
+    "portable-offset-embedded": {
+      "kind": "actual-offset-portable",
+      "receipt": "portable-offset/embedded/receipt.json.gz",
+      "receiptSHA256": "d174b23db0201c198d57a22f4bac9fb503fb8d4cfa811fa20d8df748e613dc0a",
+      "sourceCount": {
+        "CADCore": 67,
+        "CADGeometry": 2171
+      },
+      "compileCore": false,
+      "phases": {
+        "embedded-compile": {
+          "exitCode": 0,
+          "elapsedSeconds": 62.942479750010534,
+          "log": "portable-offset/embedded/embedded-compile.log.gz"
+        },
+        "embedded-link": {
+          "exitCode": 0,
+          "elapsedSeconds": 45.33970283399685,
+          "log": "portable-offset/embedded/embedded-link.log.gz"
+        },
+        "embedded-runtime": {
+          "exitCode": 0,
+          "elapsedSeconds": 0.23277124999731313,
+          "log": "portable-offset/embedded/embedded-runtime.log.gz"
+        }
+      },
+      "actualOracleLines": [
+        "PASS offset-plane: signed/nonunit/oblique/authored-U/zero and retained rounded source",
+        "PASS offset-plane: foreign source/side/basis and source-depth refusal",
+        "PASS offset-plane: exact work/bytes N and N-1, entry/terminal cancellation"
+      ]
+    },
+    "native-upper-r4": {
+      "kind": "actual-native-module-and-object",
+      "receipt": "native/native-upper-r4/receipt.json.gz",
+      "receiptSHA256": "3c1de5934a2ab80e3daff5a2da82caea8b78d61d58a4c345aa9bc67170680354",
+      "moduleResults": {
+        "CADCore": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 2.1802386670024134,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/receipt.json",
+          "log": null,
+          "logReference": {
+            "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/native-r1/CADCore.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "CADGeometry": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 94.29992154099455,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-geometry-r1/receipt.json",
+          "log": "native-geometry-r1/CADGeometry.log.gz",
+          "logReference": null
+        },
+        "CADTopology": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 11.731473791005556,
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/receipt.json",
+          "log": "native-upper-r1/CADTopology.log.gz",
+          "logReference": null
+        },
+        "CADIR": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 18.64419716699922,
+          "reusedFrom": null,
+          "log": "native/native-upper-r4/CADIR.log.gz",
+          "logReference": null
+        },
+        "CADModeling": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 31.07457599999907,
+          "reusedFrom": null,
+          "log": "native/native-upper-r4/CADModeling.log.gz",
+          "logReference": null
+        },
+        "CADKernel": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 32.224779332987964,
+          "reusedFrom": null,
+          "log": "native/native-upper-r4/CADKernel.log.gz",
+          "logReference": null
+        }
+      }
+    },
+    "native-memo-final-r1": {
+      "kind": "actual-native-standalone-client",
+      "receipt": "native/native-memo-final-r1/receipt.json.gz",
+      "receiptSHA256": "a5017f361d192eb9bf41994a3e6e843b0db6752d4c76469deb90b0863fbe3409",
+      "status": "passed",
+      "phases": {
+        "compiler-version": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.5367509589996189,
+          "log": "native/native-memo-final-r1/compiler-version.log.gz"
+        },
+        "client-compile-link": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 2.1442854999913834,
+          "log": "native/native-memo-final-r1/client-compile-link.log.gz"
+        },
+        "runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 1.0766980409971438,
+          "log": "native/native-memo-final-r1/runtime.log.gz"
+        }
+      },
+      "matchedOracleCount": 10,
+      "taskGroupObservation": {
+        "readers": 8,
+        "computations": 8,
+        "peakComputations": 8
+      },
+      "sourceReceipt": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r4/receipt.json",
+        "sha256": "3c1de5934a2ab80e3daff5a2da82caea8b78d61d58a4c345aa9bc67170680354"
+      }
+    },
+    "native-interaction-final-r1": {
+      "kind": "actual-swiftpm-public-interaction",
+      "receipt": "native/native-interaction-final-r1/receipt.json.gz",
+      "receiptSHA256": "0b71cc9fecab81c0bbb08ef35ee0b56947d582c624a4cdba921dfb87464bc7d2",
+      "status": "passed",
+      "phases": {
+        "compiler-version": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.2326987919950625,
+          "log": "native/native-interaction-final-r1/compiler-version.log.gz"
+        },
+        "test-build-and-list": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 13.249635833999491,
+          "log": "native/native-interaction-final-r1/test-build-and-list.log.gz"
+        },
+        "test-runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.6938649169896962,
+          "log": "native/native-interaction-final-r1/test-runtime.log.gz"
+        }
+      },
+      "executedTestCases": 3,
+      "productionReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r4/receipt.json",
+      "productionReceiptSHA256": "3c1de5934a2ab80e3daff5a2da82caea8b78d61d58a4c345aa9bc67170680354"
+    },
+    "portable-memo-final-asan": {
+      "kind": "actual-production-topology-ir-client",
+      "status": "passed",
+      "receipt": "portable-memo/asan/receipt.json.gz",
+      "receiptSHA256": "c488ed1e52ebaa7b09f7b530bdaf799120ee09d1daeffb9bac4f0ce26e3d3608",
+      "matchedOutputOracles": 10,
+      "taskGroupObservation": {
+        "readers": 8,
+        "computations": 8,
+        "peakComputations": 8
+      },
+      "phases": {
+        "CADTopology-compile": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 15.067855874993256,
+          "log": "portable-memo/phases/portable-memo-r1/asan/CADTopology-compile.log.gz",
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r1/asan/receipt.json"
+        },
+        "CADIR-compile": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 26.50537749999785,
+          "log": "portable-memo/phases/portable-memo-r8/asan/CADIR-compile.log.gz",
+          "reusedFrom": null
+        },
+        "client-link": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 3.4564361670054495,
+          "log": "portable-memo/phases/portable-memo-r8/asan/client-link.log.gz",
+          "reusedFrom": null
+        },
+        "runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 1.410521833007806,
+          "log": "portable-memo/phases/portable-memo-r8/asan/runtime.log.gz",
+          "reusedFrom": null
+        }
+      },
+      "wasmFunctionParameters": null,
+      "parameterAuditScope": "Not applicable: Native ASAN.",
+      "CoreGeometryCollectionsRegenerated": false
+    },
+    "portable-memo-final-wasm": {
+      "kind": "actual-production-topology-ir-client",
+      "status": "passed",
+      "receipt": "portable-memo/wasm/receipt.json.gz",
+      "receiptSHA256": "471c6aa7c157e3bddff2483022c372eb5fd9c6c5fd382badd182fe5234518595",
+      "matchedOutputOracles": 10,
+      "taskGroupObservation": {
+        "readers": 8,
+        "computations": 1,
+        "peakComputations": 1
+      },
+      "phases": {
+        "CADTopology-compile": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 14.335077833005926,
+          "log": "portable-memo/phases/portable-memo-r1/wasm/CADTopology-compile.log.gz",
+          "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r1/wasm/receipt.json"
+        },
+        "CADIR-compile": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 26.4429254590068,
+          "log": "portable-memo/phases/portable-memo-r8/wasm/CADIR-compile.log.gz",
+          "reusedFrom": null
+        },
+        "client-link": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 2.7990461669978686,
+          "log": "portable-memo/phases/portable-memo-r8/wasm/client-link.log.gz",
+          "reusedFrom": null
+        },
+        "runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.46213058300781995,
+          "log": "portable-memo/phases/portable-memo-r8/wasm/runtime.log.gz",
+          "reusedFrom": null
+        }
+      },
+      "wasmFunctionParameters": {
+        "maximumParameters": 782,
+        "overLimitTypes": {},
+        "actualIRWitnessParameters": {
+          "$s5CADIR16FeatureOperationOWOy": 641,
+          "$s5CADIR16FeatureOperationOWOe": 641,
+          "$s5CADIR22ResolvedDocumentObjectOWOe": 652,
+          "$s5CADIR10CADCommandOWOy": 649,
+          "$s5CADIR10CADCommandOWOe": 649,
+          "$s5CADIR22ResolvedDocumentObjectOWOy": 652
+        }
+      },
+      "parameterAuditScope": "Full ordinary Wasm object, global function type maximum plus all three actual IR witness owners.",
+      "CoreGeometryCollectionsRegenerated": false
+    },
+    "portable-memo-final-embedded": {
+      "kind": "actual-production-topology-ir-client",
+      "status": "passed",
+      "receipt": "portable-memo/embedded/receipt.json.gz",
+      "receiptSHA256": "9c59861760258c8d9756161af7d418946d8824f189aea65eb47373a0842c0b15",
+      "matchedOutputOracles": 10,
+      "taskGroupObservation": {
+        "readers": 8,
+        "computations": 1,
+        "peakComputations": 1
+      },
+      "phases": {
+        "client-link": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 75.70094141698792,
+          "log": "portable-memo/phases/portable-memo-r7/embedded/client-link.log.gz",
+          "reusedFrom": null
+        },
+        "runtime": {
+          "exitCode": 0,
+          "stopReason": null,
+          "elapsedSeconds": 0.233071166992886,
+          "log": "portable-memo/phases/portable-memo-r8/embedded/runtime.log.gz",
+          "reusedFrom": null
+        }
+      },
+      "wasmFunctionParameters": {
+        "maximumParameters": 782,
+        "overLimitTypes": {},
+        "actualIRWitnessParameters": {
+          "$e5CADIR16FeatureOperationOWOy": 641,
+          "$e5CADIR16FeatureOperationOWOe": 641,
+          "$e5CADIR22ResolvedDocumentObjectOWOe": 652
+        }
+      },
+      "parameterAuditScope": "Linked Embedded emitted witness functions only; global type maximum; unused CADCommand witness not emitted and not claimed.",
+      "CoreGeometryCollectionsRegenerated": false
+    }
+  },
+  "extensionSlots": {
+    "portableMemo": {
+      "included": true,
+      "directory": "portable-memo",
+      "lanes": {
+        "asan": {
+          "kind": "actual-production-topology-ir-client",
+          "status": "passed",
+          "receipt": "portable-memo/asan/receipt.json.gz",
+          "receiptSHA256": "c488ed1e52ebaa7b09f7b530bdaf799120ee09d1daeffb9bac4f0ce26e3d3608",
+          "matchedOutputOracles": 10,
+          "taskGroupObservation": {
+            "readers": 8,
+            "computations": 8,
+            "peakComputations": 8
+          },
+          "phases": {
+            "CADTopology-compile": {
+              "exitCode": 0,
+              "stopReason": null,
+              "elapsedSeconds": 15.067855874993256,
+              "log": "portable-memo/phases/portable-memo-r1/asan/CADTopology-compile.log.gz",
+              "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r1/asan/receipt.json"
+            },
+            "CADIR-compile": {
+              "exitCode": 0,
+              "stopReason": null,
+              "elapsedSeconds": 26.50537749999785,
+              "log": "portable-memo/phases/portable-memo-r8/asan/CADIR-compile.log.gz",
+              "reusedFrom": null
+            },
+            "client-link": {
+              "exitCode": 0,
+              "stopReason": null,
+              "elapsedSeconds": 3.4564361670054495,
+              "log": "portable-memo/phases/portable-memo-r8/asan/client-link.log.gz",
+              "reusedFrom": null
+            },
+            "runtime": {
+              "exitCode": 0,
+              "stopReason": null,
+              "elapsedSeconds": 1.410521833007806,
+              "log": "portable-memo/phases/portable-memo-r8/asan/runtime.log.gz",
+              "reusedFrom": null
+            }
+          },
+          "wasmFunctionParameters": null,
+          "parameterAuditScope": "Not applicable: Native ASAN.",
+          "CoreGeometryCollectionsRegenerated": false
+        },
+        "wasm": {
+          "kind": "actual-production-topology-ir-client",
+          "status": "passed",
+          "receipt": "portable-memo/wasm/receipt.json.gz",
+          "receiptSHA256": "471c6aa7c157e3bddff2483022c372eb5fd9c6c5fd382badd182fe5234518595",
+          "matchedOutputOracles": 10,
+          "taskGroupObservation": {
+            "readers": 8,
+            "computations": 1,
+            "peakComputations": 1
+          },
+          "phases": {
+            "CADTopology-compile": {
+              "exitCode": 0,
+              "stopReason": null,
+              "elapsedSeconds": 14.335077833005926,
+              "log": "portable-memo/phases/portable-memo-r1/wasm/CADTopology-compile.log.gz",
+              "reusedFrom": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r1/wasm/receipt.json"
+            },
+            "CADIR-compile": {
+              "exitCode": 0,
+              "stopReason": null,
+              "elapsedSeconds": 26.4429254590068,
+              "log": "portable-memo/phases/portable-memo-r8/wasm/CADIR-compile.log.gz",
+              "reusedFrom": null
+            },
+            "client-link": {
+              "exitCode": 0,
+              "stopReason": null,
+              "elapsedSeconds": 2.7990461669978686,
+              "log": "portable-memo/phases/portable-memo-r8/wasm/client-link.log.gz",
+              "reusedFrom": null
+            },
+            "runtime": {
+              "exitCode": 0,
+              "stopReason": null,
+              "elapsedSeconds": 0.46213058300781995,
+              "log": "portable-memo/phases/portable-memo-r8/wasm/runtime.log.gz",
+              "reusedFrom": null
+            }
+          },
+          "wasmFunctionParameters": {
+            "maximumParameters": 782,
+            "overLimitTypes": {},
+            "actualIRWitnessParameters": {
+              "$s5CADIR16FeatureOperationOWOy": 641,
+              "$s5CADIR16FeatureOperationOWOe": 641,
+              "$s5CADIR22ResolvedDocumentObjectOWOe": 652,
+              "$s5CADIR10CADCommandOWOy": 649,
+              "$s5CADIR10CADCommandOWOe": 649,
+              "$s5CADIR22ResolvedDocumentObjectOWOy": 652
+            }
+          },
+          "parameterAuditScope": "Full ordinary Wasm object, global function type maximum plus all three actual IR witness owners.",
+          "CoreGeometryCollectionsRegenerated": false
+        },
+        "embedded": {
+          "kind": "actual-production-topology-ir-client",
+          "status": "passed",
+          "receipt": "portable-memo/embedded/receipt.json.gz",
+          "receiptSHA256": "9c59861760258c8d9756161af7d418946d8824f189aea65eb47373a0842c0b15",
+          "matchedOutputOracles": 10,
+          "taskGroupObservation": {
+            "readers": 8,
+            "computations": 1,
+            "peakComputations": 1
+          },
+          "phases": {
+            "client-link": {
+              "exitCode": 0,
+              "stopReason": null,
+              "elapsedSeconds": 75.70094141698792,
+              "log": "portable-memo/phases/portable-memo-r7/embedded/client-link.log.gz",
+              "reusedFrom": null
+            },
+            "runtime": {
+              "exitCode": 0,
+              "stopReason": null,
+              "elapsedSeconds": 0.233071166992886,
+              "log": "portable-memo/phases/portable-memo-r8/embedded/runtime.log.gz",
+              "reusedFrom": null
+            }
+          },
+          "wasmFunctionParameters": {
+            "maximumParameters": 782,
+            "overLimitTypes": {},
+            "actualIRWitnessParameters": {
+              "$e5CADIR16FeatureOperationOWOy": 641,
+              "$e5CADIR16FeatureOperationOWOe": 641,
+              "$e5CADIR22ResolvedDocumentObjectOWOe": 652
+            }
+          },
+          "parameterAuditScope": "Linked Embedded emitted witness functions only; global type maximum; unused CADCommand witness not emitted and not claimed.",
+          "CoreGeometryCollectionsRegenerated": false
+        }
+      },
+      "preservedDiagnostics": {
+        "portable-memo-r4": {
+          "receipt": "portable-memo/diagnostics/portable-memo-r4/receipt.json.gz",
+          "scope": "Earlier Embedded compile failure; not accepted runtime or current-source proof."
+        },
+        "portable-memo-r5": {
+          "receipt": "portable-memo/diagnostics/portable-memo-r5/receipt.json.gz",
+          "scope": "Earlier Embedded compile failure; not accepted runtime or current-source proof."
+        }
+      },
+      "embeddedAcceptedOriginChain": {
+        "finalRuntime": "portable-memo/embedded/receipt.json.gz",
+        "successfulClientOrigin": "portable-memo/origins/portable-memo-r7/embedded/receipt.json.gz",
+        "successfulIRModuleOrigin": "portable-memo/origins/portable-memo-r6/embedded/receipt.json.gz",
+        "note": "r6 client syntax failure and r7 unused-witness audit failure remain failed; only successful original IR/client phases are reused. Final r8 actual runtime and emitted-only audit succeed."
+      }
+    }
+  },
+  "files": {
+    "native/native-upper-r2/receipt.json.gz": {
+      "sha256": "84ffe31f51aa6f5755edbf2c095266762a0dfa0d909096b258717361aae58d72",
+      "bytes": 228581,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "ef9496352ce127e63773c85bcd55686f5fe82f683871f9ba2ad03707e481e636",
+      "rawBytes": 1357901,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r2/receipt.json"
+    },
+    "native-geometry-r1/CADGeometry.log.gz": {
+      "sha256": "c3e44b83ec76f181113f0562fccab20690c3984404ae1a0b77d3a49272e17571",
+      "bytes": 9755,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "4d03bc567a7d8c874f5b6dc3c43732f0d662b2d47a8c74b65d490c6798999aca",
+      "rawBytes": 81458,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-geometry-r1/CADGeometry.log"
+    },
+    "native-upper-r1/CADTopology.log.gz": {
+      "sha256": "d2a47f01f44cc4cb30f292b92a418ae272da568350251008fdc5f85bce1963fd",
+      "bytes": 1191,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "70e71225617d72e1aefc7dbd5d47c80e46d8a3fd1685e4579dd8b51c1ff9a7c9",
+      "rawBytes": 5237,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/CADTopology.log"
+    },
+    "native-upper-r2/CADIR.log.gz": {
+      "sha256": "cbf7f6c34c66fdc6b5f1d50f5cf9aee1c4a9fd64c38692a84bd823cff79a7e73",
+      "bytes": 434,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "ed95b113d188af39925ea907dcbe5f45420cd198f66cd6f0e618850c2fa20620",
+      "rawBytes": 727,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r2/CADIR.log"
+    },
+    "native-upper-r2/CADModeling.log.gz": {
+      "sha256": "e6d039444669ec137e5973c807a5c194203d0ac3fd19cd9a585bf41fa32ea26d",
+      "bytes": 3655,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "87e6fc0eccd8374f106530a6f3b4e040c4ff23e853b6f9d1c5d8436975f70c04",
+      "rawBytes": 19779,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r2/CADModeling.log"
+    },
+    "native-upper-r2/CADKernel.log.gz": {
+      "sha256": "0c374cd1fc348d987f31af274f389b8b75a18d038c179a1f5f76f5b4bbcd578d",
+      "bytes": 18502,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "67294dac3ca79b38137e033816f3627426d89c2a7f7f7057784533500389534b",
+      "rawBytes": 184384,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r2/CADKernel.log"
+    },
+    "native/native-geometry-r1/receipt.json.gz": {
+      "sha256": "9ec1e551ea9fcd5e19af217266c7faa063e343daea3c4267d8108b98ea019842",
+      "bytes": 129400,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e767b2d4e67d352c7eab11134e3075d8fb1a8745948dd145945c19b08f9561f8",
+      "rawBytes": 812118,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-geometry-r1/receipt.json"
+    },
+    "native/historical-native-upper-r1/receipt.json.gz": {
+      "sha256": "9adc81129922abca022b040c7acaec0deeb25cc5bc9e962036134f59d437a780",
+      "bytes": 228539,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "455b1696baf1b258bd9067c2ff64acc714d95bf19245b0aac49a6c6c5cd76f0e",
+      "rawBytes": 1357752,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/receipt.json"
+    },
+    "native-upper-r1/CADIR.log.gz": {
+      "sha256": "e7714ded12f2e022fc5b8f3cc7514b585a2e0c47bf7cf154296b15d08744ac78",
+      "bytes": 433,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "49bc97259cb06113c5c67344dad7bbdc0ad068b7f05ab7e82d0d0618bcce064d",
+      "rawBytes": 727,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/CADIR.log"
+    },
+    "native-upper-r1/CADModeling.log.gz": {
+      "sha256": "85c4c62bf78c85a70f818ef4342eb5a54df4b9c8a6acbf9e4c2904d3d6a74273",
+      "bytes": 3655,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "a4a26e2944766d9cb153b5fcee0d12aefcbe8868a1a18dae25646ee979d20f87",
+      "rawBytes": 19779,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/CADModeling.log"
+    },
+    "native-upper-r1/CADKernel.log.gz": {
+      "sha256": "524ebfff4a2d2bbf39744907c75772834c1312d973324c24e6f86e82fcffabd5",
+      "bytes": 18502,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "82932ed2b505d3ef1281a081ac6e244166c038eecf6a3f12925a06b385f0cb4e",
+      "rawBytes": 184384,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r1/CADKernel.log"
+    },
+    "native/diagnostics/native-focused-r1/receipt.json.gz": {
+      "sha256": "7cc6082ecde128095c4a52ca9fee41f9a86747f72417717086490d3941b24bb4",
+      "bytes": 196214,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "cf673fd55ecc1022069dca7c396a5b3ec0740c454505464471ac911daf2b9911",
+      "rawBytes": 608489,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-focused-r1/receipt.json"
+    },
+    "native-focused-r1/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "bytes": 91,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-focused-r1/compiler-version.log"
+    },
+    "native-focused-r1/test-build-and-list.log.gz": {
+      "sha256": "030ca331962676de004ba53416fe233f7a4e678167b39c60490cea28b7082b71",
+      "bytes": 5400,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "4ada356e47d80ecf4803e25020c2985edd3785efe8ad919f09e6d42b12c3d00f",
+      "rawBytes": 49621,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-focused-r1/test-build-and-list.log"
+    },
+    "native-focused-r1/test-runtime.log.gz": {
+      "sha256": "12e429cdb57062efb07041a684b095fcad2b09ab5a145a1ecb4c5cb0daa42315",
+      "bytes": 1485,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "85a57efa8c718595df0aa22864be2f2737a9890b1e5e132b40b702f6a8610dbc",
+      "rawBytes": 4837,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-focused-r1/test-runtime.log"
+    },
+    "native/diagnostics/native-focused-r1/results.xml.gz": {
+      "sha256": "fd440de78b96320aa85a113fed5c33c6c5f9c9dfffe99bd53473ac50bbd8ef27",
+      "bytes": 70,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "6edbe77098b9cbc5d4d33c4279d3def109144c23b8014d646fdd7793d16b20b3",
+      "rawBytes": 52,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-focused-r1/results.xml"
+    },
+    "native/isolated/native-offset-isolated-r2/receipt.json.gz": {
+      "sha256": "c80e4d0151f09813104c03920e47de7ec31689d6cc43473df7cccd05eed13723",
+      "bytes": 197789,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "860989cb28ef583cce2e5ada34f281cd110915da3ea2c1c34c5953c347bd5ea3",
+      "rawBytes": 618958,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-offset-isolated-r2/receipt.json"
+    },
+    "native-offset-isolated-r2/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "bytes": 91,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-offset-isolated-r2/compiler-version.log"
+    },
+    "native-offset-isolated-r2/test-runtime.log.gz": {
+      "sha256": "5d3709d91b87c20c5b7709ef92c80888632c809d165a1ff7ddc504f11c85073b",
+      "bytes": 294,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "6672a2c8c662abe895b3d15ff0fed4414906c56f1a876773ad7e6981e952313a",
+      "rawBytes": 608,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-offset-isolated-r2/test-runtime.log"
+    },
+    "native/isolated/native-offset-isolated-r2/results.xml.gz": {
+      "sha256": "598b715eb2f996e6f040f9395ee9a5d45808c2041641277ccb64d009bc91fc0b",
+      "bytes": 246,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "f873a7463061e8c0947c32ed602640966ad775ec5789b1c9c9408ff0dd51b012",
+      "rawBytes": 350,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-offset-isolated-r2/results.xml"
+    },
+    "native/isolated/native-offset-geometry-isolated-r2/receipt.json.gz": {
+      "sha256": "aea14557011624cce49edd9f109984e78c3ad3a4e3f7d55e5dad2eb491fe828c",
+      "bytes": 197900,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e73622e8dfb86fe1d4701645c550c1a1460419b323d1d677d7a95a6ea62c24ce",
+      "rawBytes": 619315,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-offset-geometry-isolated-r2/receipt.json"
+    },
+    "native-offset-geometry-isolated-r2/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "bytes": 91,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-offset-geometry-isolated-r2/compiler-version.log"
+    },
+    "native-offset-geometry-isolated-r2/test-runtime.log.gz": {
+      "sha256": "e8305c63d8400aa3db47fbb87822f35ee61c295a584e97a25b67ba0d3935b522",
+      "bytes": 420,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "3516d9efa6bdcc7538bb23931b22837e6b4870c94b98da01768e490401161e09",
+      "rawBytes": 1053,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-offset-geometry-isolated-r2/test-runtime.log"
+    },
+    "native/isolated/native-offset-geometry-isolated-r2/results.xml.gz": {
+      "sha256": "ea41fd03d7d4a9ec59e6d894e8bc2211cd4bcd28bcf9b869c7656c539319c780",
+      "bytes": 346,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "2268cb9b4d6472da1a84ebdc2fc972e6a495748331d4594f547b266e75e7f665",
+      "rawBytes": 667,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-offset-geometry-isolated-r2/results.xml"
+    },
+    "native/isolated/native-ir-codec-isolated-r2/receipt.json.gz": {
+      "sha256": "2f41f73ff527310c2da5730c1d4b60697c110615e95320d86b4794b894f1d679",
+      "bytes": 197859,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "9970367ea85afda14afa3aaf720b6e755c059044bdd22c665d72f210d9a1933f",
+      "rawBytes": 619051,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-ir-codec-isolated-r2/receipt.json"
+    },
+    "native-ir-codec-isolated-r2/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "bytes": 91,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-ir-codec-isolated-r2/compiler-version.log"
+    },
+    "native-ir-codec-isolated-r2/test-runtime.log.gz": {
+      "sha256": "fc31190b80d6f7d3a80a4e66dc1394eea2f9cd1e3fd248cf03b3bbf266b5f872",
+      "bytes": 363,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "1be02d99b0b7a5af1a7c6a569f4f76a2816f4ff7cdf533888baeea253c70e2b8",
+      "rawBytes": 840,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-ir-codec-isolated-r2/test-runtime.log"
+    },
+    "native/isolated/native-ir-codec-isolated-r2/results.xml.gz": {
+      "sha256": "5d7396a17cef195a1b563970a85e550296a1571009a10b633d97661075ea6a35",
+      "bytes": 293,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "5ce5715b424e595f418b28d03156196c4473aee7d1026f878a21ca148dd342d9",
+      "rawBytes": 486,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-ir-codec-isolated-r2/results.xml"
+    },
+    "native/isolated/native-ir-fingerprint-isolated-r2/receipt.json.gz": {
+      "sha256": "fc1101a6839cd171f67a3e2684dd4300d8e59083ab0177f0ae6fcd01c79608c8",
+      "bytes": 197835,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e0dd052aaecd670bbf7880ba6e0cc567ab365c98774ab87f05d272ae467cb0f0",
+      "rawBytes": 619209,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-ir-fingerprint-isolated-r2/receipt.json"
+    },
+    "native-ir-fingerprint-isolated-r2/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "bytes": 91,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-ir-fingerprint-isolated-r2/compiler-version.log"
+    },
+    "native-ir-fingerprint-isolated-r2/test-runtime.log.gz": {
+      "sha256": "06d60cdf0e9c46a54fef81cac2f47d08f893976d3028b73af187e1092a5ebed7",
+      "bytes": 347,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "4cbd639a1f8b4d885138419a53abf8bd9906812e5c3632424cf6842cceeb5d9e",
+      "rawBytes": 822,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-ir-fingerprint-isolated-r2/test-runtime.log"
+    },
+    "native/isolated/native-ir-fingerprint-isolated-r2/results.xml.gz": {
+      "sha256": "6e67b51a44d3a62e3fcfcc67f73da22837141eb4c77b469cd60f8ada7c301d26",
+      "bytes": 277,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "aff7e2c79ecf2a541319eae020e8ae0da3bb464ac8d76e66c0a674b35d421638",
+      "rawBytes": 485,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-ir-fingerprint-isolated-r2/results.xml"
+    },
+    "native/diagnostics/native-geometry-bounds-isolated-r2/receipt.json.gz": {
+      "sha256": "64c7e17d0eff093637795c470707444eaa728ab9e49b3a4efdd01b7ef8c3f2f6",
+      "bytes": 197840,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "8bd2898b69a442662340711d89650dc97e9be39880ff6427fdf2b5054a2c92f2",
+      "rawBytes": 619357,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-geometry-bounds-isolated-r2/receipt.json"
+    },
+    "native-geometry-bounds-isolated-r2/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "bytes": 91,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-geometry-bounds-isolated-r2/compiler-version.log"
+    },
+    "native-geometry-bounds-isolated-r2/test-runtime.log.gz": {
+      "sha256": "91ac4e57ba5404576a46e1731c11be5ea261fbfe13e7a09612d856358a506c4a",
+      "bytes": 1416,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "8eec3bc9c0b1ad17881c2270275f4784cfac4ac19126fa74fa891eaccced727e",
+      "rawBytes": 28295,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-geometry-bounds-isolated-r2/test-runtime.log"
+    },
+    "native/diagnostics/native-geometry-bounds-isolated-r2/results.xml.gz": {
+      "sha256": "4fc53211c1c40449b7372d009b691dbbd66800b9eff10f097c6e9a3d26e51d47",
+      "bytes": 397,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "3e396a1b55b3f0d2f25760cdf7697e1a4d964cab85d308fea2085837c541a37a",
+      "rawBytes": 7296,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-geometry-bounds-isolated-r2/results.xml"
+    },
+    "native/current-interaction-r2/receipt.json.gz": {
+      "sha256": "18dc83f35ea124a46e97aceda11d9522c3a9a58ca74833024311c988710dd08c",
+      "bytes": 195807,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "8b41de9c5a7311470d03436be5e2083ed34cdb95fae7c8195c18d7bbbc5de3fe",
+      "rawBytes": 606294,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-interaction-r2/receipt.json"
+    },
+    "native-interaction-r2/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "bytes": 91,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-interaction-r2/compiler-version.log"
+    },
+    "native-interaction-r2/test-build-and-list.log.gz": {
+      "sha256": "0a2ff34bc37649e93430cc6e56c935c6371bf7812c6ad7bb333538950ecb58f3",
+      "bytes": 4522,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "83978827ee537703ecc0a8d593963c041cdfd1ab3e150206242999e6047f89bb",
+      "rawBytes": 45397,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-interaction-r2/test-build-and-list.log"
+    },
+    "native-interaction-r2/test-runtime.log.gz": {
+      "sha256": "d135cf71be3c650eed342ca47fae359538e92410479a98f581e129aaa1ccde80",
+      "bytes": 427,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "4c7f8926350df8d14fbb7458213b65e4df875644221780dc20bebd0ba9b5eb3c",
+      "rawBytes": 1149,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-interaction-r2/test-runtime.log"
+    },
+    "native/current-interaction-r2/results.xml.gz": {
+      "sha256": "eeb392c0b0321ecdf503e19837252b9c746f7a044b540473e2a49a4829402bb9",
+      "bytes": 345,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "18a127c3046363e9fcc1c71002388282fbe56868671f39a3a798cd5c3e6d512a",
+      "rawBytes": 657,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-interaction-r2/results.xml"
+    },
+    "portable-offset/asan/receipt.json.gz": {
+      "sha256": "2ccadde1921b6886ec62884b3f732f052471b98aff7fff16b93232b8043838b6",
+      "bytes": 362418,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "6418ff4c306cb19fe6f11e62480bad53b9987e3d54c52f8a450d63ec53fc0ea1",
+      "rawBytes": 1909680,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/asan/receipt.json"
+    },
+    "portable-offset/asan/asan-compile.log.gz": {
+      "sha256": "915265f34b3c76cf4a0dc10e50ab45c533746ecbd97de78ed21b6e2b6ace6681",
+      "bytes": 9771,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "9b55aace4b64cc015291bd2a10881e039ce20242fb2545106e77b8eadb47daa9",
+      "rawBytes": 82013,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/asan/asan-compile.log"
+    },
+    "portable-offset/asan/asan-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/asan/asan-link.log"
+    },
+    "portable-offset/asan/asan-runtime.log.gz": {
+      "sha256": "3dc6587a430245ed80d33ab658c275774be58fcec938309a1b00ec95144e4658",
+      "bytes": 171,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "810ad352997e7a11069d31e1f9a1fed6fcbf5a7867bdaa6d7897274c687f87bf",
+      "rawBytes": 231,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/asan/asan-runtime.log"
+    },
+    "portable-offset/wasm/receipt.json.gz": {
+      "sha256": "96263d0b1cca5cece02a5305b71b389562df2a0676f33b66c48aed278c88f3c3",
+      "bytes": 362567,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "61eb81317d80ae32166cbc4ea0fee1e62f2d0e7085d117b1e8008b2bb2a7fd35",
+      "rawBytes": 1912993,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/wasm/receipt.json"
+    },
+    "portable-offset/wasm/wasm-compile.log.gz": {
+      "sha256": "db0557a7e87ebb97ebbf65e757ca082244568a60c4592ae5a3e53c8f1b280a8a",
+      "bytes": 9771,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "c453e1f493d2b2ac6889e5513e28d6f7d4b69d4904e832b91dc80cb619bf1d82",
+      "rawBytes": 82013,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/wasm/wasm-compile.log"
+    },
+    "portable-offset/wasm/wasm-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/wasm/wasm-link.log"
+    },
+    "portable-offset/wasm/wasm-runtime.log.gz": {
+      "sha256": "302942f16fef3a688e5234363ba8b9fa0aa66f3b18a755c5e3d2544578de5d0f",
+      "bytes": 274,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "ce5c310d7d03c1ded91ec0165ae826a10b9f5b2cf05d0586f0e111e3b7f0deec",
+      "rawBytes": 398,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/wasm/wasm-runtime.log"
+    },
+    "portable-offset/embedded/receipt.json.gz": {
+      "sha256": "107f4a8b4be0b05fcf199db3496f96a54b858d26ba59fb3aac6249fe00ed6127",
+      "bytes": 362495,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "d174b23db0201c198d57a22f4bac9fb503fb8d4cfa811fa20d8df748e613dc0a",
+      "rawBytes": 1919735,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/embedded/receipt.json"
+    },
+    "portable-offset/embedded/embedded-compile.log.gz": {
+      "sha256": "040343de2e24714973d0d7aea6d82f0b27f87955df8f3e442335a13eb65cfcec",
+      "bytes": 9765,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "7b64604e6b0d7166416c0850675b9b1401567effc741ae694c27ecc81807798b",
+      "rawBytes": 81574,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/embedded/embedded-compile.log"
+    },
+    "portable-offset/embedded/embedded-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/embedded/embedded-link.log"
+    },
+    "portable-offset/embedded/embedded-runtime.log.gz": {
+      "sha256": "107d2916db86ef9e5355d1c963a227356bf28001684729b55fd3472438a28da7",
+      "bytes": 273,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "596abd9c4b67f147274837d7cbb0fd7f349738fc7f621c624985e206f517d6ae",
+      "rawBytes": 398,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-offset-r1/embedded/embedded-runtime.log"
+    },
+    "source/os-geometry-source-freeze.json.gz": {
+      "sha256": "3112d089f9800be1cde5a60e5fc8e90c233f643877720f0c566ac8d460742057",
+      "bytes": 5025,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "d34e4fe7fa14910fc72615cea41812b7bc98236bc44f0a63c638d8bd03d4ce05",
+      "rawBytes": 15350,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/geometry-source-r1/source-freeze.json"
+    },
+    "source/os-geometry-change.patch.gz": {
+      "sha256": "dd61055c47e4bd0110898cfb1ddf062f0b3ffd80221d73dd711c2aa20fb5e066",
+      "bytes": 4766,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "a66c4c5b0e23e52cc6898c16cf57285b68086d5f407d37f260012ed732858d09",
+      "rawBytes": 35893,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/geometry-source-r1/change.patch"
+    },
+    "core-only-reuse/receipt.json.gz": {
+      "sha256": "7c3d389cde16da8483a99da774d939854cbfaea0b9bf50e6e54023826d13ad7c",
+      "bytes": 1081,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "b91ff632e77dbf0805fbfca8b40fba76ef1d7f7c0d64cfec92484d6749b84ecb",
+      "rawBytes": 3100,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/core-only-reuse-checks-r1/receipt.json"
+    },
+    "core-only-reuse/runner.patch.gz": {
+      "sha256": "e7d5984bf78d9a0cc4da653dc8600ad8664dfb1f12b0f903a9b586735d7c2f92",
+      "bytes": 2961,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e0d89f2364a7df09080a5f494bb15aebbdcfa943b0634e391fc867828d0fff6e",
+      "rawBytes": 10239,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/core-only-reuse-checks-r1/runner.patch"
+    },
+    "core-only-reuse/mismatch.stderr.log.gz": {
+      "sha256": "831295888d751f2cbd0325621d7c787b9daab57780fcc9b671c187d65e7abdba",
+      "bytes": 281,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "6dd1364f4e43d1765f18fb174c1b92e3254b88be84c0c2a533261c35f78f9f5c",
+      "rawBytes": 562,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/core-only-reuse-checks-r1/mismatch.stderr.log"
+    },
+    "core-only-reuse/mismatch.stdout.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/core-only-reuse-checks-r1/mismatch.stdout.log"
+    },
+    "core-only-reuse/positive-prepare-receipt.json.gz": {
+      "sha256": "63b907653c2bb7d47cd8fa60b547223c89a00bd219f27d51a3ea0ec1de517b42",
+      "bytes": 363669,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "8b48f01d4c212fa85e44543c4f392c9d279bda5c17f92cb192243fc759a4dfaa",
+      "rawBytes": 2056818,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-callers-20261016/core-only-reuse-prepare-r1/receipt.json"
+    },
+    "native/native-upper-r4/CADIR.log.gz": {
+      "sha256": "af6cf2125f2945eaa4754f61dfa7624d6fdfcc09355c56b9aba1eccb966a61a2",
+      "bytes": 434,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "38764e3274afc1155d85b2ae8608e9609ce3b2f7a612102be256fae9bebe8dce",
+      "rawBytes": 727,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r4/CADIR.log"
+    },
+    "native/native-upper-r4/CADModeling.log.gz": {
+      "sha256": "34b2849945e342d4e31c9e0a833e1138964bb3a3a8b1cffe1cc85922f820fcb2",
+      "bytes": 3655,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "dce82a463df87e36a007e3e23fae95f2af2644f7d7f23b517c9ca37bef8fa2ab",
+      "rawBytes": 19779,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r4/CADModeling.log"
+    },
+    "native/native-upper-r4/CADKernel.log.gz": {
+      "sha256": "77d5912ac582895d39c6e0ba7e06254510d568bfa5faff4b4926a42f9d728874",
+      "bytes": 18502,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "5b583b48833a11679f78ba5601c63afb39534dbd9515a7ba7eb7292eeaac439e",
+      "rawBytes": 184384,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r4/CADKernel.log"
+    },
+    "native/native-upper-r4/receipt.json.gz": {
+      "sha256": "35247afc9610c46cb84a2700431a172dc565688ea08088174cd5d72791ed0510",
+      "bytes": 228566,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "3c1de5934a2ab80e3daff5a2da82caea8b78d61d58a4c345aa9bc67170680354",
+      "rawBytes": 1357900,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-upper-r4/receipt.json"
+    },
+    "native/native-memo-final-r1/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "bytes": 91,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-memo-final-r1/compiler-version.log"
+    },
+    "native/native-memo-final-r1/client-compile-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-memo-final-r1/client-compile-link.log"
+    },
+    "native/native-memo-final-r1/runtime.log.gz": {
+      "sha256": "b56af80eb82fb7534be046ba4ef4da6a683bd214457f7304f696686e2d29ef47",
+      "bytes": 239,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "f3896ba6a400c2d5390271cff157d275a50d04f264861abbcaca25815cba9fe1",
+      "rawBytes": 430,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-memo-final-r1/runtime.log"
+    },
+    "native/native-memo-final-r1/inputs.json.gz": {
+      "sha256": "038ef571d6d4ad15ddc2a1dc181841581615cf1348c72761f414a9e3ddc46d93",
+      "bytes": 511,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "7f98370bc0cce0d2c35ca6a07f8048df160de70322331398ef348ebb8ca5333c",
+      "rawBytes": 882,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-memo-final-r1/inputs.json"
+    },
+    "native/native-memo-final-r1/run.py.gz": {
+      "sha256": "108b7cd7caf8dfe7205e88ab2af9cfee779dcd4b2b0e36bae55c6dab46b5dbdc",
+      "bytes": 3374,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "ad08dd7627633e9949b29d9349fb80a04c0339b57e261d72436aa35a7e91c95b",
+      "rawBytes": 10380,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-memo-final-r1/run.py"
+    },
+    "native/native-memo-final-r1/monitor.py.gz": {
+      "sha256": "daf6b4c6f425034169afd3722e3ecdf9a90c789804125edb75a1d1ef88a540c9",
+      "bytes": 6932,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "9a290a4391c71a3308753fbefb116d6fb8ed73ba6af679e1ec5d6822cbeab3c6",
+      "rawBytes": 27037,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-memo-final-r1/monitor.py"
+    },
+    "native/native-memo-final-r1/receipt.json.gz": {
+      "sha256": "280925b0921058064b758b5d3c75e115c63af46a48a241fc158eabc3f0d576f8",
+      "bytes": 158845,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "a5017f361d192eb9bf41994a3e6e843b0db6752d4c76469deb90b0863fbe3409",
+      "rawBytes": 504894,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-memo-final-r1/receipt.json"
+    },
+    "native/native-interaction-final-r1/compiler-version.log.gz": {
+      "sha256": "b2a195fb154058379af9b2e7aa94fdde1ed8d7c2cb9bdae784e34c1c58d64903",
+      "bytes": 91,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "rawBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-interaction-final-r1/compiler-version.log"
+    },
+    "native/native-interaction-final-r1/test-build-and-list.log.gz": {
+      "sha256": "941508661ed57ff2062c46686ccd4bbab077412f19b67a16c071e22331ebe1bf",
+      "bytes": 4543,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "5f23b23deb4b759f82354f226af8aa9c8d78da0a2e55d94b16ed1700008a7183",
+      "rawBytes": 46424,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-interaction-final-r1/test-build-and-list.log"
+    },
+    "native/native-interaction-final-r1/test-runtime.log.gz": {
+      "sha256": "bc3fb576a2630f65fede6d32bf5434679ea9e2dccc424c405281f1fe7c27747f",
+      "bytes": 426,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "d6db2eeeded417994e492fc992fa0d546b04d0153ed8c406ba543e00845626b3",
+      "rawBytes": 1149,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-interaction-final-r1/test-runtime.log"
+    },
+    "native/native-interaction-final-r1/results.xml.gz": {
+      "sha256": "cb6555609163ca88a330a9a90d21aca87dc1c19aed68b36727b58fe610ddc6ac",
+      "bytes": 346,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "b791f5a84f83c4493ffea0c3d16f631ce4e0b69a399ee6a3b3f0560dd169881c",
+      "rawBytes": 657,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-interaction-final-r1/results.xml"
+    },
+    "native/native-interaction-final-r1/receipt.json.gz": {
+      "sha256": "4b97ba604a34cc351d00499ff473775f488e12e8b708d3fbc91575bc7e425e35",
+      "bytes": 195819,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "0b71cc9fecab81c0bbb08ef35ee0b56947d582c624a4cdba921dfb87464bc7d2",
+      "rawBytes": 606461,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-interaction-final-r1/receipt.json"
+    },
+    "source/ir-portable-fix-freeze-r1.json.gz": {
+      "sha256": "1c2fed969e09f304cf4a88c6b2ddb7dc3ab8faf3eb1c7901c0d090875b66873e",
+      "bytes": 1475,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "0f3e3f93ec64946f21d9d0c8cac708facbf174a47e0fbf999666c4f9cc319cda",
+      "rawBytes": 3069,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/ir-portable-fix-freeze-r1/source-freeze.json"
+    },
+    "source/ir-portable-fix-freeze-r2.json.gz": {
+      "sha256": "216c3bbba7b7eb35e73792864fd7e2c1700f7a582bda36b8b590326be46db4b6",
+      "bytes": 2302,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "adf1b107dde139ebf09c8b797632ff887771a607108097d9b6d6471843ea697f",
+      "rawBytes": 8089,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/ir-portable-fix-freeze-r2/source-freeze.json"
+    },
+    "source/ir-portable-fix-freeze-r3.json.gz": {
+      "sha256": "490318dc3b418f9e44c0855fd1102ed0880f066ca1ab827f3d656400a1d385d2",
+      "bytes": 2148,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "da9e012a30f009cf7cac44e937ba690c630b12340e4bd80293c185d02b15680c",
+      "rawBytes": 6005,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/ir-portable-fix-freeze-r3/source-freeze.json"
+    },
+    "source/package-manifest-r1/receipt.json.gz": {
+      "sha256": "a497258abf16727a38b817686e339bfa4bb183a30746d0a7cb7a293099708d1a",
+      "bytes": 578,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "2527e7b847c6766ad7eac6efc78f5ae1ee02809d4f68f2bc1d490387db9e15b7",
+      "rawBytes": 1191,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/package-manifest-r1/receipt.json"
+    },
+    "source/package-manifest-r1/package.json.gz": {
+      "sha256": "b15f2f23ba016bf033928f4900491f91a6b50db21faf7d07ab062f0f9e31db49",
+      "bytes": 1745,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "7f262ba9643ffd5b4e50884ebd3fe577ce6477c81b1c07bfd987c87e4e06dcd5",
+      "rawBytes": 29384,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/package-manifest-r1/package.json"
+    },
+    "source/package-manifest-r1/stderr.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/package-manifest-r1/stderr.log"
+    },
+    "source/native-memo-fixture-only.patch.gz": {
+      "sha256": "cf7eca9eb2a1c5318568da1ec72018dd71eb03533fb16d1265a049180050c3ec",
+      "bytes": 265,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "14931f6129fe4653dbac42d6e9fcb27a3c87fd8ea74e61303fb1992b577b039b",
+      "rawBytes": 490,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/native-memo-final-r1/fixture-only.patch"
+    },
+    "portable-memo/origins/portable-memo-r1/asan/receipt.json.gz": {
+      "sha256": "c0b60840654e76789f1c5ae33abd01a903a927a424d0ffcb5fa1645ff4157e40",
+      "bytes": 280101,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "9677dc30c9546727f636033c705210cc723b12421b4c62ba8dfa189d5202be72",
+      "rawBytes": 1992637,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r1/asan/receipt.json"
+    },
+    "portable-memo/phases/portable-memo-r1/asan/CADTopology-compile.log.gz": {
+      "sha256": "e9019f19694bcf824a06e331117e6a39dd4e806f313b605464705b92f648784a",
+      "bytes": 1195,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "7b8a8acd2e57d2304e2252c302d55afecdcbf6fc45c3154c406bea6c4582a6b4",
+      "rawBytes": 5279,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r1/asan/CADTopology-compile.log"
+    },
+    "portable-memo/phases/portable-memo-r8/asan/CADIR-compile.log.gz": {
+      "sha256": "8a3b9651e7a85b1b49d8cf389bdb8a7ebae5b5960e237ef88d9124ce4a71d8e8",
+      "bytes": 437,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "4fadcb40492cf7efe7ca3226645f09d50e37b3d5d545054f861c585d5bdf5024",
+      "rawBytes": 733,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/asan/CADIR-compile.log"
+    },
+    "portable-memo/phases/portable-memo-r8/asan/client-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/asan/client-link.log"
+    },
+    "portable-memo/phases/portable-memo-r8/asan/runtime.log.gz": {
+      "sha256": "b56af80eb82fb7534be046ba4ef4da6a683bd214457f7304f696686e2d29ef47",
+      "bytes": 239,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "f3896ba6a400c2d5390271cff157d275a50d04f264861abbcaca25815cba9fe1",
+      "rawBytes": 430,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/asan/runtime.log"
+    },
+    "portable-memo/asan/receipt.json.gz": {
+      "sha256": "c73965b1050c1704a0ee08c02d6a374803c57a694ab8fbfe04a4b862e7e7da89",
+      "bytes": 376618,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "c488ed1e52ebaa7b09f7b530bdaf799120ee09d1daeffb9bac4f0ce26e3d3608",
+      "rawBytes": 2478556,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/asan/receipt.json"
+    },
+    "portable-memo/origins/portable-memo-r1/wasm/receipt.json.gz": {
+      "sha256": "cd78af59efdfb1c85f424eea3a0aec9a7311116c3608b9d3fcf1df9dd82552c1",
+      "bytes": 279939,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "898341d2d1d77ba6063bac08ec1635b259e2a0a21cf5f9936652fdbd6d111019",
+      "rawBytes": 1991283,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r1/wasm/receipt.json"
+    },
+    "portable-memo/phases/portable-memo-r1/wasm/CADTopology-compile.log.gz": {
+      "sha256": "2beeaa20985a5b4c29469ec7173bed67778f6b91084afbcffd54bde71fb1cdc7",
+      "bytes": 1195,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "50aa28efad8c5fcf5e92b1150f5deb99fe573e062eb212f7fae1bb43e6f5eaaf",
+      "rawBytes": 5279,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r1/wasm/CADTopology-compile.log"
+    },
+    "portable-memo/phases/portable-memo-r8/wasm/CADIR-compile.log.gz": {
+      "sha256": "3f7f03d4f2eec7a145f2627805bfe7357f3271811df682220e158c66d7266c5a",
+      "bytes": 437,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "d1a30aa26917b686df090a67cb26cc06eda77c5e8b2044714ec327e9151b0d25",
+      "rawBytes": 733,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/wasm/CADIR-compile.log"
+    },
+    "portable-memo/phases/portable-memo-r8/wasm/client-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/wasm/client-link.log"
+    },
+    "portable-memo/phases/portable-memo-r8/wasm/runtime.log.gz": {
+      "sha256": "830110e7116c7c754508be8e8bc56098486fcf7f87b312ca10f5efcd9f7fee46",
+      "bytes": 347,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "412b5c2b108a93ed0df7840911d7a7e3d25bbc126c31f3526ec65dbc209f4e23",
+      "rawBytes": 597,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/wasm/runtime.log"
+    },
+    "portable-memo/wasm/receipt.json.gz": {
+      "sha256": "36b91c981de5687f87f30160ceeb956463fe3b6af4c4828033bb375d14ae390e",
+      "bytes": 376970,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "471c6aa7c157e3bddff2483022c372eb5fd9c6c5fd382badd182fe5234518595",
+      "rawBytes": 2482610,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/wasm/receipt.json"
+    },
+    "portable-memo/origins/portable-memo-r7/embedded/receipt.json.gz": {
+      "sha256": "4c079c477db6c0676c5004b1ee4628eccacaa32bcfb9eb7e540e2ef46a770158",
+      "bytes": 425254,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "19b540c5c7bcbc1aa0f1821efc9eb6c2ccfb0fa02a25a41f0d5cb6d54d80d857",
+      "rawBytes": 2743034,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r7/embedded/receipt.json"
+    },
+    "portable-memo/origins/portable-memo-r1/embedded/receipt.json.gz": {
+      "sha256": "0b82f59161264899c08121ed91833f81e7465499579d4533baa0ce13acb910a6",
+      "bytes": 279818,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "749d4a806b072e84656e676f5d328b91e702d17d7397738df38e423f65a8f6dc",
+      "rawBytes": 2001589,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r1/embedded/receipt.json"
+    },
+    "portable-memo/phases/portable-memo-r1/embedded/CADTopology-compile.log.gz": {
+      "sha256": "31dde38ada56dffae20fa0c9deeb2eb645b35e7d84fbb084e94385ddb4213d06",
+      "bytes": 1198,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "c899381320e89fec0ca856e5b4134cc2ddac554e7d47e151ea3fe12f7c24894d",
+      "rawBytes": 5307,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r1/embedded/CADTopology-compile.log"
+    },
+    "portable-memo/origins/portable-memo-r6/embedded/receipt.json.gz": {
+      "sha256": "f1a505b5d32282e7ecdeebc3ce4fa5902246d2c5792cbacef907523b5147b2d8",
+      "bytes": 377201,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "4ecc2be9e1a4f335db1890b6bd52a3c6fca8a68ce578bf66092e3eb257bfee33",
+      "rawBytes": 2493531,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r6/embedded/receipt.json"
+    },
+    "portable-memo/phases/portable-memo-r6/embedded/CADIR-compile.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r6/embedded/CADIR-compile.log"
+    },
+    "portable-memo/phases/portable-memo-r6/embedded/client-link.log.gz": {
+      "sha256": "243ded2480e3cd893345c642ff42fb039367aa0d7fdd6123f244527b4a816b74",
+      "bytes": 387,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "129492a20eb726daa0309f6a728ed64eee4847f00c7e8bfa29a8cb42a7c31793",
+      "rawBytes": 684,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r6/embedded/client-link.log"
+    },
+    "portable-memo/phases/portable-memo-r7/embedded/client-link.log.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "bytes": 20,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawBytes": 0,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r7/embedded/client-link.log"
+    },
+    "portable-memo/phases/portable-memo-r8/embedded/runtime.log.gz": {
+      "sha256": "1a1dac314c2fdee14d97a155be9a67e23091f48f4c12fe883c6a2f3be7e01085",
+      "bytes": 348,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "b8cdbafb9e1f1542eb59100aaba67bc2f8149e31784666bf8c4069cd5bd1bd87",
+      "rawBytes": 597,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/embedded/runtime.log"
+    },
+    "portable-memo/embedded/receipt.json.gz": {
+      "sha256": "a2b1d9da29432603b072c462b31c1afa7ccf4b69c2e1fd40adeea5473f4c8725",
+      "bytes": 378006,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "9c59861760258c8d9756161af7d418946d8824f189aea65eb47373a0842c0b15",
+      "rawBytes": 2591627,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/embedded/receipt.json"
+    },
+    "portable-memo/run.py.gz": {
+      "sha256": "70a986816c4d677cf87aff7a0424346ccef5755c5706377fef05101f481172a7",
+      "bytes": 5824,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "fbb5942bd70aa3e9376fb151bc86655fd19713454e3663b0977df38d1a269918",
+      "rawBytes": 19530,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/run.py"
+    },
+    "portable-memo/embedded-existing.py.gz": {
+      "sha256": "906a23bc335fd604d24b1e20ee3d5d9fd7bf73d6c354963d3b06aa464a24cd7c",
+      "bytes": 1344,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "bd46fe722084049891020b5b978df9cc9fafea8dbff6d727f6581ba4c083e27a",
+      "rawBytes": 2825,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r8/embedded-existing.py"
+    },
+    "portable-memo/diagnostics/portable-memo-r4/receipt.json.gz": {
+      "sha256": "da855ceba8c23876db86e1c1c72701b8393a0285f013301aa1d786304dc024a4",
+      "bytes": 376767,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "85522ed4c565391d9874fd8d8d2d010b901f015cceba610e3270de3fa40822b5",
+      "rawBytes": 2489690,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r4/embedded/receipt.json"
+    },
+    "portable-memo/diagnostics/portable-memo-r4/CADIR-compile.log.gz": {
+      "sha256": "f9bb01938d44bb9b17039057ba9c4e536f23db58b1ff8673e8e06fcf9a951ceb",
+      "bytes": 1924,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "358eca91ddb2c24e55ecb4f1f3e6f2b00d4564da69cbe1faf821385020b671ff",
+      "rawBytes": 12151,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r4/embedded/CADIR-compile.log"
+    },
+    "portable-memo/diagnostics/portable-memo-r5/receipt.json.gz": {
+      "sha256": "3cbcf0fbb41b57af3597e93849d1f46a0ebe6c3527a55dbf7a75606f04819876",
+      "bytes": 376900,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "c567ffef504fd21570ac851779f675e48a60eacfb2d8a462d956e1c6e56dcccd",
+      "rawBytes": 2489689,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r5/embedded/receipt.json"
+    },
+    "portable-memo/diagnostics/portable-memo-r5/CADIR-compile.log.gz": {
+      "sha256": "4aa23c051d9cff36fad7ff987ab968617c8620acef8da0c23ef165721658489f",
+      "bytes": 751,
+      "encoding": "gzip",
+      "gzipMTime": 0,
+      "rawSHA256": "814d117803171fa64e42b780d59b60e4369cdfc796ad2c8718ec98b30e8a9090",
+      "rawBytes": 2359,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-os-callers-20261016/portable-memo-r5/embedded/CADIR-compile.log"
+    }
+  },
+  "postCopyGate": {
+    "status": "passed",
+    "scope": "New final Native delta only; prior accepted stored files and lower evidence were not re-audited.",
+    "currentNativeSourceInputs": 3924,
+    "currentNativeSourcesAndSnapshotsMatch": true,
+    "durableFinalNativeModulesObjectsAndClientProductsMatch": true,
+    "newStoredFilesMatchOriginalBytes": true,
+    "addedStoredFileCount": 22,
+    "compilerOrRuntimeStarted": false,
+    "historicalScopeCaveat": "Earlier r2 Native and 16/17 scope remain supporting; current Native authority is r4, standalone10 and interaction3 actual PASS. Portable memo terminal result will be appended separately.",
+    "portableMemoFinalDelta": {
+      "status": "passed",
+      "scope": "New terminal portable receipts, actual selected compile/module/object/executable hashes and stored gzip bytes only; no prior lower-proof audit.",
+      "addedStoredFiles": 24,
+      "parameterAuditScopeSeparated": true
+    }
+  },
+  "historicalPostCopyGate": {
+    "status": "passed",
+    "currentNativeSourceInputs": 3924,
+    "CoreSources": 67,
+    "GeometrySources": 2171,
+    "currentNativeSourcesAndSnapshotsMatch": true,
+    "durableModulesObjectsTestExecutablesCollectionsAndPortableProductsMatch": true,
+    "storedFilesMatchOriginalBytes": true,
+    "absoluteFileReferencesChecked": 14968,
+    "uniqueResolvedFilesHashed": 14968,
+    "compilerOrRuntimeStarted": false,
+    "historicalScopeCaveat": "Historical Native upper-r1 and prepared-parity diagnostic retain their own earlier source authority; current interaction uses upper-r2."
+  }
+}

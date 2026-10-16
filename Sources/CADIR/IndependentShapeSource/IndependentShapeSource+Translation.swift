@@ -1,3 +1,5 @@
+import HashTreeCollections
+import CADTopology
 import CADCore
 import CADGeometry
 

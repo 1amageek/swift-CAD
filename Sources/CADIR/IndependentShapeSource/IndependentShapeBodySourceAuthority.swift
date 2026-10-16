@@ -1,3 +1,5 @@
+import HashTreeCollections
+import CADTopology
 import CADCore
 
 /// Original imported feature/output authority, shared by full and graph-edit validation.

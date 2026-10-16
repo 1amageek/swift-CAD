@@ -7,7 +7,6 @@
     public init(from decoder: Decoder) throws {
       let c = try decoder.container(keyedBy: CodingKeys.self)
       try c.validateOnlyExpectedKeys([.traversals, .stations, .sourceSegmentOrdinals], in: decoder)
-      if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
         var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         func values<T: Decodable>(_ key: CodingKeys, as type: T.Type) throws -> [T] {
@@ -47,9 +46,6 @@
         try self.init(
           traversals: traversals, stations: stations, sourceSegmentOrdinals: ordinals,
           remainingSourceDepth: depth, tolerance: first.certificationTolerance, using: &usage)
-      } else {
-        throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-      }
     }
 
     public func encode(to encoder: Encoder) throws {

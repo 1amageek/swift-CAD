@@ -1,6 +1,16 @@
 import CADCore
 import CADGeometry
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("Surface boundary continuity requires the target C math module.")
+#endif
 
 public struct SurfaceBoundaryContinuityEvaluator: Sendable {
     public struct Certificate: Sendable {

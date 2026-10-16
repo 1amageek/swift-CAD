@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import shlex
 from pathlib import Path
 import shutil
 import time
@@ -37,6 +38,8 @@ def main():
         help='Production source root named by the input authority; harness and fixture stay at their original root.')
     parser.add_argument('--compile-core', action='store_true',
         help='Compile all authoritative Core sources instead of reusing a different Core source snapshot.')
+    parser.add_argument('--reuse-core-products', type=Path,
+        help='Reuse only a successful exact Core source prefix; Geometry still compiles freshly.')
     parser.add_argument('--prepare-only', action='store_true')
     parser.add_argument('--resume-plan', action='store_true')
     parser.add_argument('--compile-only', action='store_true')
@@ -50,6 +53,7 @@ def main():
         help='Existing G01 CLI group for ASAN and normal WASM; Embedded runs all oracles together. Each group retains its separate 120-second runtime bound.')
     parser.add_argument('--lanes', nargs='+', choices=['asan', 'wasm', 'embedded'], default=['wasm', 'embedded'])
     args = parser.parse_args()
+    assert not (args.compile_core and args.reuse_core_products), 'Select fresh Core compilation or exact Core reuse'
     output = Path(args.output).resolve()
     environment = dict(os.environ)
     environment['PATH'] = str(BIN) + ':' + environment.get('PATH', '')
@@ -72,7 +76,20 @@ def main():
         assert digest(LD) == asan_lineage['nativeLinker']['sha256']
         core = {p: h for p, h in native['sourceSHA256'].items() if p.startswith('Sources/CADCore/')}
         geometry = {p: h for p, h in native['sourceSHA256'].items() if p.startswith('Sources/CADGeometry/')}
-        if not args.compile_core:
+        reused_core = None
+        if args.reuse_core_products:
+            core_receipt = args.reuse_core_products.resolve() / 'receipt.json'
+            reused_core = json.loads(core_receipt.read_text())
+            assert reused_core['status'] == 'passed', 'Core reuse requires an accepted receipt'
+            assert core == {p: h for p, h in reused_core['sourceSHA256'].items() if p.startswith('Sources/CADCore/')}, 'Core reuse source inventory differs'
+            assert reused_core['toolSHA256'] == lineage['toolSHA256']
+            assert reused_core['wasmSDK'] == lineage['wasmSDK']
+            assert reused_core['nativeSDK'] == asan_lineage['nativeSDK']
+            assert reused_core['nativeLinker'] == asan_lineage['nativeLinker']
+            for relative, expected in core.items():
+                assert digest(args.reuse_core_products.resolve() / 'snapshot' / relative) == expected, 'Retained Core source changed: ' + relative
+            shutil.copyfile(core_receipt, output / 'CoreReuseReceipt.json')
+        if not args.compile_core and not reused_core:
             assert core == lineage['sourceSHA256']
             assert core == asan_lineage['sourceSHA256']
         assert all(digest(source_root / p) == h for p, h in {**core, **geometry}.items())
@@ -82,7 +99,7 @@ def main():
         assert actual == set(geometry)
         # The extra Native build defines do not select any Core declarations.
         core_conditionals = {p: [line for line in (source_root / p).read_text().splitlines() if '#if' in line or '#elseif' in line] for p in core}
-        if not args.compile_core:
+        if not args.compile_core and not reused_core:
             assert not any(any(word in line for word in ['DEBUG', 'NativeExchange', 'SWIFT_PACKAGE']) for lines in core_conditionals.values() for line in lines)
         inputs = {**core, **geometry}
         input_origins = {p: str(source_root / p) for p in inputs}
@@ -117,7 +134,9 @@ def main():
         receipt = {'status': 'prepared', 'scope': 'Actual full Geometry module and explicitly pinned runtime fixture; no whole-U1 claim.',
             'sourceCount': {'CADCore': len(core), 'CADGeometry': len(geometry)}, 'sourceSHA256': {**core, **geometry},
             'sourceRoot': str(source_root), 'compileCore': args.compile_core,
-            'coreProductMode': 'compile authoritative sources' if args.compile_core else 'reuse exact matching source products',
+            'coreProductMode': 'compile authoritative sources' if args.compile_core else 'reuse explicit exact Core prefix' if reused_core else 'reuse exact matching source products',
+            'coreReuseReceipt': None if not reused_core else {'path': str(core_receipt), 'sha256': digest(core_receipt),
+                'snapshot': str(output / 'CoreReuseReceipt.json'), 'snapshotSHA256': digest(output / 'CoreReuseReceipt.json')},
             'inputOrigins': input_origins,
             'inputSHA256': inputs, 'snapshotSHA256': snapshot, 'coreBuildDefineReferences': [],
             'sourceReceipt': {'path': str(source_receipt), 'sha256': digest(output / 'RootSourceReceipt.json')},
@@ -142,10 +161,10 @@ def main():
             selected_lineage = asan_lineage if lane == 'asan' else lineage
             retained = selected_lineage['lanes'][lane]
             core_phase = None
-            if not args.compile_core:
+            if not args.compile_core and not reused_core:
                 core_phase = next(p for p in selected_lineage['phases'] if p['name'] == lane + '-Core-compile')
                 assert core_phase['exitCode'] == 0 and core_phase['stopReason'] is None
-            if lane == 'asan' and not args.compile_core:
+            if lane == 'asan' and not args.compile_core and not reused_core:
                 # This lane passed before an unrelated later WASM output collision.
                 for suffix in ['link', 'runtime']:
                     accepted = next(p for p in selected_lineage['phases'] if p['name'] == lane + '-' + suffix)
@@ -158,7 +177,7 @@ def main():
                 target = dependencies / Path(source).name
                 shutil.copyfile(source, target)
                 copied_dependencies[str(target)] = {'source': source, 'sha256': digest(target)}
-            for source, expected in ([] if args.compile_core else retained['compiledProducts'].items()):
+            for source, expected in ([] if args.compile_core or reused_core else retained['compiledProducts'].items()):
                 assert digest(source) == expected
                 if lane == 'embedded' and not source.endswith('.swiftmodule'):
                     continue
@@ -218,6 +237,43 @@ def main():
                 'dependencyReceiptSHA256': digest(product_receipt), 'responseSHA256': digest(response),
                 'commands': {name: [str(v) for v in command] for name, command in [('compile', compile_command), ('link', link_command), ('runtime', runtime_command)]},
                 'products': [str(module), str(executable)] if lane == 'embedded' else [str(module), str(object_file), str(executable)]}
+            if reused_core:
+                previous = reused_core['lanes'][lane]
+                phase = next(p for p in reused_core['phases'] if p['name'] == lane + '-core-compile')
+                assert phase['exitCode'] == 0 and phase['stopReason'] is None
+                assert phase['command'] == previous['commands']['core-compile']
+                assert {Path(p).name: item['sha256'] for p, item in previous['dependencies'].items()} == {Path(p).name: item['sha256'] for p, item in copied_dependencies.items()}, 'Core dependency products differ'
+                assert phase['rssScope'] in {'sampled PPID-descendant process tree', 'tracked PPID descendants including separate process groups'}
+                assert phase['peakRSSBytes'] <= RSS_LIMIT and phase['elapsedSeconds'] <= COMPILE_SECONDS
+                assert digest(Path(phase['log'])) == phase['logSHA256']
+                command = phase['command']
+                expected_flags = [str(v) for v in flags]
+                previous_flags = command[1:1 + len(flags)]
+                for index, value in enumerate(expected_flags):
+                    if index and expected_flags[index - 1] == '-I':
+                        assert Path(previous_flags[index]).resolve() == (args.reuse_core_products.resolve() / lane / ('dependencies' if Path(value).name == 'dependencies' else '')).resolve()
+                    else:
+                        assert previous_flags[index] == value, 'Core compiler flags differ'
+                assert command[0] == str(SWIFTC)
+                assert command[1 + len(flags):1 + len(flags) + 2] == ['-module-name', 'CADCore']
+                response_path = Path(command[-1][1:])
+                assert command[-1].startswith('@') and digest(response_path) == previous['coreResponseSHA256']
+                assert set(shlex.split(response_path.read_text())) == {str(args.reuse_core_products.resolve() / 'snapshot' / p) for p in core}
+                expected_products = {str(Path(v)) for v in previous['coreProducts']}
+                assert expected_products == set(previous['compiledCoreProductSHA256'])
+                assert {Path(v).name for v in expected_products} == ({'CADCore.swiftmodule'} if lane == 'embedded' else {'CADCore.swiftmodule', 'CADCore.code.o'})
+                retained_core = {}
+                for source, expected in previous['compiledCoreProductSHA256'].items():
+                    assert digest(Path(source)) == expected, 'Retained Core product changed: ' + source
+                    target = dependencies / Path(source).name
+                    shutil.copyfile(source, target)
+                    assert digest(target) == expected
+                    retained_core[str(target)] = expected
+                    copied_dependencies[str(target)] = {'source': source, 'sha256': expected}
+                receipt['lanes'][lane].update(coreProducts=list(retained_core), compiledCoreProductSHA256=retained_core,
+                    retainedCoreCompilePhase=phase,
+                    reusedCoreProof={'receipt': str(core_receipt), 'receiptSHA256': digest(core_receipt),
+                        'compilePhase': phase, 'bounds': reused_core['bounds']})
             if core_command:
                 receipt['lanes'][lane]['commands']['core-compile'] = [str(v) for v in core_command]
                 receipt['lanes'][lane]['coreResponseSHA256'] = digest(core_response)

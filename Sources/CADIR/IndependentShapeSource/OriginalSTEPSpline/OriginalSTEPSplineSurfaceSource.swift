@@ -34,9 +34,6 @@ extension OriginalSTEPSplineSurfaceSource: Codable {
         let rows = try OriginalSTEPPlacementDecoding.retainedArray(PointRow.self,
             from: c.superDecoder(forKey: .controlPointRows))
         // The admitted PointRow and destination array each contain one immutable array owner per row.
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
-            throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-        }
         var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         let bytes = rows.count.multipliedReportingOverflow(by: MemoryLayout<[OriginalSTEPPlacementElement]>.stride)
         guard !bytes.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Original spline row storage overflow.") }

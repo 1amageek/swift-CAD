@@ -76,10 +76,6 @@ public struct OffsetSurfaceParameterCurveImage: Hashable, Sendable {
         }
     }
 
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Bounded source validation and chart
-    // lifting consume retained procedural/pullback/zero offset relations here.
-    // Legacy materialized analytic targets require exact original radius/origin
-    // and normal equality before this port admits those optimized charts.
     package func validateOriginalRelation(on surface: Surface3D,
         tolerance: ModelingTolerance, remainingSourceDepth: Int,
         maximumSubdivisionDepth: Int, using execution: inout OriginalQueryExecution) throws {
@@ -98,12 +94,23 @@ public struct OffsetSurfaceParameterCurveImage: Hashable, Sendable {
             maximumSubdivisionDepth: maximumSubdivisionDepth, using: &execution)
         try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
         try GeometryStructuralComparisonWork.charge(surface: retainedTarget, using: &execution)
-        guard surface == retainedTarget else {
-            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                message: "Materialized offset chart target lacks an exact original directed source relation.")
+        if surface == retainedTarget {
+            try execution.checkpoint()
+            return
         }
-        // The procedural offset's original UV law is structurally identical to
-        // its source. No rounded analytic substitute supplies this theorem.
+        if !isPullback, case .plane(let original) = offset.source,
+            case .plane(let target) = surface,
+            try OriginalPlaneOffsetRelation.proves(source: original, target: target,
+                distance: offset.distance, tolerance: tolerance, using: &execution) {
+            try execution.checkpoint()
+            return
+        }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Bounded offset-image validation
+        // admits retained offsets and whole-plane displacement identities above.
+        // Other materialized analytic families still need their original signed
+        // radius/origin and complete UV relation before this caller can accept them.
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "Materialized offset chart target lacks an exact original directed source relation.")
     }
 
     public func parameter(

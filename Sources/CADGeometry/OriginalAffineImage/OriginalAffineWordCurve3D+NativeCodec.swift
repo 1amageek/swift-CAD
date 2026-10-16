@@ -4,7 +4,6 @@ import CADCore
 extension OriginalAffineWordCurve3D: Codable {
   private enum Keys: String, CodingKey { case source, operationWord }
   public init(from decoder: Decoder) throws {
-    if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
       var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
       let c = try decoder.container(keyedBy: Keys.self)
       try usage.consumeWork(c.allKeys.count)
@@ -21,7 +20,6 @@ extension OriginalAffineWordCurve3D: Codable {
         remainingSourceDepth: sourceDepth - depth,
         maximumSubdivisionDepth: OriginalAffineWordDecodingContext.maximumCurveSubdivisionDepth(from: decoder),
         maximumAlgebraicDepth: OriginalAffineWordDecodingContext.maximumAlgebraicDepth(from: decoder), usage: &usage)
-    } else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
   }
   public func encode(to encoder: Encoder) throws {
     var c = encoder.container(keyedBy: Keys.self)

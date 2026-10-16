@@ -106,7 +106,7 @@ public struct PolySplineMeshAnalysisResult: Sendable, Hashable {
     }
 
     public var failureMessage: String? {
-        let messages = errors.map(\.message)
+        let messages = errors.map { $0.message }
         guard !messages.isEmpty else {
             return nil
         }

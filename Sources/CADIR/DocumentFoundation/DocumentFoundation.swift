@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 
 public struct DocumentFoundation: Hashable, Sendable {
@@ -40,14 +41,14 @@ public struct DocumentFoundation: Hashable, Sendable {
         let index = try attributeIndex()
         var names: [DocumentObjectReference: Set<String>] = [:]
         for attribute in attributes {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard attribute.owner.documentID == document.id else { throw DocumentFoundationError.foreignOwner(attribute.owner) }
             if !names[attribute.owner, default: []].insert(attribute.name).inserted {
                 throw DocumentFoundationError.duplicateName(attribute.name, owner: attribute.owner)
             }
             try validateLocal(attribute.owner, in: document, attributes: index)
             for reference in attribute.value.objectReferences {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try validateLocal(reference, in: document, attributes: index)
             }
         }
@@ -56,7 +57,7 @@ public struct DocumentFoundation: Hashable, Sendable {
             var path = Set<DocumentAttributeID>()
             var current: DocumentAttributeID? = attribute.id
             while let id = current, !complete.contains(id) {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 guard path.insert(id).inserted else { throw DocumentFoundationError.ownershipCycle(id) }
                 guard let owner = index[id]?.owner else { throw DocumentFoundationError.missingAttribute(id) }
                 if case .attribute(let parent) = owner.target { current = parent } else { current = nil }
@@ -68,7 +69,7 @@ public struct DocumentFoundation: Hashable, Sendable {
     private func attributeIndex() throws -> [DocumentAttributeID: DocumentAttribute] {
         var index: [DocumentAttributeID: DocumentAttribute] = [:]
         for attribute in attributes {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try attribute.validate()
             guard index.updateValue(attribute, forKey: attribute.id) == nil else { throw DocumentFoundationError.duplicateAttribute(attribute.id) }
         }

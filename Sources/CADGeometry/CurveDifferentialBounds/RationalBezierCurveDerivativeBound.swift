@@ -493,13 +493,8 @@ package struct RationalBezierCurveDerivativeCertificate: Sendable {
         numerators: thirdNumerators
       ),
     ]
-    if #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) {
       restrictionCache = .synchronized(
         try MutexRationalBezierDerivativeRestrictionCache(roots: roots, using: &execution))
-    } else {
-      restrictionCache = .stateless(
-        try StatelessRationalBezierDerivativeRestrictionCache(roots: roots, using: &execution))
-    }
   }
 
   package func firstDerivativeBounds<A: ExactScalarAdmission & ~Copyable>(
@@ -662,8 +657,6 @@ private typealias RationalBezierDerivativeRoots = [RationalBezierDerivativeOrder
   RationalBezierRestrictedDerivativePolynomials]
 
 private enum RationalBezierDerivativeRestrictionCache: Sendable {
-  case stateless(StatelessRationalBezierDerivativeRestrictionCache)
-  @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
   case synchronized(MutexRationalBezierDerivativeRestrictionCache)
 
   func restricted<A: ExactScalarAdmission & ~Copyable>(
@@ -671,42 +664,14 @@ private enum RationalBezierDerivativeRestrictionCache: Sendable {
     to interval: ScalarInterval, using execution: inout A
   ) throws -> RationalBezierRestrictedDerivativePolynomials? {
     switch self {
-    case .stateless(let cache):
-      return try cache.restricted(order: order, to: interval, using: &execution)
     case .synchronized(let cache):
-      if #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) {
         return try cache.restricted(order: order, to: interval, using: &execution)
-      }
-      throw KernelError(
-        phase: .geometry, code: .unsupportedCapability, tolerance: nil,
-        message: "The retained synchronized derivative cache requires a supported operating system."
-      )
     }
   }
 }
 
-private final class StatelessRationalBezierDerivativeRestrictionCache:
-  Sendable
-{
-  private let roots: RationalBezierDerivativeRoots
 
-  init<A: ExactScalarAdmission & ~Copyable>(
-    roots: RationalBezierDerivativeRoots, using execution: inout A
-  ) throws {
-    try execution.retainStorage(
-      bytes: MemoryLayout<RationalBezierDerivativeRoots>.stride + 2 * MemoryLayout<Int>.stride)
-    self.roots = roots
-  }
 
-  func restricted<A: ExactScalarAdmission & ~Copyable>(
-    order: RationalBezierDerivativeOrder,
-    to interval: ScalarInterval, using execution: inout A
-  ) throws -> RationalBezierRestrictedDerivativePolynomials? {
-    try roots[order]?.restricted(to: interval, using: &execution)
-  }
-}
-
-@available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
 private final class MutexRationalBezierDerivativeRestrictionCache:
   Sendable
 {

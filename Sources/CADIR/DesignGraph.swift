@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADTopology
 
@@ -661,7 +662,7 @@ public struct DesignGraph: Equatable, Sendable {
         guard Set(node.inputs).count == node.inputs.count else {
             throw FeatureEvaluationError.invalidGraph("Feature inputs contain duplicate references.")
         }
-        let outputRoles = node.outputs.map(\.role)
+        let outputRoles = node.outputs.map { $0.role }
         guard Set(outputRoles).count == outputRoles.count else {
             throw FeatureEvaluationError.invalidGraph("Feature outputs contain duplicate roles.")
         }
@@ -1387,7 +1388,7 @@ public struct DesignGraph: Equatable, Sendable {
         guard let targetSource = nodes[offset.target.featureID] else {
             throw FeatureEvaluationError.invalidGraph("Face offset target source must declare a body or sheet output.")
         }
-        let targetRoles = targetSource.outputs.map(\.role).filter { $0 == .body || $0 == .sheet }
+        let targetRoles = targetSource.outputs.map { $0.role }.filter { $0 == .body || $0 == .sheet }
         guard targetRoles.count == 1, let targetRole = targetRoles.first else {
             throw FeatureEvaluationError.invalidGraph("Face offset target source must declare a body or sheet output.")
         }
@@ -1412,7 +1413,7 @@ public struct DesignGraph: Equatable, Sendable {
         guard let targetSource = nodes[move.target.featureID] else {
             throw FeatureEvaluationError.invalidGraph("Face move target source must declare a body or sheet output.")
         }
-        let targetRoles = targetSource.outputs.map(\.role).filter { $0 == .body || $0 == .sheet }
+        let targetRoles = targetSource.outputs.map { $0.role }.filter { $0 == .body || $0 == .sheet }
         guard targetRoles.count == 1, let targetRole = targetRoles.first else {
             throw FeatureEvaluationError.invalidGraph("Face move target source must declare a body or sheet output.")
         }
@@ -1437,7 +1438,7 @@ public struct DesignGraph: Equatable, Sendable {
         guard let targetSource = nodes[move.target.featureID] else {
             throw FeatureEvaluationError.invalidGraph("Edge move target source must declare a body or sheet output.")
         }
-        let targetRoles = targetSource.outputs.map(\.role).filter { $0 == .body || $0 == .sheet }
+        let targetRoles = targetSource.outputs.map { $0.role }.filter { $0 == .body || $0 == .sheet }
         guard targetRoles.count == 1, let targetRole = targetRoles.first else {
             throw FeatureEvaluationError.invalidGraph("Edge move target source must declare a body or sheet output.")
         }
@@ -1462,7 +1463,7 @@ public struct DesignGraph: Equatable, Sendable {
         guard let targetSource = nodes[move.target.featureID] else {
             throw FeatureEvaluationError.invalidGraph("Vertex move target source must declare a body or sheet output.")
         }
-        let targetRoles = targetSource.outputs.map(\.role).filter { $0 == .body || $0 == .sheet }
+        let targetRoles = targetSource.outputs.map { $0.role }.filter { $0 == .body || $0 == .sheet }
         guard targetRoles.count == 1, let targetRole = targetRoles.first else {
             throw FeatureEvaluationError.invalidGraph("Vertex move target source must declare a body or sheet output.")
         }
@@ -1487,7 +1488,7 @@ public struct DesignGraph: Equatable, Sendable {
         guard let targetSource = nodes[transform.target.featureID] else {
             throw FeatureEvaluationError.invalidGraph("Topology transform target source must declare a body or sheet output.")
         }
-        let targetRoles = targetSource.outputs.map(\.role).filter { $0 == .body || $0 == .sheet }
+        let targetRoles = targetSource.outputs.map { $0.role }.filter { $0 == .body || $0 == .sheet }
         guard targetRoles.count == 1, let targetRole = targetRoles.first else {
             throw FeatureEvaluationError.invalidGraph("Topology transform target source must declare a body or sheet output.")
         }
@@ -1607,7 +1608,7 @@ public struct DesignGraph: Equatable, Sendable {
         guard let targetSource = nodes[mirror.target.featureID] else {
             throw FeatureEvaluationError.invalidGraph("Mirror target source must declare a body or sheet output.")
         }
-        let targetRoles = targetSource.outputs.map(\.role).filter { $0 == .body || $0 == .sheet }
+        let targetRoles = targetSource.outputs.map { $0.role }.filter { $0 == .body || $0 == .sheet }
         guard targetRoles.count == 1, let targetRole = targetRoles.first else {
             throw FeatureEvaluationError.invalidGraph("Mirror target source must declare a body or sheet output.")
         }
@@ -1876,7 +1877,7 @@ public struct DesignGraph: Equatable, Sendable {
         guard let targetSource = nodes[unjoin.target.featureID] else {
             throw FeatureEvaluationError.invalidGraph("Unjoin body target source is missing.")
         }
-        let targetRoles = targetSource.outputs.map(\.role).filter {
+        let targetRoles = targetSource.outputs.map { $0.role }.filter {
             $0 == .body || $0 == .sheet
         }
         guard targetRoles.count == 1, let targetRole = targetRoles.first else {
@@ -2338,7 +2339,7 @@ public struct DesignGraph: Equatable, Sendable {
         if states[featureID] == .visiting {
             let cycleStart = stack.firstIndex(of: featureID) ?? stack.startIndex
             let cycle = (Array(stack[cycleStart...]) + [featureID])
-                .map(\.description)
+                .map { $0.description }
                 .joined(separator: " -> ")
             throw FeatureEvaluationError.invalidGraph("Dependency cycle detected: \(cycle).")
         }

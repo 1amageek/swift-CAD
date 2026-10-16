@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -67,14 +68,14 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
         }
         var products = Set<AssemblyProductID>()
         for product in assembly.products {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try text(product.identifier); try text(product.name); try text(product.description)
             guard products.insert(product.id).inserted else { throw AssemblyError.invalidSource("Duplicate product identity.") }
         }
         var formations: [AssemblyProductFormationID: AssemblyProductFormation] = [:]
         var versions: [AssemblyProductID: Set<AssemblySourceText>] = [:]
         for formation in assembly.formations {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try text(formation.versionIdentifier); try text(formation.description)
             guard products.contains(formation.productID) else { throw AssemblyError.invalidSource("Missing product.") }
             guard formations.updateValue(formation, forKey: formation.id) == nil else {
@@ -88,7 +89,7 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
         var definitions: [AssemblyDefinitionID: AssemblyDefinition] = [:]
         var edgeIDs = Set<AssemblyOccurrenceID>()
         for definition in assembly.definitions {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard definition.children.count <= limits.maximumRecords - records,
                   definition.features.count <= limits.maximumRecords - records - definition.children.count else {
                 throw AssemblyError.resourceLimitExceeded("source records")
@@ -110,11 +111,11 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
             }
         }
         guard usedFormations.count == formations.count,
-              Set(formations.values.map(\.productID)).count == products.count else {
+              Set(formations.values.map { $0.productID }).count == products.count else {
             throw AssemblyError.invalidSource("Unreferenced product or formation.")
         }
-        for occurrence in assembly.roots + assembly.definitions.flatMap(\.children) {
-            try Task.checkCancellation()
+        for occurrence in assembly.roots + assembly.definitions.flatMap({ $0.children }) {
+            try CurrentTaskCancellationChecker().checkCancellation()
             try text(occurrence.name)
             guard edgeIDs.insert(occurrence.id).inserted else {
                 throw AssemblyError.invalidSource("Duplicate direct occurrence identity.")
@@ -169,7 +170,7 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
              parent: [AssemblyPlacementFactor]())
         }
         while let item = stack.popLast() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard !item.ancestors.contains(item.occurrence.definitionID) else {
                 throw AssemblyError.cycle(item.occurrence.definitionID)
             }

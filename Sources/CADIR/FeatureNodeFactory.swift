@@ -1,3 +1,5 @@
+import HashTreeCollections
+import CADTopology
 import CADCore
 
 public enum FeatureNodeFactory {
@@ -1088,7 +1090,7 @@ public enum FeatureNodeFactory {
         guard let source = document.designGraph.nodes[featureID] else {
             throw FeatureEvaluationError.missingInput("Feature source \(featureID) was not found.")
         }
-        let roles = source.outputs.map(\.role).filter { $0 == .body || $0 == .sheet }
+        let roles = source.outputs.map { $0.role }.filter { $0 == .body || $0 == .sheet }
         guard roles.count == 1, let role = roles.first else {
             throw FeatureEvaluationError.invalidGraph(
                 "\(owner) must declare exactly one body or sheet output."

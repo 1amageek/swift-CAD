@@ -1,9 +1,8 @@
 import Synchronization
 
 /// Immutable document copies share one memo; failed computations store nothing.
-/// Hashing remains outside the mutex. Earlier Apple systems retain pure recomputation.
+/// Hashing remains outside the mutex.
 final class ValidatedCADDocumentSourceFingerprintMemo: Sendable {
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
     private final class Storage: Sendable {
         let fingerprint = Mutex<CADDocumentSourceFingerprint?>(nil)
     }
@@ -12,19 +11,14 @@ final class ValidatedCADDocumentSourceFingerprintMemo: Sendable {
     private let publish: @Sendable (CADDocumentSourceFingerprint) -> CADDocumentSourceFingerprint
 
     init() {
-        if #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) {
-            let storage = Storage()
-            read = { storage.fingerprint.withLock { $0 } }
-            publish = { candidate in
-                storage.fingerprint.withLock { stored in
-                    if let existing = stored { return existing }
-                    stored = candidate
-                    return candidate
-                }
+        let storage = Storage()
+        read = { storage.fingerprint.withLock { $0 } }
+        publish = { candidate in
+            storage.fingerprint.withLock { stored in
+                if let existing = stored { return existing }
+                stored = candidate
+                return candidate
             }
-        } else {
-            read = { nil }
-            publish = { $0 }
         }
     }
 

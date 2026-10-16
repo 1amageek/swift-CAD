@@ -3,9 +3,6 @@ import CADCore
 extension OriginalNormalizedAffineSource: Codable {
     private enum Keys: String, CodingKey { case family, location, axis1, axis2, axis3, scale, lengthGain, linearGain, adjustments }
     public init(from decoder: any Decoder) throws {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
-            throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
-        }
         var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
         try usage.visitCell(axis: .value, depth: 0)
